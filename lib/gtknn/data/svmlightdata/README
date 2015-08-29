@@ -1,0 +1,4 @@
+If you have a dataset in the svmlight format, use:
+
+./svm2gtknn data.svmlight > data.gtknn
+

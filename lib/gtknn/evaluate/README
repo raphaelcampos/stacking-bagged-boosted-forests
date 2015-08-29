@@ -1,0 +1,3 @@
+to compile, use:
+
+g++ -o evaluate evaluate.cc
