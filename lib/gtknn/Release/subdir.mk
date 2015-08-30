@@ -4,10 +4,12 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 O_SRCS += \
-../inverted_index.o \
-../knn.o \
-../main.o \
-../utils.o 
+./cuda_distances.o \
+./inverted_index.o \
+./knn.o \
+./main.o \
+./partial_bitonic_sort.o \
+./utils.o 
 
 CU_SRCS += \
 ../cuda_distances.cu \

@@ -46,8 +46,7 @@ all: gtknn secondary-outputs
 gtknn: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-#	nvcc --relocatable-device-code=true -gencode arch=compute_30,code=sm_30 -link -o  "gtknn" $(OBJS) $(USER_OBJS) $(LIBS) -I/usr/local/cudpp-2.1/include/   -L/usr/local/cudpp-2.1/lib/ -lcudpp
-	nvcc --relocatable-device-code=true -gencode arch=compute_20,code=sm_20 -link -o "gtknn.so" $(OBJS) $(USER_OBJS) $(LIBS) -I../lib/cudpp-2.1/include/   -L../lib/cudpp-2.1/lib/ -lcudpp
+	nvcc --relocatable-device-code=true -gencode arch=compute_20,code=sm_20 -link -o "gtknn" $(OBJS) $(USER_OBJS) $(LIBS) -I../lib/cudpp-2.1/include/ -L../lib/cudpp-2.1/lib/ -lcudpp
 	@echo 'Finished building target: $@'
 	@echo ' '
 
