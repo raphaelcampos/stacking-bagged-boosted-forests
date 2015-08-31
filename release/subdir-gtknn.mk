@@ -38,8 +38,8 @@ OBJS += \
 	@echo 'Invoking: NVCC Compiler'
 #	nvcc -O3 -gencode arch=compute_20,code=sm_30 -odir "" -M -o "$(@:%.o=%.d)" "$<"  -L/usr/local/cudpp-2.1/lib/ -lcudpp  -I/usr/local/cudpp-2.1/include/
 #	nvcc --device-c -O3 -gencode arch=compute_20,code=sm_30  -x cu -o  "$@" "$<"  -L/usr/local/cudpp-2.1/lib/ -lcudpp -I/usr/local/cudpp-2.1/include/
-	nvcc -O3 -gencode arch=compute_20,code=sm_20 -odir "" -M -o "$(@:%.o=%.d)" "$<"  -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp  -I$(GTKNN_PATH)lib/cudpp-2.1/include/
-	nvcc --device-c -O3 -gencode arch=compute_20,code=sm_20  -x cu -o  "$@" "$<"  -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp -I$(GTKNN_PATH)lib/cudpp-2.1/include/
+	nvcc -O3 $(GENCODE_FLAGS) -odir "" -M -o "$(@:%.o=%.d)" "$<"  -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp  -I$(GTKNN_PATH)lib/cudpp-2.1/include/
+	nvcc --device-c -O3 $(GENCODE_FLAGS) -x cu -o  "$@" "$<"  -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp -I$(GTKNN_PATH)lib/cudpp-2.1/include/
 
 	@echo 'Finished building: $<'
 	@echo ' '

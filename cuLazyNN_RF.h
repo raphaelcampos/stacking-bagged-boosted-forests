@@ -32,7 +32,7 @@ class cuLazyNN_RF : LazyNN_RF{
 		unsigned int num_docs;
 		unsigned int num_terms;
 
-	    InvertedIndex inverted_index;
+		InvertedIndex inverted_index;
 
 		/**
 		 * Converts Dataset obj to gtknn format

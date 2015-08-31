@@ -1,3 +1,4 @@
 lib/gtknn/lib/cudpp-2.1/*
 *.o
 *.d
+release/lazynn_rf
