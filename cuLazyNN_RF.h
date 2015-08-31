@@ -20,7 +20,7 @@ class cuLazyNN_RF : LazyNN_RF{
 		cuLazyNN_RF(Dataset &data);
 
 		void train(Dataset &data);
-		double classify(std::map<unsigned int, double> test_sample, int K);
+		int classify(std::map<unsigned int, double> test_sample, int K);
 
 	private:
 		// gtknn dataset formart

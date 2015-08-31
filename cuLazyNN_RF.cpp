@@ -17,7 +17,7 @@ void cuLazyNN_RF::train(Dataset &data){
 	buildInvertedIndex();
 }
 
-double cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
+int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 	
 	std::vector<Entry> query;
 	std::map<unsigned int, double>::iterator it;
