@@ -61,12 +61,9 @@ void cuLazyNN_RF::convertDataset(Dataset &data){
 	entries.clear();
 
 	num_docs = data.getSamples().size();
-	for (int i = 0; i < num_docs; ++i)
+	for (unsigned int i = 0; i < num_docs; ++i)
 	{
-
-		// doc_id start at 1 that's why (i + 1)
-		// it is a gtknn conversion
-		unsigned int doc_id = i + 1;
+		unsigned int doc_id = i;
 
 		std::map<unsigned int, double>::iterator it;
 		for(it = data.getSamples()[i].features.begin(); it != data.getSamples()[i].features.end(); ++it){
