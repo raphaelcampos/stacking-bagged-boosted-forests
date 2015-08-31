@@ -34,7 +34,7 @@ class cuLazyNN_RF : LazyNN_RF{
 
 		InvertedIndex inverted_index;
 
-		std::map<unsigned int, double> doc_to_class;
+		std::map<unsigned int, int> doc_to_class;
 
 		/**
 		 * Converts Dataset obj to gtknn format
