@@ -11,9 +11,9 @@ LazyNN_PATH=../
 
 # Gencode arguments
 ifeq ($(OS_ARCH),armv7l)
-SMS ?= 20 30 32 35 37 50 52
+SMS ?= 20 30 32 35 37 50
 else
-SMS ?= 20 30 35 37 50 52
+SMS ?= 20 30 35 37 50
 endif
 
 ifeq ($(SMS),)

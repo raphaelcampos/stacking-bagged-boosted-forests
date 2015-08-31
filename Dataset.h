@@ -11,14 +11,16 @@
 struct sample
 {
 	std::map<unsigned int, double> features;
-	double y;
+	int y;
 	std::string labels;
+
 };
 
 class Dataset{
 	
 	public:
 		void loadSVMlightFormat(const char* input);
+		void loadGtKnnFormat(const char* input);
 		std::vector<sample>& getSamples();
 		size_t size();
 
@@ -28,6 +30,8 @@ class Dataset{
 		void string_tokenize(const std::string &str,
                        std::vector<std::string> &tokens,
                        const std::string &delimiters = " ");		
+
+		int get_class(std::string token);
 
 };
 

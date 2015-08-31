@@ -60,14 +60,41 @@ void write_output(ofstream &fileout, int trueclass, int guessedclass, int docid)
 int get_class(std::string token);
 
 
-void teste_lazynn(){
-    Dataset data;
+void teste_lazynn(int argc, char **argv){
+
+    if(argc != 7) {
+        std::cerr << "Wrong parameters. Correct usage: <executable> <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>" << std::endl;
+        exit(1);
+    }
+
+    std::string trainingFileName(argv[1]);
+    std::string testFileName(argv[2]);
+    int k = atoi(argv[3]);
+    std::string distanceFunction(argv[4]);
+    std::string outputFileName(argv[5]);
+    std::string outputFileDistancesName(argv[6]);
+
+    Dataset training_set, test_set;
+    int correct_cosine = 0, wrong_cosine = 0;
     
-    data.loadSVMlightFormat("../lib/gtknn/data/svmlightdata/acm.svm");
+    training_set.loadGtKnnFormat(trainingFileName.c_str());
 
-    cuLazyNN_RF cLazy(data);
+    cuLazyNN_RF cLazy(training_set);
+    test_set.loadGtKnnFormat(testFileName.c_str());
+    for (int i = 0; i < test_set.getSamples().size(); ++i)
+    {
+        int guessed_class = cLazy.classify(test_set.getSamples()[i].features, k);
 
+        if(guessed_class == test_set.getSamples()[i].y) {
+            correct_cosine++;   
+        } else {
+            wrong_cosine++;
+        }
+    }
 
+    printf("Cosine similarity\n");
+    printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);
+    printf("Accuracy: %lf%%\n\n", double(correct_cosine) / double(test_set.size()));
 
 }
 
@@ -80,7 +107,7 @@ int main(int argc, char **argv) {
     cuInit(0);
     cudaDeviceSynchronize();
 
-    teste_lazynn();
+    teste_lazynn(argc, argv);
 
     if(argc != 7) {
         std::cerr << "Wrong parameters. Correct usage: <executable> <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>" << std::endl;
