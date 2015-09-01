@@ -2,16 +2,22 @@
 #ifndef _cuLazyNN_RF__
 #define _cuLazyNN_RF__
 
-// gtknn
+// Gt-kNN
 #include "structs.cuh"
 #include "utils.cuh"
 #include "inverted_index.cuh"
 #include "knn.cuh"
 #include "cuda_distances.cuh"
 
+// OpenCV
+#include <opencv2/opencv.hpp>
+	
 #include "LazyNN_RF.h"
 
 #include <map>
+
+using namespace cv;
+using namespace cv::ml;
 
 class cuLazyNN_RF : LazyNN_RF{
 	
@@ -23,10 +29,13 @@ class cuLazyNN_RF : LazyNN_RF{
 		int classify(std::map<unsigned int, double> test_sample, int K);
 
 	private:
+		Dataset training;
+
 		// gtknn dataset formart
 		std::vector<Entry> entries;
 
-		// OpenCV dataset format
+		// Random Forest object
+		Ptr<RTrees> randomForest;
 
 		// Dataset statistics
 		unsigned int num_docs;
@@ -47,6 +56,10 @@ class cuLazyNN_RF : LazyNN_RF{
 		 * based on the given dataset.
 		 */
 		void buildInvertedIndex();
+
+		void createRF();
+
+		Ptr<TrainData> prepareTrainSamples(Similarity *k_nearest, unsigned int K);
 };
 
 #endif

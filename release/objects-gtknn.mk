@@ -5,4 +5,4 @@
 USER_OBJS :=
 
 #LIBS := -lrt -lcuda -lcudpp
-LIBS := -lrt -lcuda 
+LIBS := -lrt -lcuda
