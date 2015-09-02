@@ -1,10 +1,12 @@
 // OpenCV
 #include <opencv2/opencv.hpp>
-
+#include <iostream>
 #include "Dataset.h"
 
 using namespace cv;
 using namespace cv::ml;
+
+using namespace std;
 
 Ptr<TrainData> prepareTrainSamples(Dataset &training, unsigned int K)
 {
@@ -20,12 +22,13 @@ Ptr<TrainData> prepareTrainSamples(Dataset &training, unsigned int K)
 		for(it = training.getSamples()[i].features.begin(); it != training.getSamples()[i].features.end(); ++it){
 			unsigned int term_id = it->first;
 			double term_cout = it->second;
-
-			responses.at<double>(i, 0) = term_cout;
+			//cout << term_cout << endl;
+			float *ptr =  responses.ptr<float>(i);
+			ptr[0] = term_cout;
 		}
     }
 
-    
+	   cout << responses << endl;
     return TrainData::create(samples, ROW_SAMPLE, responses);
 }
 

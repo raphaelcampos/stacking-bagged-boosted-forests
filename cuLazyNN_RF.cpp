@@ -22,8 +22,8 @@ void cuLazyNN_RF::train(Dataset &data){
 }
 
 int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
-	
-	Mat testSample( 1, num_terms, CV_32FC1);
+
+	Mat testSample( 1, training.dimension(), CV_32F);
 	std::vector<Entry> query;
 	std::map<unsigned int, double>::iterator it;
 	for(it = test_features.begin(); it != test_features.end(); ++it){
@@ -31,7 +31,9 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 		double term_count = it->second;
 
 		query.push_back(Entry(0, term_id, term_count)); // doc_id, term_id, term_count
-		testSample.at<double>(0, term_id) = term_count;
+
+		float *ptr = testSample.ptr<float>(0);
+		ptr[term_id] = term_count;
 	}
 
     //Creates an empty document if there are no terms
@@ -62,25 +64,41 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 
    	printf("Training set - Num samples : %d, Dimension : %d\n", (int)training.size(), training.dimension());
 
-   	Mat samples(K, training.dimension(), CV_32F);
-	Mat responses(K, 1, CV_32F);
+   	Mat samples(K, training.dimension(), CV_32FC1);
+	Mat responses(K, 1, CV_32FC1);
 
-	std::cout << "aqui" << std::endl;
+	std::cout << "Before loop " << K << std::endl << responses << std::endl;
 
 	for(int i = 0; i < K; i++) {
-        Similarity &sim = k_nearest[i];
-        responses.at<int>(i, 0) = training.getSamples()[sim.doc_id].y;
-
+        printf("%d\n", i);
+	Similarity &sim = k_nearest[i];
+	printf("before response - doc_id : %d\n", training.getSamples()[sim.doc_id].y);
+        responses.at<double>(i, 0) = training.getSamples()[sim.doc_id].y;
+	float *ptr = responses.ptr<float>(i);
+	ptr[0] = training.getSamples()[sim.doc_id].y;
+	printf("after response - doc_id : %d\n", sim.doc_id);
         std::map<unsigned int, double>::iterator it;
 		for(it = training.getSamples()[sim.doc_id].features.begin(); it != training.getSamples()[sim.doc_id].features.end(); ++it){
 			unsigned int term_id = it->first;
 			double term_cout = it->second;
 	
-			samples.at<double>(i, term_id) = term_cout;
+			float *ptr = samples.ptr<float>(i);
+			ptr[term_id] = term_cout;
 		}
     }
 
-    randomForest->train(TrainData::create(samples, ROW_SAMPLE, responses));
+	std::cout << " Responses : " <<  responses << std::endl;
+
+
+	printf("Creating DataTrain...\n");
+    	//Ptr<TrainData> dt = TrainData::create(samples, ROW_SAMPLE, responses);
+
+	printf("Training random forest...\n");
+
+	printf("samples dim : %dx%d -  resposnses dim : %dx%d\n", samples.rows, samples.cols, responses.rows, responses.cols);
+	randomForest->train(TrainData::create(samples, ROW_SAMPLE, responses));
+
+	printf("Predicting...\n");
 	return (int)randomForest->predict(testSample);
 }
 
@@ -117,7 +135,7 @@ void cuLazyNN_RF::createRF(){
 	randomForest = RTrees::create();
     // Commented in order to allow the trees
     // be grown to the their maximal depth
-    //randomForest->setMaxDepth(4);
+    randomForest->setMaxDepth(4);
     randomForest->setMinSampleCount(2);
     randomForest->setRegressionAccuracy(0.f);
     randomForest->setUseSurrogates(false);
