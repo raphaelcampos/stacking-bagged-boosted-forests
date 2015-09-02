@@ -60,11 +60,33 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
     }
 	*/
 
-    randomForest->train(prepareTrainSamples(k_nearest, K));
+   	printf("Training set - Num samples : %d, Dimension : %d\n", (int)training.size(), training.dimension());
+
+   	Mat samples(K, training.dimension(), CV_32F);
+	Mat responses(K, 1, CV_32F);
+
+	std::cout << "aqui" << std::endl;
+
+	for(int i = 0; i < K; i++) {
+        Similarity &sim = k_nearest[i];
+        responses.at<int>(i, 0) = training.getSamples()[sim.doc_id].y;
+
+        std::map<unsigned int, double>::iterator it;
+		for(it = training.getSamples()[sim.doc_id].features.begin(); it != training.getSamples()[sim.doc_id].features.end(); ++it){
+			unsigned int term_id = it->first;
+			double term_cout = it->second;
+	
+			samples.at<double>(i, term_id) = term_cout;
+		}
+    }
+
+    randomForest->train(TrainData::create(samples, ROW_SAMPLE, responses));
 	return (int)randomForest->predict(testSample);
 }
 
 void cuLazyNN_RF::convertDataset(Dataset &data){
+	
+	num_terms = 0;
 	// delete all old entries
 	entries.clear();
 
@@ -109,8 +131,13 @@ void cuLazyNN_RF::createRF(){
 
 Ptr<TrainData> cuLazyNN_RF::prepareTrainSamples(Similarity *k_nearest, unsigned int K)
 {
-	Mat samples = Mat_<double>(K, num_terms);
-	Mat responses = Mat_<int>(K, 1);
+
+	printf("Training set - Num samples : %d, Dimension : %d, Num classes : \n", (int)training.size(), training.dimension());
+
+	Mat samples(K, training.dimension(), CV_32F);
+	Mat responses(K, 1, CV_32F);
+
+	std::cout << "aqui" << std::endl;
 
 	for(int i = 0; i < K; i++) {
         Similarity &sim = k_nearest[i];
@@ -121,7 +148,7 @@ Ptr<TrainData> cuLazyNN_RF::prepareTrainSamples(Similarity *k_nearest, unsigned 
 			unsigned int term_id = it->first;
 			double term_cout = it->second;
 	
-			responses.at<double>(i, term_id) = term_cout;
+			responses.at<double>(i, 0) = term_cout;
 		}
     }
 

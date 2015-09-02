@@ -19,13 +19,19 @@ struct sample
 class Dataset{
 	
 	public:
+
+		Dataset() : dim(0)
+		{}
+
 		void loadSVMlightFormat(const char* input);
 		void loadGtKnnFormat(const char* input);
 		std::vector<sample>& getSamples();
 		size_t size();
+		int dimension();
 
 	private:
 		std::vector<sample> samples;
+		int dim;
 
 		void string_tokenize(const std::string &str,
                        std::vector<std::string> &tokens,

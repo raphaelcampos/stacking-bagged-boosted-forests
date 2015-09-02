@@ -16,6 +16,8 @@ void Dataset::loadSVMlightFormat(const char* input){
 		    std::vector<std::string> pair;
 		    string_tokenize(tokens[i], pair, ":");
 		    smp.features[atoi(pair[0].data())] = atof(pair[1].data());
+
+		    dim = std::max(dim, atoi(pair[0].data()) + 1);
 		  }
 		  
 		  smp.y = atof(tokens[0].data());
@@ -48,6 +50,8 @@ void Dataset::loadGtKnnFormat(const char* input){
 	            int term_id = atoi(tokens[i].c_str());
 	            int term_count = atoi(tokens[i+1].c_str());
 
+	            dim = std::max(dim, term_id + 1);
+	            
 	            smp.features[term_id] = term_count;
 	        }
 	        
@@ -55,6 +59,7 @@ void Dataset::loadGtKnnFormat(const char* input){
 	        samples.push_back(smp);
 	    }
 
+		file.close();
 	}
 	else {
 		std::cerr << "Failed to open input file." << std::endl;
@@ -68,6 +73,10 @@ std::vector<sample>& Dataset::getSamples(){
 
 size_t Dataset::size(){
 	return samples.size();
+}
+
+int Dataset::dimension(){
+	return dim;
 }
 
 void Dataset::string_tokenize(const std::string &str,
