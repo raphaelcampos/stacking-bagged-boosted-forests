@@ -2,6 +2,11 @@
 
 #include <iostream>
 
+inline TermCriteria TC(int iters, double eps)
+{
+    return TermCriteria(TermCriteria::MAX_ITER + (eps > 0 ? TermCriteria::EPS : 0), iters, eps);
+}
+
 cuLazyNN_RF::cuLazyNN_RF(){
 }
 
@@ -39,7 +44,7 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 		query.push_back(Entry(0, term_id, term_count)); // doc_id, term_id, term_count
 
 		float *ptr = testSample.ptr<float>(0);
-		ptr[term_id] = term_count;
+		ptr[term_id] = term_count * log((double)training.size() / float(max(1, training.getIdf(term_id))));
 	}
 
     //Creates an empty document if there are no terms
@@ -50,12 +55,34 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 	Similarity *k_nearest = KNN(inverted_index, query, K, CosineDistance);
 
 	Ptr<RTrees> randomForest = RTrees::create();
-	
+//	randomForest->setMinSampleCount(floor(training.size()*0.01));
+  //  randomForest->setRegressionAccuracy(0.f);
+//    randomForest->setUseSurrogates(true);
+   // randomForest->setMaxCategories(16);
+   // randomForest->setPriors(Mat());
+   // randomForest->setCalculateVarImportance(false);
+    //randomForest->setActiveVarCount(1);
+
+//    randomForest->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 200, 0.1));
+
+	//randomForest->setMaxDepth(10);
+        randomForest->setMinSampleCount(10);
+        randomForest->setRegressionAccuracy(0);
+        randomForest->setUseSurrogates(false);
+        randomForest->setMaxCategories(15);
+        randomForest->setPriors(Mat());
+        randomForest->setCalculateVarImportance(false);
+        randomForest->setActiveVarCount(4);
+        randomForest->setTermCriteria(TC(200,0.01f));
+
 	Ptr<TrainData> dt = prepareTrainSamples(k_nearest, K);
 	printf("Training...\n");
 	randomForest->train(dt);
+	printf("Number of trees: %d\n", randomForest->getRoots().size());
 	printf("Predicting...\n");
-	return (int)randomForest->predict(testSample);
+	float pred = randomForest->predict(testSample);
+	printf("Prediction : %f\n", pred);
+	return (int)round(pred);
 }
 
 void cuLazyNN_RF::convertDataset(Dataset &data){
@@ -88,18 +115,22 @@ void cuLazyNN_RF::buildInvertedIndex(){
 }
 
 void cuLazyNN_RF::createRF(){
+	if(randomForest != NULL){
+                delete randomForest;
+        }
+
 	randomForest = RTrees::create();
     // Commented in order to allow the trees
     // be grown to the their maximal depth
     //randomForest->setMaxDepth(4);
-    /*randomForest->setMinSampleCount(2);
+    randomForest->setMinSampleCount(2);
     randomForest->setRegressionAccuracy(0.f);
     randomForest->setUseSurrogates(false);
     randomForest->setMaxCategories(16);
     randomForest->setPriors(Mat());
     randomForest->setCalculateVarImportance(false);
     randomForest->setActiveVarCount(1);
-    randomForest->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 5, 0));*/
+    randomForest->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 5, 0));
 }
 
 
@@ -124,7 +155,7 @@ Ptr<TrainData> cuLazyNN_RF::prepareTrainSamples(Similarity *k_nearest, unsigned 
 			double term_cout = it->second;
 			//cout << term_cout << endl;
 			float *ptr =  samples.ptr<float>(i);
-			ptr[term_id] = term_cout;
+			ptr[term_id] = term_cout * log((double)training.size() / float(max(1, training.getIdf(term_id))));
 		}
     }
 

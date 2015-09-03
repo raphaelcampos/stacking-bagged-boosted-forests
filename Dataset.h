@@ -28,9 +28,11 @@ class Dataset{
 		std::vector<sample>& getSamples();
 		size_t size();
 		int dimension();
+		int getIdf(int term_id);
 
 	private:
 		std::vector<sample> samples;
+		std::map<int, int> tfd;
 		int dim;
 
 		void string_tokenize(const std::string &str,

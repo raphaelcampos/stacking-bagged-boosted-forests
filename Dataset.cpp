@@ -15,9 +15,15 @@ void Dataset::loadSVMlightFormat(const char* input){
 		  for (unsigned int i = 1; i < tokens.size(); i++) {
 		    std::vector<std::string> pair;
 		    string_tokenize(tokens[i], pair, ":");
-		    smp.features[atoi(pair[0].data())] = atof(pair[1].data());
+		    int term_id = atoi(pair[0].data());
+		    float term_count = atof(pair[1].data());
+			smp.features[term_id] = term_count;
 
-		    dim = std::max(dim, atoi(pair[0].data()) + 1);
+		    dim = std::max(dim, term_id + 1);
+			if(term_count > 0){
+                                tfd[term_id] += 1;
+                        }
+
 		  }
 		  
 		  smp.y = atof(tokens[0].data());
@@ -53,7 +59,11 @@ void Dataset::loadGtKnnFormat(const char* input){
 	            dim = std::max(dim, term_id + 1);
 	            
 	            smp.features[term_id] = term_count;
-	        }
+	        
+			if(term_count > 0){
+				tfd[term_id] += 1;
+			}
+		}
 	        
 	        smp.y = get_class(tokens[1]);
 	        samples.push_back(smp);
@@ -77,6 +87,10 @@ size_t Dataset::size(){
 
 int Dataset::dimension(){
 	return dim;
+}
+
+int Dataset::getIdf(int term_id){
+	return tfd[term_id];
 }
 
 void Dataset::string_tokenize(const std::string &str,

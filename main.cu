@@ -90,7 +90,7 @@ void teste_lazynn(int argc, char **argv){
         printf("Total time taken for classification: %lf seconds\n", end - start);
 
         total += end - start;
-
+	printf("Guessed class : %d - Real class : %d\n", guessed_class, test_set.getSamples()[i].y);
         if(guessed_class == test_set.getSamples()[i].y) {
             correct_cosine++;   
         } else {
