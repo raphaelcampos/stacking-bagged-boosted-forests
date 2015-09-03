@@ -81,9 +81,15 @@ void teste_lazynn(int argc, char **argv){
 
     cuLazyNN_RF cLazy(training_set);
     test_set.loadGtKnnFormat(testFileName.c_str());
+    double start, end, total = 0;
     for (int i = 0; i < test_set.getSamples().size(); ++i)
     {
+        start = gettime();
         int guessed_class = cLazy.classify(test_set.getSamples()[i].features, k);
+        end = gettime();
+        printf("Total time taken for classification: %lf seconds\n", end - start);
+
+        total += end - start;
 
         if(guessed_class == test_set.getSamples()[i].y) {
             correct_cosine++;   
@@ -91,6 +97,8 @@ void teste_lazynn(int argc, char **argv){
             wrong_cosine++;
         }
     }
+
+    printf("Total time taken to classify all queries: %lf seconds\n", total);
 
     printf("Cosine similarity\n");
     printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);

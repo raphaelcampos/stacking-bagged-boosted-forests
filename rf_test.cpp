@@ -16,20 +16,23 @@ Ptr<TrainData> prepareTrainSamples(Dataset &training, unsigned int K)
 	Mat responses(K, 1, CV_32F);
 
 	for(int i = 0; i < K; i++) {
-        samples.at<int>(i, 0) = training.getSamples()[i].y;
+        //responses.at<int>(i, 0) = training.getSamples()[i].y;
+		unsigned int idx = i;//sim.doc_id;
+	    responses.at<double>(i, 0) = training.getSamples()[idx].y;
+		float *ptr = responses.ptr<float>(i);
+		ptr[0] = training.getSamples()[idx].y;
 
         std::map<unsigned int, double>::iterator it;
-		for(it = training.getSamples()[i].features.begin(); it != training.getSamples()[i].features.end(); ++it){
+		for(it = training.getSamples()[idx].features.begin(); it != training.getSamples()[idx].features.end(); ++it){
 			unsigned int term_id = it->first;
 			double term_cout = it->second;
 			//cout << term_cout << endl;
-			float *ptr =  responses.ptr<float>(i);
-			ptr[0] = term_cout;
+			float *ptr =  samples.ptr<float>(idx);
+			ptr[term_id] = term_cout;
 		}
     }
 
-	   cout << responses << endl;
-    return TrainData::create(samples, ROW_SAMPLE, responses);
+	return TrainData::create(samples, ROW_SAMPLE, responses);
 }
 
 int main(int argc, char const *argv[])
@@ -52,6 +55,7 @@ int main(int argc, char const *argv[])
 	
 	printf("Training set - Num samples : %d, Dimension : %d, Num classes : \n", (int)training.size(), training.dimension());
 
+	printf("Training...\n");
 	randomForest->train(prepareTrainSamples(training, training.size()));
 
 	test.loadGtKnnFormat("lib/gtknn/data/teste.dat");

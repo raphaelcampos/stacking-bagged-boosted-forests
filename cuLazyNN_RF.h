@@ -25,6 +25,8 @@ class cuLazyNN_RF : LazyNN_RF{
 		cuLazyNN_RF();
 		cuLazyNN_RF(Dataset &data);
 
+		~cuLazyNN_RF();
+
 		void train(Dataset &data);
 		int classify(std::map<unsigned int, double> test_sample, int K);
 
