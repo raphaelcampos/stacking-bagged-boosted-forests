@@ -5,19 +5,23 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 O_SRCS += \
 ./Dataset.o \
-./cuLazyNN_RF.o
+./cuLazyNN_RF.o\
+./cuNearestNeighbors.o 
 
 CPP_SRCS += \
 $(LazyNN_PATH)Dataset.cpp \
-$(LazyNN_PATH)cuLazyNN_RF.cpp
+$(LazyNN_PATH)cuLazyNN_RF.cpp\
+$(LazyNN_PATH)cuNearestNeighbors.cpp 
 
 CPP_DEPS += \
 ./Dataset.d \
-./cuLazyNN_RF.d 
+./cuLazyNN_RF.d \
+./cuNearestNeighbors.d 
 
 OBJS += \
 ./Dataset.o \
-./cuLazyNN_RF.o
+./cuLazyNN_RF.o \
+./cuNearestNeighbors.o 
 
 # Each subdirectory must supply rules for building sources it contributes
 %.o: $(LazyNN_PATH)%.cpp
