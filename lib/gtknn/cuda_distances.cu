@@ -20,7 +20,7 @@
 
 #include "cuda_distances.cuh"
 
-__host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     dim3 grid, threads;
     get_grid_config(grid, threads);
 
@@ -28,7 +28,7 @@ __host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *
     calculateDistancesCosine<<<grid, threads>>>(inverted_index, d_query, index, dist, D);
 }
 
-__global__ void initDistancesCosine(InvertedIndex inverted_index, Similarity *dist) {
+__global__ void initDistancesCosine(InvertedIndex inverted_index, cuSimilarity *dist) {
     int N = inverted_index.num_docs;
     int block_size = N / gridDim.x + (N % gridDim.x == 0 ? 0 : 1);		//Partition size
     int offset = block_size * (blockIdx.x); 	//Beginning of the block
@@ -39,9 +39,9 @@ __global__ void initDistancesCosine(InvertedIndex inverted_index, Similarity *di
     initDistancesCosineDevice(dist + offset, offset, size);
 }
 
-__device__ void initDistancesCosineDevice(Similarity *dist, int offset, int N) {
+__device__ void initDistancesCosineDevice(cuSimilarity *dist, int offset, int N) {
     for(int i = threadIdx.x; i < N; i += blockDim.x) {
-        dist[i] = Similarity(i + offset, 0.0); //each position of dist has the memory position to a struct similarity, initialized by the similarity value (0.0) and the document id (i + offset)
+        dist[i] = cuSimilarity(i + offset, 0.0); //each position of dist has the memory position to a struct cuSimilarity, initialized by the cuSimilarity value (0.0) and the document id (i + offset)
     }
 }
 
@@ -50,7 +50,7 @@ __device__ void initDistancesCosineDevice(Similarity *dist, int offset, int N) {
  * x has D elements
  * Computed distances are stored in dist
  */
-__global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     __shared__ int N;
 
     if(threadIdx.x == 0) {
@@ -96,7 +96,7 @@ __global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_
 }
 
 
-__global__ void initDistancesEuclidean(InvertedIndex inverted_index, Similarity *dist) {
+__global__ void initDistancesEuclidean(InvertedIndex inverted_index, cuSimilarity *dist) {
     int N = inverted_index.num_docs;
     int block_size = N / gridDim.x + (N % gridDim.x == 0 ? 0 : 1);		//Partition size
     int offset = block_size * (blockIdx.x); 	//Beginning of the block
@@ -107,7 +107,7 @@ __global__ void initDistancesEuclidean(InvertedIndex inverted_index, Similarity 
     initDistancesEuclideanDevice(inverted_index.d_norms + offset, dist + offset, offset, size);
 }
 
-__host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     dim3 grid, threads;
     get_grid_config(grid, threads);
 
@@ -115,13 +115,13 @@ __host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, in
     calculateDistancesEuclidean<<<grid, threads>>>(inverted_index, d_query, index, dist, D);
 }
 
-__device__ void initDistancesEuclideanDevice(float *d_norms, Similarity *dist, int offset, int N) {
+__device__ void initDistancesEuclideanDevice(float *d_norms, cuSimilarity *dist, int offset, int N) {
     for(int i = threadIdx.x; i < N; i += blockDim.x) {
-        dist[i] = Similarity(i + offset, -d_norms[i]); //adjust the norm to keep the decreasing ordering
+        dist[i] = cuSimilarity(i + offset, -d_norms[i]); //adjust the norm to keep the decreasing ordering
     }
 }
 
-__global__ void initDistancesManhattan(InvertedIndex inverted_index, Similarity *dist) {
+__global__ void initDistancesManhattan(InvertedIndex inverted_index, cuSimilarity *dist) {
     int N = inverted_index.num_docs;
     int block_size = N / gridDim.x + (N % gridDim.x == 0 ? 0 : 1);		//Partition size
     int offset = block_size * (blockIdx.x); 	//Beginning of the block
@@ -132,7 +132,7 @@ __global__ void initDistancesManhattan(InvertedIndex inverted_index, Similarity 
     initDistancesManhattanDevice(inverted_index.d_normsl1 + offset, dist + offset, offset, size);
 }
 
-__host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     dim3 grid, threads;
     get_grid_config(grid, threads);
 
@@ -140,9 +140,9 @@ __host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, in
     calculateDistancesManhattan<<<grid, threads>>>(inverted_index, d_query, index, dist, D);
 }
 
-__device__ void initDistancesManhattanDevice(float *d_normsl1, Similarity *dist, int offset, int N) {
+__device__ void initDistancesManhattanDevice(float *d_normsl1, cuSimilarity *dist, int offset, int N) {
     for(int i = threadIdx.x; i < N; i += blockDim.x) {
-        dist[i] = Similarity(i + offset, d_normsl1[i]*-1.0 );
+        dist[i] = cuSimilarity(i + offset, d_normsl1[i]*-1.0 );
     }
 }
 
@@ -153,7 +153,7 @@ __device__ void initDistancesManhattanDevice(float *d_normsl1, Similarity *dist,
  * x has D elements
  * Computed distances are stored in dist
  */
-__global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     __shared__ int N;
 
     if(threadIdx.x == 0) {
@@ -198,7 +198,7 @@ __global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry 
  * x has D elements
  * Computed distances are stored in dist
  */
-__global__ void calculateDistancesManhattan(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D) {
+__global__ void calculateDistancesManhattan(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D) {
     __shared__ int N;
 
     if(threadIdx.x == 0) {

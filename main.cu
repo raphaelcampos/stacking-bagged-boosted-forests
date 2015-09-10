@@ -53,7 +53,7 @@ void readTestFile(InvertedIndex &index, FileStats &stats, std::string &file, int
 void updateStatsMaxFeatureTest(std::string &filename, FileStats &stats);
 
 bool makeQuery(InvertedIndex &inverted_index, FileStats &stats, std::string &line, int K,
-               void (*distance)(InvertedIndex, Entry*, int*, Similarity*, int D), ofstream &fileout, ofstream &filedists);
+               void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D), ofstream &fileout, ofstream &filedists);
 
 void write_output(ofstream &fileout, int trueclass, int guessedclass, int docid);
 
@@ -273,7 +273,7 @@ void readTestFile(InvertedIndex &index, FileStats &stats, std::string &filename,
 }
 
 bool makeQuery(InvertedIndex &inverted_index, FileStats &stats, std::string &line, int K,
-               void (*distance)(InvertedIndex, Entry*, int*, Similarity*, int D), ofstream &outputfile, ofstream &outputdists) {
+               void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D), ofstream &outputfile, ofstream &outputdists) {
     std::vector<Entry> query;
 
     std::vector<std::string> tokens = split(line, ' ');
@@ -294,12 +294,12 @@ bool makeQuery(InvertedIndex &inverted_index, FileStats &stats, std::string &lin
     }
 
 
-    Similarity *k_nearest = KNN(inverted_index, query, K, distance);
+    cuSimilarity *k_nearest = KNN(inverted_index, query, K, distance);
     std::map<int, int> vote_count;
     std::map<int, int>::iterator it;
 
     for(int i = 0; i < K; i++) {
-        Similarity &sim = k_nearest[i];
+        cuSimilarity &sim = k_nearest[i];
         vote_count[stats.doc_to_class[sim.doc_id]]++;
         outputdists<<sim.distance<<" ";
     }

@@ -1,0 +1,76 @@
+TCPP
+----
+                Thiago Salles (tsalles@dcc.ufmg.br)
+
+
+
+How to compile:
+  g++ -O3 -fopenmp --fast-math -lm tcpp.cc -o tcpp
+
+Supported learning algorithms:
+  [ Let x be a test example. ]
+  Rocchio: classifies x according to the most similar class centroid
+    tcpp call: -m rocchio
+  KNN: classifies x based on its k nearest neighborhood training examples
+    tcpp call: -m knn
+    -- Hyper-parameters:
+         k (size of neighborhood)
+  NB: probabilistic model which classifies x to the class y with max P(y|x)
+    tcpp call: -m lnaivebayes (naive bayes with log transformation)
+    tcpp call: -m pnaivebayes (naive bayes with high precision arithmetic, true probabilities, slow)
+    tcpp call: -m cnaivebayes (complement naive bayes)
+    tcpp call: -m gnaivebayes (gaussian naive bayes, for continuous inputs)
+    -- Hyper-parameters:
+         a: laplace smoothing
+         l: jelinek-mercer smoothing
+  DecisionTree: learn a tree-based classifier
+    tcpp call: -m decisiontree
+  RandomForests: learn a random forest classifier and classify x according to
+                 the predictions of each weak learner (decision tree)
+    tcpp call: -m randomforest
+    -- Hyper-parameters:
+         n: number of trees
+         x: % of attributes to be candidates for splitting
+         N: % of sampled examples to build a DT (bagging amounts to set it to 0.64)
+         H: size of trees (unprunned = 0)
+
+    -- Variations:
+         New algorithms can be obtained just by parameter settings, for example:
+           DecisionTree: (n=1, x=1.0, N=1.0)
+           DecisionStumps: (n=1,x=1.0,N=1.0,H=2.0)
+
+Input Format:
+  -d train_file -t test_file
+where train_file and test_file must adhere to the following sparse format:
+
+id;class;fa;va;fb;vb;...
+where fi and vi denote the identifier of feature i and the value of
+feature i, respectively.
+
+For example, consider the following hypothetical input data: 1;2;2;4;5;2;
+It denotes a example identified by 1, belonging to class 2 and composed
+by two features, namely, 2 and 5. Feature 2 receives value 4 whereas
+feature 5 receives value 2.
+
+If you are dealing with text data, you can pass just the term frequencies
+as feature values (usually, integer values). If you want to pre-compute feature
+weights (do it with care when dealing with text classification), you can inform
+TCPP to avoid normalization and any additional feature weighting, by passing the
+following parameter when calling TCPP:
+  tcpp -R
+
+Finally, take a look at the following auxiliar programs/scripts:
+
+  1 - stats: Computes several quality metrics (micro/macro F1
+             and a couple of others - you may need to programatically
+             activate them and compile)
+       compile: g++ -O3 --fast-math -lm evaluate.cc -o stats
+  2 - crossValidation: splits dataset into K folds (for k-fold cross-validation)
+       compile: gcc val.cc -o crossValidation
+  3 - exp_tcpp.sh: It is a k-fold cross-validation procedure. you may need to 'chmod 755'
+                   accuracy3 and compile 'crossValidation'.
+  4 - tsalles2libsvm: Converts TCPP input data into libsvm/liblinear formats
+       compile: g++ -O3 tsalles2libsvm.cc -o tsalles2libsvm
+
+Any questions, feel free to email me ;)
+

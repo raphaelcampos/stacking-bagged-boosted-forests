@@ -20,7 +20,7 @@
 
 #include "partial_bitonic_sort.cuh"
 
-__global__ void bitonicPartialSort(Similarity *dist, Similarity *nearestK, int N, int K) {
+__global__ void bitonicPartialSort(cuSimilarity *dist, cuSimilarity *nearestK, int N, int K) {
     int block_size = N / gridDim.x + (N % gridDim.x == 0 ? 0 : 1);		//Tamanho da particao
     int offset = block_size * (blockIdx.x); 	//Inicio do bloco
     int lim = min(offset + block_size, N); 				//Fim do bloco
@@ -34,7 +34,7 @@ __global__ void bitonicPartialSort(Similarity *dist, Similarity *nearestK, int N
 /**
  * Performs the bitonic merge until all partitions get combined in a single one with the K smallest elements
  */
-__device__ void bitonicPartialMerge(Similarity *dist, Similarity *nearestK, int N, int K) {
+__device__ void bitonicPartialMerge(cuSimilarity *dist, cuSimilarity *nearestK, int N, int K) {
     int num_partitions = (N + K - 1) / K;			   //Numero de particoes a serem combinadas
     int partition_step = 2;							   //Step size (in partitions)
     while(num_partitions > 1) {
@@ -45,7 +45,7 @@ __device__ void bitonicPartialMerge(Similarity *dist, Similarity *nearestK, int 
 
             //keep only the smallest value
             if(pos2 < N) {
-                Similarity x = dist[pos2];
+                cuSimilarity x = dist[pos2];
                 if(x < dist[pos1]) {
                     dist[pos1] = x;
                 }
@@ -68,8 +68,8 @@ __device__ void bitonicPartialMerge(Similarity *dist, Similarity *nearestK, int 
                     int pos2 = pos1 ^ step;
 
                     if(pos1 < pos2 && pos2 < N) {
-                        Similarity x = dist[pos1];
-                        Similarity y = dist[pos2];
+                        cuSimilarity x = dist[pos1];
+                        cuSimilarity y = dist[pos2];
 
                         //0 is up
                         //1 is down
@@ -96,7 +96,7 @@ __device__ void bitonicPartialMerge(Similarity *dist, Similarity *nearestK, int 
 /**
  * Performs the bitonic sorting until the partitions get to the size K
  */
-__device__ void bitonicPartialSort(Similarity *dist, int N, int K) {
+__device__ void bitonicPartialSort(cuSimilarity *dist, int N, int K) {
     for(int k = 2; k <= K; k <<= 1) {
         for(int step = k >> 1; step > 0; step >>= 1) {
             for(int i = threadIdx.x; ; i += blockDim.x) {
@@ -105,8 +105,8 @@ __device__ void bitonicPartialSort(Similarity *dist, int N, int K) {
                 int pos2 = pos1 ^ step;
 
                 if(pos2 < N) {
-                    Similarity x = dist[pos1];
-                    Similarity y = dist[pos2];
+                    cuSimilarity x = dist[pos1];
+                    cuSimilarity y = dist[pos2];
 
                     if(( (pos1 & k) == 0 && x > y ) || ( (pos1 & k) != 0 && x < y )) {
                         dist[pos1] = y;

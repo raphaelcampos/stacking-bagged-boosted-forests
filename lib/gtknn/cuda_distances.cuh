@@ -33,33 +33,33 @@
 #include "utils.cuh"
 
 /**
- * Cosine similarity distance
+ * Cosine cuSimilarity distance
  */
-__host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
-__global__ void initDistancesCosine(InvertedIndex inverted_index, Similarity *dist);
+__global__ void initDistancesCosine(InvertedIndex inverted_index, cuSimilarity *dist);
 
-__device__ void initDistancesCosineDevice(Similarity *dist, int offset, int N);
+__device__ void initDistancesCosineDevice(cuSimilarity *dist, int offset, int N);
 
-__global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
 /**
  * Euclidean distance functions
  */
-__host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
-__global__ void initDistancesEuclidean(InvertedIndex inverted_index, Similarity *dist);
+__global__ void initDistancesEuclidean(InvertedIndex inverted_index, cuSimilarity *dist);
 
-__device__ void initDistancesEuclideanDevice(float *d_norms, Similarity *dist, int offset, int N);
+__device__ void initDistancesEuclideanDevice(float *d_norms, cuSimilarity *dist, int offset, int N);
 
-__global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
-__global__ void calculateDistancesManhattan(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__global__ void calculateDistancesManhattan(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
-__host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, Similarity *dist, int D);
+__host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
-__global__ void initDistancesManhattan(InvertedIndex inverted_index, Similarity *dist);
+__global__ void initDistancesManhattan(InvertedIndex inverted_index, cuSimilarity *dist);
 
-__device__ void initDistancesManhattanDevice(float *d_norms, Similarity *dist, int offset, int N);
+__device__ void initDistancesManhattanDevice(float *d_norms, cuSimilarity *dist, int offset, int N);
 
 #endif /* CUDA_DISTANCES_CUH_ */

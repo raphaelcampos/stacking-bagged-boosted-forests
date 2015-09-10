@@ -22,6 +22,7 @@ class Dataset{
 
 		Dataset() : dim(0)
 		{}
+		~Dataset();
 
 		void loadSVMlightFormat(const char* input);
 		void loadGtKnnFormat(const char* input);
@@ -32,7 +33,7 @@ class Dataset{
 
 	private:
 		std::vector<sample> samples;
-		std::map<int, int> tfd;
+		std::map<int, int> idf;
 		int dim;
 
 		void string_tokenize(const std::string &str,

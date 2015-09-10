@@ -30,10 +30,10 @@
 
 #include "structs.cuh"
 
-__global__ void bitonicPartialSort(Similarity *dist, Similarity *nearestK, int N, int K);
+__global__ void bitonicPartialSort(cuSimilarity *dist, cuSimilarity *nearestK, int N, int K);
 
-__device__ void bitonicPartialMerge(Similarity *dist, Similarity *nearestK, int N, int K);
+__device__ void bitonicPartialMerge(cuSimilarity *dist, cuSimilarity *nearestK, int N, int K);
 
-__device__ void bitonicPartialSort(Similarity *dist, int N, int K);
+__device__ void bitonicPartialSort(cuSimilarity *dist, int N, int K);
 
 #endif /* PARTIAL_BITONIC_SORT_CUH_ */

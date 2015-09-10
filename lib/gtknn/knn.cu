@@ -40,8 +40,8 @@
 /*
 * We pass the distance function  as a pointer  (*distance)
 */
-__host__ Similarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query, int K,
-                         void (*distance)(InvertedIndex, Entry*, int*, Similarity*, int D)) {
+__host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query, int K,
+                         void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D)) {
     //Obtain the smallest power of 2 greater than K (facilitates the sorting algorithm)
     int KK = 1;
     while(KK < K) KK <<= 1;
@@ -51,11 +51,11 @@ __host__ Similarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query
 
     int *d_count, *d_index;
     Entry *d_query;
-    Similarity *d_dist, *d_nearestK, *h_nearestK;
+    cuSimilarity *d_dist, *d_nearestK, *h_nearestK;
     float *d_qnorm, *d_qnorml1;
     float fzero=0;
-    gpuAssert(cudaMalloc(&d_dist, inverted_index.num_docs * sizeof(Similarity)));
-    gpuAssert(cudaMalloc(&d_nearestK, KK * grid.x * sizeof(Similarity)));
+    gpuAssert(cudaMalloc(&d_dist, inverted_index.num_docs * sizeof(cuSimilarity)));
+    gpuAssert(cudaMalloc(&d_nearestK, KK * grid.x * sizeof(cuSimilarity)));
     gpuAssert(cudaMalloc(&d_query, query.size() * sizeof(Entry)));
     gpuAssert(cudaMalloc(&d_index, query.size() * sizeof(int)));
     gpuAssert(cudaMalloc(&d_count, query.size() * sizeof(int)));
@@ -93,10 +93,10 @@ __host__ Similarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query
     gpuAssert(cudaGetLastError());
 
     time = gettime();
-    h_nearestK = (Similarity*) malloc(KK * grid.x * sizeof(Similarity));
-    gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(Similarity), cudaMemcpyDeviceToHost));
+    h_nearestK = (cuSimilarity*) malloc(KK * grid.x * sizeof(cuSimilarity));
+    gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(cuSimilarity), cudaMemcpyDeviceToHost));
     //Priority queue to obtain the K nearest neighbors
-    std::priority_queue<Similarity> pq;
+    std::priority_queue<cuSimilarity> pq;
 //    std::set<int> alreadyIn;
 
     for(int i = 0, lim = KK * grid.x; i < lim; i++) {
@@ -122,7 +122,7 @@ __host__ Similarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query
         if(pq.size() != K) {
             pq.push(h_nearestK[i]);
         } else {
-            const Similarity &sim = pq.top();
+            const cuSimilarity &sim = pq.top();
             if(sim > h_nearestK[i]) {
                 pq.pop();
                 pq.push(h_nearestK[i]);
@@ -132,8 +132,8 @@ __host__ Similarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query
 
     int i = K - 1;
     while(!pq.empty()) {
-        const Similarity &sim = pq.top();
-//		Similarity sim = pq.top();
+        const cuSimilarity &sim = pq.top();
+//		cuSimilarity sim = pq.top();
 //		sim.distance=sim.distance/qnorm;
         h_nearestK[i--] = sim;
         pq.pop();

@@ -2,18 +2,38 @@
 
 #include <iostream>
 
-inline TermCriteria TC(int iters, double eps)
+// tcpp
+#include "tcpp/tree.hpp"
+#include "tcpp/rf.hpp"
+
+void prepareTrainSamples(RF *rf, Dataset &training, cuSimilarity *k_nearest, unsigned int K)
 {
-    return TermCriteria(TermCriteria::MAX_ITER + (eps > 0 ? TermCriteria::EPS : 0), iters, eps);
+	for(int i = 0; i < K; i++) {
+		DTDocument *doc = new DTDocument();
+        cuSimilarity &sim = k_nearest[i];
+
+		unsigned int idx = sim.doc_id;
+	    doc->set_id(Utils::toString(idx));
+	    doc->set_class(Utils::toString(training.getSamples()[idx].y));
+
+        std::map<unsigned int, double>::iterator it;
+		for(it = training.getSamples()[idx].features.begin(); it != training.getSamples()[idx].features.end(); ++it){
+			unsigned int term_id = it->first;
+			double term_count = it->second;
+			
+			doc->insert_term(term_id, term_count * log((double)training.size() / float(max(1, training.getIdf(term_id))))); //* log((double)training.size() / float(max(1, training.getIdf(term_id))));
+		}
+    	
+    	rf->add_document(doc);
+    }
 }
 
 cuLazyNN_RF::cuLazyNN_RF(){
 }
 
 cuLazyNN_RF::~cuLazyNN_RF(){
-	if(randomForest != NULL){
-		delete randomForest;
-	}
+	doc_to_class.clear();
+	entries.clear();
 }
 
 cuLazyNN_RF::cuLazyNN_RF(Dataset &data){
@@ -34,7 +54,10 @@ void cuLazyNN_RF::train(Dataset &data){
 
 int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 
-	Mat testSample( 1, training.dimension(), CV_32F);
+	DTDocument * doc = new DTDocument();
+
+	doc->set_id("0");
+	doc->set_class("1");
 	std::vector<Entry> query;
 	std::map<unsigned int, double>::iterator it;
 	for(it = test_features.begin(); it != test_features.end(); ++it){
@@ -42,9 +65,7 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
 		double term_count = it->second;
 
 		query.push_back(Entry(0, term_id, term_count)); // doc_id, term_id, term_count
-
-		float *ptr = testSample.ptr<float>(0);
-		ptr[term_id] = term_count * log((double)training.size() / float(max(1, training.getIdf(term_id))));
+		doc->insert_term(term_id, term_count * log((double)training.size() / float(max(1, training.getIdf(term_id)))));
 	}
 
     //Creates an empty document if there are no terms
@@ -52,37 +73,26 @@ int cuLazyNN_RF::classify(std::map<unsigned int, double> test_features, int K){
         query.push_back(Entry(0, 0, 0));
     }
 
-	Similarity *k_nearest = KNN(inverted_index, query, K, CosineDistance);
+	cuSimilarity *k_nearest = KNN(inverted_index, query, K, CosineDistance);
+	Scores<double> similarities(doc->get_id(), doc->get_class());
 
-	Ptr<RTrees> randomForest = RTrees::create();
-//	randomForest->setMinSampleCount(floor(training.size()*0.01));
-  //  randomForest->setRegressionAccuracy(0.f);
-//    randomForest->setUseSurrogates(true);
-   // randomForest->setMaxCategories(16);
-   // randomForest->setPriors(Mat());
-   // randomForest->setCalculateVarImportance(false);
-    //randomForest->setActiveVarCount(1);
+	RF * rf = new RF(0, 1.0, 100);
+	  
+	rf->set_doc_delete(false);
+	
+	double end, start = gettime();
+	prepareTrainSamples(rf, training, k_nearest, K);
+	end = gettime();
+    printf("Total time taken preparing samples: %lf seconds\n", end - start);
 
-//    randomForest->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 200, 0.1));
+	rf->build();
 
-	//randomForest->setMaxDepth(10);
-        randomForest->setMinSampleCount(10);
-        randomForest->setRegressionAccuracy(0);
-        randomForest->setUseSurrogates(false);
-        randomForest->setMaxCategories(15);
-        randomForest->setPriors(Mat());
-        randomForest->setCalculateVarImportance(false);
-        randomForest->setActiveVarCount(4);
-        randomForest->setTermCriteria(TC(200,0.01f));
+	similarities = rf->classify(doc);
+	
+	delete rf;
+	delete doc;
 
-	Ptr<TrainData> dt = prepareTrainSamples(k_nearest, K);
-	printf("Training...\n");
-	randomForest->train(dt);
-	printf("Number of trees: %d\n", randomForest->getRoots().size());
-	printf("Predicting...\n");
-	float pred = randomForest->predict(testSample);
-	printf("Prediction : %f\n", pred);
-	return (int)round(pred);
+	return atoi(similarities.top().class_name.c_str());
 }
 
 void cuLazyNN_RF::convertDataset(Dataset &data){
@@ -112,53 +122,4 @@ void cuLazyNN_RF::convertDataset(Dataset &data){
 
 void cuLazyNN_RF::buildInvertedIndex(){
 	inverted_index = make_inverted_index(num_docs, num_terms, entries);
-}
-
-void cuLazyNN_RF::createRF(){
-	if(randomForest != NULL){
-                delete randomForest;
-        }
-
-	randomForest = RTrees::create();
-    // Commented in order to allow the trees
-    // be grown to the their maximal depth
-    //randomForest->setMaxDepth(4);
-    randomForest->setMinSampleCount(2);
-    randomForest->setRegressionAccuracy(0.f);
-    randomForest->setUseSurrogates(false);
-    randomForest->setMaxCategories(16);
-    randomForest->setPriors(Mat());
-    randomForest->setCalculateVarImportance(false);
-    randomForest->setActiveVarCount(1);
-    randomForest->setTermCriteria(TermCriteria(TermCriteria::MAX_ITER, 5, 0));
-}
-
-
-Ptr<TrainData> cuLazyNN_RF::prepareTrainSamples(Similarity *k_nearest, unsigned int K)
-{
-	printf("Allocation Matrix %dx%d...\n", K , training.dimension());
-
-	Mat samples(K, training.dimension(), CV_32F);
-	Mat responses(K, 1, CV_32F);
-
-	for(int i = 0; i < K; i++) {
-        Similarity &sim = k_nearest[i];
-
-		unsigned int idx = sim.doc_id;
-	    responses.at<double>(i, 0) = training.getSamples()[idx].y;
-		float *ptr = responses.ptr<float>(i);
-		ptr[0] = training.getSamples()[idx].y;
-
-        std::map<unsigned int, double>::iterator it;
-		for(it = training.getSamples()[idx].features.begin(); it != training.getSamples()[idx].features.end(); ++it){
-			unsigned int term_id = it->first;
-			double term_cout = it->second;
-			//cout << term_cout << endl;
-			float *ptr =  samples.ptr<float>(i);
-			ptr[term_id] = term_cout * log((double)training.size() / float(max(1, training.getIdf(term_id))));
-		}
-    }
-
-    printf("Creating TrainData...\n");
-	return TrainData::create(samples, ROW_SAMPLE, responses);
 }

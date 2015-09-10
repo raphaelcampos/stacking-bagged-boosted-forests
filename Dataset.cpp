@@ -1,5 +1,10 @@
 #include "Dataset.h"
 
+Dataset::~Dataset(){
+	samples.clear();
+	idf.clear();
+}
+
 void Dataset::loadSVMlightFormat(const char* input){
 	std::ifstream file(input);
 	if (file) {
@@ -21,7 +26,7 @@ void Dataset::loadSVMlightFormat(const char* input){
 
 		    dim = std::max(dim, term_id + 1);
 			if(term_count > 0){
-                                tfd[term_id] += 1;
+                                idf[term_id] += 1;
                         }
 
 		  }
@@ -61,7 +66,7 @@ void Dataset::loadGtKnnFormat(const char* input){
 	            smp.features[term_id] = term_count;
 	        
 			if(term_count > 0){
-				tfd[term_id] += 1;
+				idf[term_id] += 1;
 			}
 		}
 	        
@@ -90,7 +95,11 @@ int Dataset::dimension(){
 }
 
 int Dataset::getIdf(int term_id){
-	return tfd[term_id];
+	std::map<int, int>::iterator it = idf.find(term_id);
+	if(it != idf.end())
+		return it->second;
+	else
+		return 0;
 }
 
 void Dataset::string_tokenize(const std::string &str,

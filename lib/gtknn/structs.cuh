@@ -42,18 +42,18 @@ struct Entry {
     }
 };
 
-struct Similarity {
+struct cuSimilarity {
     int doc_id;
     float distance;
 
-    Similarity() {}
-    __host__ __device__ Similarity(int doc_id, float distance) : doc_id(doc_id), distance(distance) {}
+    cuSimilarity() {}
+    __host__ __device__ cuSimilarity(int doc_id, float distance) : doc_id(doc_id), distance(distance) {}
 
-    __host__ __device__ bool operator < (const Similarity &sim) const {
+    __host__ __device__ bool operator < (const cuSimilarity &sim) const {
         return distance > sim.distance;
     }
 
-    __host__ __device__ bool operator > (const Similarity &sim) const {
+    __host__ __device__ bool operator > (const cuSimilarity &sim) const {
         return distance < sim.distance;
     }
 };
