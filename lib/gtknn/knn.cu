@@ -80,7 +80,6 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &que
     cudaMemcpy(&qnorm, d_qnorm, sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&qnorml1, d_qnorml1, sizeof(float), cudaMemcpyDeviceToHost);
 
-//	printf("%f\n", qnorm);
     float qnormeucl=qnorm;
     float qnormcos=sqrt(qnorm);
     if (qnormcos==0)qnormcos=1; //avoid NaN
@@ -95,13 +94,11 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &que
     time = gettime();
     h_nearestK = (cuSimilarity*) malloc(KK * grid.x * sizeof(cuSimilarity));
     gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(cuSimilarity), cudaMemcpyDeviceToHost));
+
     //Priority queue to obtain the K nearest neighbors
     std::priority_queue<cuSimilarity> pq;
-//    std::set<int> alreadyIn;
 
     for(int i = 0, lim = KK * grid.x; i < lim; i++) {
-//		printf("sim: %f\n",sim.distance );
-
         //adjust the correct distances:
         if(distance==CosineDistance) {
             h_nearestK[i].distance/=qnormcos;
@@ -136,6 +133,7 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &que
 //		cuSimilarity sim = pq.top();
 //		sim.distance=sim.distance/qnorm;
         h_nearestK[i--] = sim;
+        //printf("sim: %f, id: %d\n",sim.distance, sim.doc_id);
         pq.pop();
     }
 

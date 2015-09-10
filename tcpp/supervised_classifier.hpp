@@ -127,7 +127,7 @@ void SupervisedClassifier::test(const std::string &test_fn) {
     std::string line;
     std::vector<std::string> buffer;
     buffer.reserve(10000);
-    while (file >> line) {
+    while (getline(file, line)) {
       buffer.push_back(line);
       if (buffer.size() == 10000) {
         #pragma omp parallel for num_threads(8) schedule(dynamic)
@@ -149,7 +149,7 @@ void SupervisedClassifier::test(const std::string &test_fn) {
     }
   }
   else {
-    std::cerr << "Error while opening training file." << std::endl;
+    std::cerr << "Error while opening test file." << std::endl;
     exit(1);
   }
 }

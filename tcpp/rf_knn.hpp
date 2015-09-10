@@ -48,7 +48,7 @@ class KNN_Doc_Sim{
 class RF_KNN : public SupervisedClassifier{
   public:
     RF_KNN(unsigned int r, double m=1.0, unsigned int k=30, unsigned int num_trees=10)
-      : SupervisedClassifier(r), num_trees_(num_trees), k_(k), m_(m), maxIDF(0.0) {docs_processed_ = 0; std::cerr << k << std::endl;}
+      : SupervisedClassifier(r), num_trees_(num_trees), k_(k), m_(m), maxIDF(0.0) {docs_processed_ = correct_cosine = wrong_cosine = 0; std::cerr << k << std::endl;}
     ~RF_KNN();
     bool parse_train_line(const std::string&);
     void train(const std::string&);
@@ -68,6 +68,9 @@ class RF_KNN : public SupervisedClassifier{
     std::map<const DTDocument*, double> knn_doc_sizes_;
     double maxIDF;
     unsigned int docs_processed_;
+    unsigned int correct_cosine;
+    unsigned int wrong_cosine;
+      
 };
 
 void RF_KNN::insert_knn_term(unsigned int term_id, const DTDocument* const& doc, double tf){
@@ -125,7 +128,7 @@ void RF_KNN::reset_model(){
 
 bool RF_KNN::parse_train_line(const std::string& line){
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
   double maxTF = 0;
@@ -209,11 +212,10 @@ Scores<double> RF_KNN::classify(const DTDocument* doc, std::map<const DTDocument
 
 void RF_KNN::parse_test_line(const std::string& line){
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
 
   double test_size = 0.0;
   std::map<const DTDocument*, double> doc_similarities;
-
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
 
   DTDocument * doc = new DTDocument();
@@ -266,9 +268,15 @@ void RF_KNN::parse_test_line(const std::string& line){
   Scores<double> similarities = classify(doc, doc_similarities);
   docs_processed_++;
   std::cerr.precision(4);
-  std::cerr.setf(std::ios::fixed);
-  std::cerr << "\r" << double(docs_processed_)/docs_.size() * 900 << "%";
   
+  if(similarities.top().class_name == doc->get_class()){
+    correct_cosine++;
+  }else{
+    wrong_cosine++;
+  }
+  std::cerr.setf(std::ios::fixed);
+  std::cerr << "\r" << double(docs_processed_)/docs_.size() * 900 << "%" << " - " << double(correct_cosine) / docs_processed_;
+
   get_outputer()->output(similarities);
   delete doc;
 }
