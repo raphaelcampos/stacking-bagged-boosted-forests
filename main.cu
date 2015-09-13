@@ -25,6 +25,9 @@
 #include <iostream>
 #include <algorithm>
 #include <iostream>
+#include <iomanip>
+
+#include <tclap/CmdLine.h>
 
 #include "structs.cuh"
 #include "utils.cuh"
@@ -35,9 +38,22 @@
 
 #include "Dataset.h"
 #include "cuLazyNN_RF.h"
+#include "cuNearestNeighbors.h"
 
 #include <map>
 using namespace std;
+
+class CustomHelpVisitor : public TCLAP::HelpVisitor
+{
+        protected:
+                TCLAP::ValueArg<std::string>* _modelArg;
+        public:
+                CustomHelpVisitor(TCLAP::CmdLineInterface *cmd, TCLAP::CmdLineOutput **out, TCLAP::ValueArg<std::string> *modelArg) : TCLAP::HelpVisitor(cmd, out), _modelArg(modelArg) {} ;
+                void visit() { 
+                    if(!_modelArg->isSet())
+                        TCLAP::HelpVisitor::visit(); 
+                    };
+};
 
 struct FileStats {
     int num_docs;
@@ -47,6 +63,8 @@ struct FileStats {
 
     FileStats() : num_docs(0), num_terms(0) {}
 };
+
+
 
 FileStats readTrainingFile(std::string &file, std::vector<Entry> &entries);
 void readTestFile(InvertedIndex &index, FileStats &stats, std::string &file, int K, std::string distance, ofstream &fileout, ofstream &filedists);
@@ -60,19 +78,7 @@ void write_output(ofstream &fileout, int trueclass, int guessedclass, int docid)
 int get_class(std::string token);
 
 
-void teste_lazynn(int argc, char **argv){
-
-    if(argc != 7) {
-        std::cerr << "Wrong parameters. Correct usage: <executable> <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>" << std::endl;
-        exit(1);
-    }
-
-    std::string trainingFileName(argv[1]);
-    std::string testFileName(argv[2]);
-    int k = atoi(argv[3]);
-    std::string distanceFunction(argv[4]);
-    std::string outputFileName(argv[5]);
-    std::string outputFileDistancesName(argv[6]);
+void teste_lazynn(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true){
 
     Dataset training_set, test_set;
     int correct_cosine = 0, wrong_cosine = 0;
@@ -82,20 +88,36 @@ void teste_lazynn(int argc, char **argv){
     cuLazyNN_RF cLazy(training_set);
     test_set.loadGtKnnFormat(testFileName.c_str());
     double start, end, total = 0;
+
+    ofstream file;
+
+    if(append) 
+        file.open(resultsFileName.data(), std::ios_base::app);
+    else 
+        file.open(resultsFileName.data());
+
+
+    file << "#" << trial << endl;
+    #pragma omp parallel for num_threads(8) schedule(dynamic)
     for (int i = 0; i < test_set.getSamples().size(); ++i)
     {
         start = gettime();
         int guessed_class = cLazy.classify(test_set.getSamples()[i].features, k);
         end = gettime();
-        printf("Total time taken for classification: %lf seconds\n", end - start);
-
+        
         total += end - start;
-	printf("Guessed class : %d - Real class : %d\n", guessed_class, test_set.getSamples()[i].y);
+	
         if(guessed_class == test_set.getSamples()[i].y) {
             correct_cosine++;   
         } else {
             wrong_cosine++;
         }
+
+        std::cerr.precision(4);
+        std::cerr.setf(std::ios::fixed);
+        std::cerr << "\r" << double(i+1)/test_set.getSamples().size() * 100 << "%" << " - " << double(correct_cosine) / (i+1);
+
+        file << i << " CLASS=" <<  test_set.getSamples()[i].y << " CLASS=" << guessed_class << ":1" << endl;
     }
 
     printf("Total time taken to classify all queries: %lf seconds\n", total);
@@ -104,6 +126,147 @@ void teste_lazynn(int argc, char **argv){
     printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);
     printf("Accuracy: %lf%%\n\n", double(correct_cosine) / double(test_set.size()));
 
+
+    file.close();
+}
+
+template <class InputIterator1>
+  int size (InputIterator1 first1, InputIterator1 last1)
+{
+    int counter = 0;
+    for (; first1 != last1; ++first1)
+    {
+        counter++;
+    }
+    return counter;
+}
+
+template <class InputIterator1, class InputIterator2>
+  int count_distinct (InputIterator1 first1, InputIterator1 last1,
+                            InputIterator2 first2, InputIterator2 last2)
+{
+   int counter = 0;
+  while (true)
+  {
+    if (first1==last1) return counter + size(first2,last2);
+    if (first2==last2) return counter + size(first1,last1);
+
+    if (first1->first<first2->first) { counter++; ++first1; }
+    else if (first2->first<first1->first) { counter++; ++first2; }
+    else { counter++; ++first1; ++first2; }
+  }
+}
+
+void teste_cuNN(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true){
+
+    srand(time(NULL));
+
+    Dataset training_set, test_set;
+    int tp = 0, wrong_cosine = 0;
+    
+    training_set.loadGtKnnFormat(trainingFileName.c_str());
+
+    cuNearestNeighbors cuNN(training_set);
+    test_set.loadGtKnnFormat(testFileName.c_str());
+    double start, end, total = 0;
+    
+    printf("train (dim : %d, class: %d ) - test (dim: %d, class: %d) - total classes : %d \n", training_set.dimension(), training_set.num_class(), test_set.dimension(), test_set.num_class(), count_distinct(training_set.doc_per_class.begin(),training_set.doc_per_class.end(),test_set.doc_per_class.begin(),test_set.doc_per_class.end()));
+
+    int test_set_size = test_set.getSamples().size();
+    int documents_processed = 0;
+    std::vector<sample>::iterator end_it = test_set.sample_end();
+
+    int num_class = count_distinct(training_set.doc_per_class.begin(),training_set.doc_per_class.end(),test_set.doc_per_class.begin(),test_set.doc_per_class.end());
+
+    int **confusion_matrix = new int*[num_class];
+    
+    for (int i = 0; i < num_class; ++i)
+    {
+        confusion_matrix[i] = new int[num_class];
+        for (int j = 0; j < num_class; ++j)
+        {
+            confusion_matrix[i][j] = 0;
+        }
+    }
+
+    ofstream file;
+
+    if(append) 
+        file.open(resultsFileName.data(), std::ios_base::app);
+    else 
+        file.open(resultsFileName.data());
+
+    file << "#" << trial << endl;
+    for (std::vector<sample>::iterator it = test_set.sample_begin(); it != end_it; ++it)
+    {
+
+        start = gettime();
+        int guessed_class = cuNN.classify(it->features, k);
+        end = gettime();
+        
+        total += end - start;
+
+        confusion_matrix[it->y][guessed_class]++;
+
+        if(guessed_class == it->y) {
+            tp++;   
+        } else {
+            wrong_cosine++;
+        }
+        ++documents_processed;
+        std::cerr.precision(4);
+        std::cerr.setf(std::ios::fixed);
+        std::cerr << "\r" << double(documents_processed)/test_set_size * 100 << "%" << " - " << double(tp) / (documents_processed);
+    
+        file << documents_processed << " CLASS=" <<  it->y << " CLASS=" << guessed_class << ":1" << endl;
+    }
+
+    printf("\nTotal time taken to classify all queries: %lf seconds\n", total);
+
+    printf("Cosine similarity\n");
+    printf("Correct: %d Wrong: %d\n", tp, wrong_cosine);
+    printf("Accuracy: %lf%%\n\n", double(tp) / double(test_set_size));
+
+    int tps = 0, fps = 0, fns;
+    double macro_avg_prec = 0, macro_avg_recall = 0;
+    for (int i = 0; i < num_class; ++i)
+    {
+        int tp = confusion_matrix[i][i], fp = 0, fn = 0;
+        for (int j = 0; j < num_class; ++j)
+        {
+            fp += (i != j)? confusion_matrix[i][j] : 0;
+            fn += (i != j)? confusion_matrix[j][i] : 0;
+            //cout << setw(5) << confusion_matrix[i][j] << " ";
+        }
+
+        //cout << endl;
+
+        macro_avg_prec += (tp + fp) > 0 ? (double)tp / (tp + fp) : 0;
+        macro_avg_recall += (tp + fn) > 0 ?(double)tp / (tp + fn) : 0;
+
+        tps += tp;
+        fps += fp;
+        fns += fn;
+    
+
+    }
+    double micro_avg_prec = (double)tps / (test_set_size);
+    double micro_avg_recall = (double)tps / (tps + fns);
+    double microF1 = 2*micro_avg_recall*micro_avg_prec / (micro_avg_recall+micro_avg_prec);
+
+    
+    macro_avg_prec /= test_set.num_class();
+    macro_avg_recall /= test_set.num_class();
+
+    double macroF1 = 2*macro_avg_recall*macro_avg_prec / (macro_avg_recall+macro_avg_prec);
+    printf("microF1 : %f, macroF1 : %f\n", microF1, macroF1);
+
+    for (int i = 0; i < num_class; ++i)
+    {
+        delete[] confusion_matrix[i];
+    }
+    delete[] confusion_matrix;
+    file.close();
 }
 
 
@@ -115,9 +278,85 @@ int main(int argc, char **argv) {
     cuInit(0);
     cudaDeviceSynchronize();
 
-    teste_lazynn(argc, argv);
+    // Wrap everything in a try block.  Do this every time, 
+    // because exceptions will be thrown for problems.
+    try {  
 
-    if(argc != 7) {
+        // Define the command line object, and insert a message
+        // that describes the program. The "Command description message" 
+        // is printed last in the help text. The second argument is the 
+        // delimiter (usually space) and the last one is the version number. 
+        // The CmdLine object parses the argv array based on the Arg objects
+        // that it contains. 
+        TCLAP::CmdLine cmd("Command description message", ' ', "0.9");
+
+        vector<string> allowed;
+        allowed.push_back("knn");
+        allowed.push_back("knn_rf");
+        TCLAP::ValuesConstraint<string> allowedVals( allowed );
+
+        TCLAP::ValueArg<std::string> modelArg("m", "model", "Classifier model (default : knn).", false, allowed[0], &allowedVals);
+
+        cmd.add( modelArg );
+
+       
+        // Define a value argument and add it to the command line.
+        // A value arg defines a flag and a type of value that it expects,
+        // such as "-n Bishop".
+        TCLAP::UnlabeledValueArg<std::string> trainArg("train","Traning dataset location.", true, "", "training set");
+
+        // Add the argument nameArg to the CmdLine object. The CmdLine object
+        // uses this Arg to parse the command line.
+        cmd.add( trainArg );
+
+        TCLAP::UnlabeledValueArg<std::string> testArg("test", "Test dataset location.", true, "", "test set");
+
+        // Add the argument nameArg to the CmdLine object. The CmdLine object
+        // uses this Arg to parse the command line.
+        cmd.add( testArg );
+
+        TCLAP::ValueArg<std::string> resultsArg("r", "results", "Results output file (default : results.out).", false, "results.out", "string");
+
+        // Add the argument nameArg to the CmdLine object. The CmdLine object
+        // uses this Arg to parse the command line.
+        cmd.add( resultsArg );
+
+        TCLAP::ValueArg<int> trialArg("","trial","Trial number.", false, 0, "int");
+
+        cmd.add( trialArg );
+
+        TCLAP::SwitchArg appendSwitch("a","append","Append results to result file.", cmd);
+
+        TCLAP::ValueArg<int> kArg("k","K","K nearest neirghbor to be searched.(default : 30)", false, 30, "int");
+
+        cmd.add( kArg );
+
+        TCLAP::ValueArg<int> numTreesArg("n","number-trees","Maximum number of trees in the ensemble.(default : 100)", false, 100, "int");
+
+        cmd.add( numTreesArg );
+
+        TCLAP::ValueArg<int> heightTreesArg("H","height","Maximum height of trees in the ensemble(default : 0). H=0 means unpruned otherwise prune with H top.", false, 100, "int");
+
+        cmd.add( heightTreesArg );
+
+        // Parse the argv array.
+        cmd.parse( argc, argv );
+
+        std::string model = modelArg.getValue();
+        if(model == "knn_rf"){
+            teste_lazynn(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue());               
+        }else{
+            teste_cuNN(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue());
+        }
+
+    } catch (TCLAP::ArgException &e)  // catch any exceptions
+    { std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; }
+   
+    // tsalles 
+    // tf_idf = (1 + log(tf)) * (idf/MAXIDF)
+
+    /*
+    if(argc < 7) {
         std::cerr << "Wrong parameters. Correct usage: <executable> <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>" << std::endl;
         exit(1);
     }
@@ -128,6 +367,8 @@ int main(int argc, char **argv) {
     std::string distanceFunction(argv[4]);
     std::string outputFileName(argv[5]);
     std::string outputFileDistancesName(argv[6]);
+
+    printf("olá\n");
 
     std::vector<Entry> entries;
 
@@ -153,9 +394,9 @@ int main(int argc, char **argv) {
 
     readTestFile(inverted_index, stats, testFileName,  k, distanceFunction, ofsfileoutput, ofsfiledistances);
     ofsfileoutput.close();
-    ofsfiledistances.close();
+    ofsfiledistances.close();*/
 
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 
