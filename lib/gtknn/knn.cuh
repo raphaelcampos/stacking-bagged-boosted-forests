@@ -47,4 +47,6 @@ __device__ void initDistances(cuSimilarity *dist, int offset, int N);
 
 __device__ void calculateDistancesDevice(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
+__host__ void freeInvertedIndex(InvertedIndex inverted_index);
+
 #endif /* KNN_CUH_ */
