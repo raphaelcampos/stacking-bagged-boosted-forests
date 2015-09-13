@@ -5,21 +5,21 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 O_SRCS += \
 #./cuda_distances.o \
-#./inverted_index.o \
+./inverted_index.o \
 ./knn.o \
 #./partial_bitonic_sort.o \
 #./utils.o 
 
 #CU_SRCS += \
 #$(GTKNN_PATH)cuda_distances.cu \
-#$(GTKNN_PATH)inverted_index.cu \
+$(GTKNN_PATH)inverted_index.cu \
 $(GTKNN_PATH)knn.cu \
 #$(GTKNN_PATH)partial_bitonic_sort.cu \
 #$(GTKNN_PATH)utils.cu 
 
 #CU_DEPS += \
 #./cuda_distances.d \
-#./inverted_index.d \
+./inverted_index.d \
 ./knn.d \
 #./partial_bitonic_sort.d \
 #./utils.d 

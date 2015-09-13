@@ -10,6 +10,7 @@
 #include "cuda_distances.cuh"	
 
 #include "LazyNN_RF.h"
+#include "cuNearestNeighbors.h"
 
 #include <map>
 
@@ -22,37 +23,16 @@ class cuLazyNN_RF : LazyNN_RF{
 		~cuLazyNN_RF();
 
 		void train(Dataset &data);
-		int classify(std::map<unsigned int, double> test_sample, int K);
+		int classify(const std::map<unsigned int, float> &test_sample, int K);
 
 	private:
 		Dataset training;
 
-		// gtknn dataset formart
-		std::vector<Entry> entries;
+		cuNearestNeighbors cuKNN;	
 
 		// Dataset statistics
 		unsigned int num_docs;
 		unsigned int num_terms;
-
-		InvertedIndex inverted_index;
-
-		std::map<unsigned int, int> doc_to_class;
-
-		/**
-		 * Converts Dataset obj to gtknn format
-		 * and OpenCV format as well.
-		 */
-		void convertDataset(Dataset &data);
-
-		/**
-		 * Builds the inverted index on GPU
-		 * based on the given dataset.
-		 */
-		void buildInvertedIndex();
-
-		void createRF();
-
-		//void prepareTrainSamples(RF * rf, cuSimilarity *k_nearest, unsigned int K);
 };
 
 #endif

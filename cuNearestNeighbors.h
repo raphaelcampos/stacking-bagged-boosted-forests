@@ -16,19 +16,17 @@
 class cuNearestNeighbors {
 	
 	public:
-		cuNearestNeighbors();
+		cuNearestNeighbors(){};
 		cuNearestNeighbors(Dataset &data);
 
 		~cuNearestNeighbors();
 
 		void train(Dataset &data);
-		int classify(std::map<unsigned int, double> &test_sample, int K);
-		cuSimilarity * getKNearestNeighbors(std::map<unsigned int, double> &test_features, int K);
+		int classify(std::map<unsigned int, float> &test_sample, int K);
+		cuSimilarity * getKNearestNeighbors(const std::map<unsigned int, float> &test_features, int K);
 		int getMajorityVote(cuSimilarity *k_nearest, int K);
 
 	private:
-		Dataset training;
-
 		// gtknn dataset formart
 		std::vector<Entry> entries;
 
@@ -51,10 +49,6 @@ class cuNearestNeighbors {
 		 * based on the given dataset.
 		 */
 		void buildInvertedIndex();
-
-		void createRF();
-
-		//void prepareTrainSamples(RF * rf, cuSimilarity *k_nearest, unsigned int K);
 };
 
 #endif

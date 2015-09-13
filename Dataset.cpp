@@ -3,6 +3,7 @@
 Dataset::~Dataset(){
 	samples.clear();
 	idf.clear();
+	doc_per_class.clear();
 }
 
 void Dataset::loadSVMlightFormat(const char* input){
@@ -33,6 +34,8 @@ void Dataset::loadSVMlightFormat(const char* input){
 		  
 		  smp.y = atof(tokens[0].data());
 		  samples.push_back(smp);
+			
+			doc_per_class[smp.y]++;	
 		}
 	}
 	else {
@@ -72,6 +75,7 @@ void Dataset::loadGtKnnFormat(const char* input){
 	        
 	        smp.y = get_class(tokens[1]);
 	        samples.push_back(smp);
+	        doc_per_class[smp.y]++;
 	    }
 
 		file.close();
@@ -100,6 +104,28 @@ int Dataset::getIdf(int term_id){
 		return it->second;
 	else
 		return 0;
+}
+
+void Dataset::randomize_samples(){
+	long n = samples.size()-1;
+    while (n > 0)
+    {
+        // pick a random index to swap into t[n]
+        const unsigned long idx = std::rand()%(n+1);
+
+        // swap our randomly selected index into the n position
+        std::swap(samples[idx], samples[n]);
+
+        --n;
+    }
+}
+
+std::pair<Dataset, Dataset> Dataset::split(float portion){
+	Dataset data1,data2;
+	data1.samples.insert(data1.samples.begin(), samples.begin() + int(samples.size() * portion), samples.end());
+	data2.samples.insert(data2.samples.begin(), samples.begin(), samples.begin() + int(samples.size() * portion));
+
+	return std::make_pair(data2, data1);
 }
 
 void Dataset::string_tokenize(const std::string &str,

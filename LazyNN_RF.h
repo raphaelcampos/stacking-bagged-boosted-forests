@@ -9,7 +9,7 @@ class LazyNN_RF{
 	
 	public:
 		virtual void train(Dataset &data) = 0;
-		virtual int classify(std::map<unsigned int, double> test_sample, int K) = 0;
+		virtual int classify(const std::map<unsigned int, float> &test_sample, int K) = 0;
 };
 
 #endif

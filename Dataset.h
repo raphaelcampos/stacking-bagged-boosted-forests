@@ -1,6 +1,7 @@
 #ifndef _DATA_SET__
 #define _DATA_SET__
 
+#include <utility> 
 #include <vector>
 #include <iostream>
 #include <fstream>
@@ -8,20 +9,18 @@
 #include <sstream>
 #include <map>
 
+
 struct sample
 {
-	std::map<unsigned int, double> features;
+	std::map<unsigned int, float> features;
 	int y;
-	std::string labels;
-
 };
 
 class Dataset{
 	
 	public:
 
-		Dataset() : dim(0)
-		{}
+		Dataset() : dim(0) {}
 		~Dataset();
 
 		void loadSVMlightFormat(const char* input);
@@ -31,8 +30,25 @@ class Dataset{
 		int dimension();
 		int getIdf(int term_id);
 
+    	std::vector<sample>::const_iterator sample_begin() const {return samples.begin();}
+    	std::vector<sample>::const_iterator sample_end() const{return samples.end();}
+
+    	std::vector<sample>::iterator sample_begin() {return samples.begin();}
+    	std::vector<sample>::iterator sample_end() {return samples.end();}
+
+		void randomize_samples();  	
+
+		std::pair<Dataset, Dataset> split(float portion);
+
+		int num_class(){
+			return doc_per_class.size();
+		}
+
+		std::map<int, int> doc_per_class;
+
 	private:
 		std::vector<sample> samples;
+		
 		std::map<int, int> idf;
 		int dim;
 

@@ -3,8 +3,11 @@
 #include "Dataset.h"
 
 #include "tcpp/tree.hpp"
+
 #include "tcpp/rf_knn.hpp"
+#include "tcpp/rf_bst.hpp"
 #include "tcpp/rf.hpp"
+
 
 using namespace std;
 
@@ -59,19 +62,19 @@ int main(int argc, char const *argv[])
 {
 	Dataset training, test_set;
 	
-	RF_KNN * knn_rf = new RF_KNN(0, 1.0, 100, 200);
+	RF_BOOST * knn_rf = new RF_BOOST(0, 0.03);
 	  
-	knn_rf->train("lib/gtknn/data/treino.dat");
+	knn_rf->train("release/datasets/4uni/treino1_temp");
 
 	knn_rf->set_output_file("saida.out");
-	knn_rf->test("lib/gtknn/data/teste.dat");
+	knn_rf->test("release/datasets/4uni/teste1_temp");
 
-	RF * rf = new RF(0, 1.0, 200);
+	/*RF * rf = new RF(0, 1.0, 200);
 	  
 	rf->train("lib/gtknn/data/treino.dat");
 
 	rf->set_output_file("saida.out");
 	rf->test("lib/gtknn/data/teste.dat");
-
+    */
 	return EXIT_SUCCESS	;
 }

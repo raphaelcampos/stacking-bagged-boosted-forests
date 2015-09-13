@@ -74,7 +74,7 @@ all: lazynn_rf secondary-outputs
 lazynn_rf: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	nvcc --relocatable-device-code=true -O3 -Xcompiler -fopenmp -Xcompiler --fast-math -Xcompiler -lm $(GENCODE_FLAGS) -o "lazynn_rf" $(LazyNN_PATH)main.cu $(OBJS) $(USER_OBJS) $(LIBS) -I$(GTKNN_PATH) -I$(GTKNN_PATH)lib/cudpp-2.1/include/ -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp -I~/opencv-3.0.0/include/ -L~/opencv-3.0.0/release/lib/ -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_stitching
+	nvcc --relocatable-device-code=true -O3 -Xcompiler -fopenmp -Xcompiler --fast-math -Xcompiler -lm $(GENCODE_FLAGS) -o "lazynn_rf" $(LazyNN_PATH)main.cu $(OBJS) $(USER_OBJS) $(LIBS) -I../include/ -I$(GTKNN_PATH) -I$(GTKNN_PATH)lib/cudpp-2.1/include/ -L$(GTKNN_PATH)lib/cudpp-2.1/lib/ -lcudpp -I~/opencv-3.0.0/include/ -L~/opencv-3.0.0/release/lib/ -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_stitching
 	@echo 'Finished building target: $@'
 	@echo ' '
 
