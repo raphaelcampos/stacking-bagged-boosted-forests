@@ -17,12 +17,33 @@
 class cuLazyNN_RF : LazyNN_RF{
 	
 	public:
+		/**
+		 * Default constructor.
+		 */
 		cuLazyNN_RF();
+
+		/**
+		 * Constructor. Trains the model based on the given training set.
+		 * \param data - Training set
+		 */
 		cuLazyNN_RF(Dataset &data);
 
+		/**
+		 * Destructor.
+		 */
 		~cuLazyNN_RF();
 
+		/**
+		 * Trains the model based on the given training set.
+		 * \param data - Training set
+		 */
 		void train(Dataset &data);
+		
+		/**
+		 * Classify a given feature vector.
+		 * @param  test_sample - Feature vector
+		 * @param  K           - K nearest neighbors to training the random forest
+		 */
 		int classify(const std::map<unsigned int, float> &test_sample, int K);
 
 	private:

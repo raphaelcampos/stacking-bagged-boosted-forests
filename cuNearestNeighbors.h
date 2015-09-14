@@ -16,14 +16,49 @@
 class cuNearestNeighbors {
 	
 	public:
+		/**
+		 * Default constructor.
+		 */
 		cuNearestNeighbors(){};
+		
+		/**
+		 * Constructor.
+		 * \param data - Training set
+		 */
 		cuNearestNeighbors(Dataset &data);
 
+		/**
+		 * Destructor.
+		 */
 		~cuNearestNeighbors();
 
+		/**
+		 * Trains the model based on the given training set.
+		 * \param data - Training set
+		 */
 		void train(Dataset &data);
+
+		/**
+		 * Classify a given feature vector.
+		 * \param  test_sample - Feature vector
+		 * \param  K           - Hiperparameter K, Number of nearest neighbor
+		 * \return             Feature vector predicted class
+		 */
 		int classify(std::map<unsigned int, float> &test_sample, int K);
+		
+		/**
+		 * Returns the K nearrest neighbors to a given feature vector
+		 * \param  test_features -  Feature vector
+		 * \param  K             -	Number of nearest neighbors              
+		 */
 		cuSimilarity * getKNearestNeighbors(const std::map<unsigned int, float> &test_features, int K);
+		
+
+		/**
+		 * Return the winner class in the "election"
+		 * @param  k_nearest - K nearest neighbors
+		 * @param  K         - Number of nearest neighbors
+		 */
 		int getMajorityVote(cuSimilarity *k_nearest, int K);
 
 	private:
@@ -41,6 +76,7 @@ class cuNearestNeighbors {
 		/**
 		 * Converts Dataset obj to gtknn format
 		 * and OpenCV format as well.
+		 * \param - Training set
 		 */
 		void convertDataset(Dataset &data);
 
