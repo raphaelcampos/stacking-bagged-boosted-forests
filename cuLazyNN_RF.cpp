@@ -59,7 +59,7 @@ int cuLazyNN_RF::classify(const std::map<unsigned int, float> &test_features, in
 
 	cuSimilarity *k_nearest = cuKNN.getKNearestNeighbors(test_features, K);
 	
-	RF * rf = new RF(0, 1.0, 100);
+	RF * rf = new RF(0, 0.03, 200);
 	if(rf->is_raw_weights()) rf->use_computed_weights();
 	rf->set_doc_delete(true);
 	

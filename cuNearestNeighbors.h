@@ -56,8 +56,8 @@ class cuNearestNeighbors {
 
 		/**
 		 * Return the winner class in the "election"
-		 * @param  k_nearest - K nearest neighbors
-		 * @param  K         - Number of nearest neighbors
+		 * \param  k_nearest - K nearest neighbors
+		 * \param  K         - Number of nearest neighbors
 		 */
 		int getMajorityVote(cuSimilarity *k_nearest, int K);
 
@@ -74,8 +74,7 @@ class cuNearestNeighbors {
 		std::map<unsigned int, int> doc_to_class;
 
 		/**
-		 * Converts Dataset obj to gtknn format
-		 * and OpenCV format as well.
+		 * Converts Dataset obj to gtknn format.
 		 * \param - Training set
 		 */
 		void convertDataset(Dataset &data);

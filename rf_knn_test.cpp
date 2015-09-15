@@ -62,12 +62,12 @@ int main(int argc, char const *argv[])
 {
 	Dataset training, test_set;
 	
-	RF_BOOST * knn_rf = new RF_BOOST(0, 0.03);
+	RF_KNN * knn_rf = new RF_KNN(0, 0.03, 30, 200);
 	  
-	knn_rf->train("release/datasets/4uni/treino1_temp");
+	knn_rf->train(argv[1]);
 
-	knn_rf->set_output_file("saida.out");
-	knn_rf->test("release/datasets/4uni/teste1_temp");
+	knn_rf->set_output_file(argv[3]);
+	knn_rf->test(argv[2]);
 
 	/*RF * rf = new RF(0, 1.0, 200);
 	  

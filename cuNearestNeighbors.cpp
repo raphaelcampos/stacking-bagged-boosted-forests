@@ -8,7 +8,7 @@ cuNearestNeighbors::~cuNearestNeighbors(){
 	entries.clear();
 
 	// ver como liberar memoria da placa
-	//freeInvertedIndex(inverted_index);
+	freeInvertedIndex(inverted_index);
 }
 
 cuNearestNeighbors::cuNearestNeighbors(Dataset &data){
@@ -85,9 +85,9 @@ int cuNearestNeighbors::getMajorityVote(cuSimilarity *k_nearest, int K){
 	cuSimilarity &closest = k_nearest[0];
 	cuSimilarity &further = k_nearest[K-1];
 
-    for(int i = 0; i < K; i++) {
+    for(int i = 0; i < K; ++i) {
         cuSimilarity &sim = k_nearest[i];
-        vote_count[doc_to_class[sim.doc_id]]++;
+        ++vote_count[doc_to_class[sim.doc_id]];
         //vote_count[doc_to_class[sim.doc_id]]+=((further.distance-sim.distance)/(further.distance-closest.distance))*((sim.distance+further.distance)/(closest.distance+further.distance))*(i);
         
         //vote_count[doc_to_class[sim.doc_id]]+=((further.distance-sim.distance)/(further.distance-closest.distance))*((double)i);
