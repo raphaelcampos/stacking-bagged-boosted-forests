@@ -29,7 +29,7 @@ std::string TemporalFeatureSelector::filter(const std::string &l) {
   std::stringstream res;
   res << tokens[0] << ";" << tokens[1] << ";" << tokens[2];
   for (unsigned int i = 3; i <= tokens.size()-1; i+=2) {
-    std::set<int>::iterator it = filtered.find(atoi(tokens[i].data()));
+    std::set<int>::iterator it = filtered.find(atoi(tokens[i].c_str()));
     if (it == filtered.end()) res << ";" << tokens[i] << ";" << tokens[i+1];
   }
   return res.str();
@@ -47,8 +47,8 @@ void TemporalFeatureSelector::select() {
       classes.insert(doc_class);
       n_c_[doc_class]++;
       for (unsigned int i = 3; i < tokens.size()-1; i+=2) {
-        int term_id = atoi(tokens[i].data());
-        int freq = atoi(tokens[i+1].data());
+        int term_id = atoi(tokens[i].c_str());
+        int freq = atoi(tokens[i+1].c_str());
         vocabulary.insert(term_id);
         n_k_[term_id]++;
         std::string idx = Utils::get_index(term_id, doc_class);

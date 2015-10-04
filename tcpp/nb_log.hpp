@@ -54,25 +54,25 @@ class nb_log : public virtual SupervisedClassifier {
                   const std::string &doc_class) {
     return Utils::get_value(TF, Utils::get_index(term_id, doc_class));
   }
-  double sum_tf(const std::string &k) {return Utils::get_value(sumTF,k);}
-  double df(const std::string &k) { return Utils::get_value(DF, k); }
+  unsigned int sum_tf(const std::string &k) {return Utils::get_value(sumTF,k);}
+  unsigned int df(const std::string &k) { return Utils::get_value(DF, k); }
 
   double nt(const int &k) { return Utils::get_value(n_t, k); }
   double get_total_terms() { return total_terms; }
 
-  std::map<std::string, double> TF;
-  std::map<std::string, double> DF;
-  std::map<std::string, double> sumTF;
-  std::map<int, double> n_t;
+  std::map<std::string, unsigned int> TF;
+  std::map<std::string, unsigned int> DF;
+  std::map<std::string, unsigned int> sumTF;
+  std::map<int, unsigned int> n_t;
 
-  double total_terms;
+  unsigned int total_terms;
   double alpha_;
   double lambda_;
   bool unif_prior_;
 };
 
 bool nb_log::check_train_line (const std::string &line) const {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -80,7 +80,7 @@ bool nb_log::check_train_line (const std::string &line) const {
 }
 
 bool nb_log::parse_train_line (const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -94,7 +94,7 @@ bool nb_log::parse_train_line (const std::string &line) {
 
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
     unsigned int tf = atoi(tokens[i+1].data());
-    double term_id = atof(tokens[i].data());
+    int term_id = atoi(tokens[i].c_str());
     vocabulary_add(term_id);
 
     std::string index = Utils::get_index(term_id, doc_class);
@@ -109,7 +109,7 @@ bool nb_log::parse_train_line (const std::string &line) {
 }
 
 void nb_log::parse_test_line(const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
@@ -126,8 +126,8 @@ void nb_log::parse_test_line(const std::string &line) {
 
     double probCond = 0.0;
     for (size_t i = 2; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      double tf = atof(tokens[i+1].data());
+      int term_id = atoi(tokens[i].c_str());
+      unsigned int tf = atoi(tokens[i+1].c_str());
       double val = term_conditional(term_id, cur_class);
       double num_t = nt(term_id);
 

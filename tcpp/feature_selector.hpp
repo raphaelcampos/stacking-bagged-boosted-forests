@@ -25,11 +25,11 @@ std::string FeatureSelector::filter(const std::string &l) {
   std::vector<std::string> tokens;
   Utils::string_tokenize(l, tokens, ";");
   // input format: doc_id;year;CLASS=class_name;{term_id;tf}+
-  if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return l;
+  if ((tokens.size() < 5) || (tokens.size() % 2 == 0)) return l;
   std::stringstream res;
-  res << tokens[0] << ";" << tokens[1];
-  std::string doc_class = tokens[1];
-  for (unsigned int i = 2; i < tokens.size()-1; i+=2) {
+  res << tokens[0] << ";" << tokens[1] << ";" << tokens[2];
+  std::string doc_class = tokens[2];
+  for (unsigned int i = 3; i <= tokens.size()-1; i+=2) {
     if (!rr) {
       std::set<int>::iterator it = filtered.find(atoi(tokens[i].data()));
       if (it == filtered.end()) res << ";" << tokens[i] << ";" << tokens[i+1];
@@ -50,12 +50,12 @@ void FeatureSelector::select() {
       std::vector<std::string> tokens;
       Utils::string_tokenize(line, tokens, ";");
       n_++;
-      std::string doc_class = tokens[1];
+      std::string doc_class = tokens[2];
       classes.insert(doc_class);
       n_c_[doc_class]++;
-      for (unsigned int i = 2; i < tokens.size()-1; i+=2) {
+      for (unsigned int i = 3; i < tokens.size()-1; i+=2) {
         int term_id = atoi(tokens[i].data());
-        int freq = atoi(tokens[i+1].data());
+        int freq = atoi(tokens[i+1].c_str());
         if (rr) vocabulary_class[doc_class].insert(term_id);
         else vocabulary.insert(term_id);
         n_k_[term_id]++;

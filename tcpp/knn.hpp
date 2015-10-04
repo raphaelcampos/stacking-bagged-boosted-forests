@@ -108,37 +108,38 @@ class knn : public virtual SupervisedClassifier {
 };
 
 bool knn::check_train_line(const std::string &line) const {
-  std::vector<std::string> tokens;  tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  std::vector<std::string> tokens;
+  Utils::string_tokenize(line, tokens, " ");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   return true;
 }
 
 bool knn::parse_train_line(const std::string &line) {
-  std::vector<std::string> tokens;  tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  std::vector<std::string> tokens;
+  Utils::string_tokenize(line, tokens, " ");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
 
-  KNN_Document cur_doc(atoi(tokens[0].data()), tokens[1]);
+  KNN_Document cur_doc(atoi(tokens[0].c_str()), tokens[1]);
 
   double maxTF = 1.0;
 
 /*
-  double maxTF = 1.0 + log(atof(tokens[2].data()));
+  double maxTF = 1.0 + log(atof(tokens[2].c_str()));
   for (unsigned int i = 4; i < tokens.size()-1; i+=2) {
-    double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
     maxTF = (tf > maxTF) ? tf : maxTF;
   }
 */
+
   // for each term, insert a post for this doc in the posting lists
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
-    double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
-    unsigned int term_id = atoi(tokens[i].data());
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
+    unsigned int term_id = atoi(tokens[i].c_str());
     ExpNetHead head;
     head.term_id = term_id;
-    head.idf = (raw) ? 1.0 : 0.0; // we still need to update IDF, after everything !!!
+    head.idf = 0.0; // we still need to update IDF, after everything !!!
 
     double w = tf / maxTF;
     ExpNetDoc expNetDoc (cur_doc, w);
@@ -162,8 +163,6 @@ bool knn::parse_train_line(const std::string &line) {
 }
 
 void knn::updateIDF() {
-  if (raw) return;
-
   exp_net::iterator it = index.begin();
   while (it != index.end()) {
     // Pre-condition: we already have created our inverted index !
@@ -183,10 +182,10 @@ bool knn::updateDocumentSize(const std::string &train_fn) {
   if (file) {
     file.seekg(0, std::ios::beg);
     while (std::getline(file, line)) {
-      std::vector<std::string> tokens; tokens.reserve(100);
-      Utils::string_tokenize(line, tokens, ";");
+      std::vector<std::string> tokens;
+      Utils::string_tokenize(line, tokens, " ");
 
-      int id = atoi(tokens[0].data());
+      int id = atoi(tokens[0].c_str());
 
       double size = 0.0;
 
@@ -197,30 +196,28 @@ bool knn::updateDocumentSize(const std::string &train_fn) {
 
       double maxTF = 1.0;
 /*
-      double maxTF = 1.0 + log(atof(tokens[2].data()));
+      double maxTF = 1.0 + log(atof(tokens[2].c_str()));
       for (unsigned int i = 4; i < tokens.size()-1; i+=2) {
-        double tf = 1.0 + log(atof(tokens[i+1].data()));
+        double tf = 1.0 + log(atof(tokens[i+1].c_str()));
         maxTF = (tf > maxTF) ? tf : maxTF;
       }
 */
 
       for (size_t i = 2; i < tokens.size()-1; i+=2) {
-        double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
+        double tf = 1.0 + log(atof(tokens[i+1].c_str()));
         tf /= maxTF;
         ExpNetHead head;
-        head.term_id = atoi(tokens[i].data());
-        head.idf = (raw) ? 1.0 : 0.0;
+        head.term_id = atoi(tokens[i].c_str());
+        head.idf = 0.0;
 
-        if (!raw) {
-          exp_net::iterator it = index.find(head);
-          if (it != index.end()) {
-            if ((it->first).idf == 0) {
-              std::cerr << "[TREINO] > TERMO " << (it->first).term_id
-                        << " COM IDF ZERO !!!!" << std::endl;
-            }
-            else {
-              tf *= ((it->first).idf / maxIDF);
-            }
+        exp_net::iterator it = index.find(head);
+        if (it != index.end()) {
+          if ((it->first).idf == 0) {
+            std::cerr << "[TREINO] > TERMO " << (it->first).term_id
+                      << " COM IDF ZERO !!!!" << std::endl;
+          }
+          else {
+            tf *= ((it->first).idf / maxIDF);
           }
         }
         size += tf * tf;
@@ -244,17 +241,7 @@ void knn::getKNearest(unsigned int test_id,
   std::priority_queue<similarity_t, std::vector<similarity_t> > sim;
   std::map<KNN_Document, double>::iterator it = similarities.begin();
   while (it != similarities.end()) {
-    double s = it->second;
-    switch(dist_type) {
-      case L2:
-        s = 1.0 - sqrt(s);
-        break;
-      case L1:
-        s = 1.0 - s;
-        break;
-    }
-
-    similarity_t simil(it->first, s);
+    similarity_t simil(it->first, it->second);
     sim.push(simil);
     ++it;
   }
@@ -278,37 +265,34 @@ void knn::getKNearest(unsigned int test_id,
 }
 
 void knn::parse_test_line(const std::string &line) {
-  std::vector<std::string> tokens;  tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  std::vector<std::string> tokens;
+  Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
 
   double maxTF = 1.0;
-/*
-  maxTF = atoi(tokens[3].data());
+
+  maxTF = atoi(tokens[3].c_str());
   for (unsigned int i = 4; i < tokens.size()-1; i+=2) {
-    double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
+    double tf = atof(tokens[i+1].c_str());
     maxTF = (tf > maxTF) ? tf : maxTF;
   }
-*/
 
   double test_size = 0.0;
 
   for (int i = 2; i < static_cast<int>(tokens.size())-1; i+=2) {
-    unsigned int term_id = atoi(tokens[i].data());
-    double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
+    unsigned int term_id = atoi(tokens[i].c_str());
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
     tf /= maxTF;
     ExpNetHead head;
     head.term_id = term_id;
-    head.idf = (raw) ? 1.0 : 0.0;
+    head.idf = 0.0;
 
-    if (!raw) {
-      exp_net::iterator it = index.find(head);
-      if (it != index.end()) {
-        if ((it->first).idf == 0)
-          std::cerr << "[TESTE] > TERMO " << (it->first).term_id
-                    << " COM IDF ZERO !!!!" << std::endl;
-        else tf *= ((it->first).idf / maxIDF);
-      }
+    exp_net::iterator it = index.find(head);
+    if (it != index.end()) {
+      if ((it->first).idf == 0)
+        std::cerr << "[TESTE] > TERMO " << (it->first).term_id
+                  << " COM IDF ZERO !!!!" << std::endl;
+      else tf *= ((it->first).idf / maxIDF);
     }
     test_size += tf * tf;
   }
@@ -316,16 +300,15 @@ void knn::parse_test_line(const std::string &line) {
 
   std::map<KNN_Document, double> similarities;
   for (int i = 2; i < static_cast<int>(tokens.size())-1; i+=2) {
-    double tf = (raw) ? atof(tokens[i+1].data()) : 1.0 + log(atof(tokens[i+1].data()));
-    int term_id = atoi(tokens[i].data());
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
+    int term_id = atoi(tokens[i].c_str());
     ExpNetHead head;
     head.term_id = term_id;
-    head.idf = (raw) ? 1.0 : 0.0;
+    head.idf = 0.0;
     double test_weight = tf / maxTF;
     exp_net::iterator it = index.find(head);
     if (it != index.end()) {
-      double idfw = (raw) ? 1.0 :  ((it->first).idf / maxIDF);
-      if (!raw) test_weight *= idfw;
+      test_weight *= ((it->first).idf / maxIDF);
       for (std::set<ExpNetDoc>::iterator itt = (it->second).begin();
            itt != (it->second).end(); ++itt) {
 
@@ -334,32 +317,16 @@ void knn::parse_test_line(const std::string &line) {
         if (dsz_it != doc_sizes.end()) dsz = dsz_it->second;
 
         double train_size = sqrt(dsz);
-        double train_weight = itt->weight * idfw;
+        double train_weight = itt->weight * ((it->first).idf / maxIDF);
+        similarities[itt->doc] += (((train_weight) / train_size) *
+                                   ((test_weight) / test_size));
 
-        train_size = test_size = 1.0;
-
-        switch(dist_type) {
-          case L2:
-            similarities[itt->doc] += pow((((train_weight) / train_size) -
-                                           ((test_weight) / test_size)), 2.0);
-            break;
-
-          case L1:
-            similarities[itt->doc] += abs(((train_weight) / train_size) -
-                                          ((test_weight) / test_size));
-            break;
-          case COSINE:
-          default:
-            similarities[itt->doc] += (((train_weight) / train_size) *
-                                       ((test_weight) / test_size));
-            break;
-        }
       }
     }
   }
 
   std::string real_class = tokens[1];
-  KNN_Document cur_doc(atoi(tokens[0].data()), real_class);
+  KNN_Document cur_doc(atoi(tokens[0].c_str()), real_class);
 
   double norm=1.0;
   Scores<double> scores(tokens[0], real_class);

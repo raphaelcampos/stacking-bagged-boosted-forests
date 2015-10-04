@@ -10,7 +10,7 @@ mkdir $outputFold;
 
 rm $outputFold/_res $outputFold/_dds*;
 ./crossValidation $dataSet $outputFold/_dds $numFolds `wc -l $dataSet`;
-for (( j = 0; j < 1; j++ ))
+for (( j = 0; j < $numFolds; j++ ))
 do
  rm $outputFold/_train $outputFold/_test;
  for (( k = 0; k < $numFolds; k++ ))

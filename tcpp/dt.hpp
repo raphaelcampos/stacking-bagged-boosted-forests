@@ -1,5 +1,5 @@
-#ifndef DT_HPP__
-#define DT_HPP__
+#ifndef DT_H__
+#define DT_H__
 
 #include <string>
 #include <sstream>
@@ -21,27 +21,26 @@
 
 class DT : public SupervisedClassifier{
   public:
-    DT(unsigned int r, unsigned int maxh=0) : SupervisedClassifier(r) { root_ = new Node(maxh); root_->make_it_root(); }
-    ~DT() { reset_model(); }
+    DT(unsigned int& r) : SupervisedClassifier(r){ root_ = new Node(); root_->make_it_root(); }
+    virtual ~DT() { reset_model(); }
     void add_document(const DTDocument* doc) { root_->add_document(doc); }
     void add_document_bag(std::set<const DTDocument*>& bag) { root_->add_document_bag(bag); }
-    void build(const double m);
-    bool parse_train_line(const std::string&);
-    void train(const std::string&);
-    void parse_test_line(const std::string&);
-    void reset_model();
+    void build(const double& m);
+    virtual bool parse_train_line(const std::string&);
+    virtual void train(const std::string&);
+    virtual void parse_test_line(const std::string&);
+    virtual void reset_model();
     Scores<double> classify(const DTDocument*) const;
     std::map<std::string, double> get_partial_scores(const DTDocument*) const;
     void print() const;
-  private:
+  protected:
     Node * root_;
     std::set<const DTDocument*> bag_;
     std::stack<StackElement*> stack_;
 };
 
-void DT::build(const double m){
+void DT::build(const double& m){
   TreeData * td;
-  if (raw) root_->use_raw_weights();
   td = root_->split(m);
   if(td->is_enabled()){
     StackElement * el = td->get_left_element();
@@ -52,9 +51,7 @@ void DT::build(const double m){
   delete td;
   while(!stack_.empty()){
     stack_.top()->get_node()->add_document_bag(stack_.top()->get_bag());
-    Node *n = stack_.top()->get_node();
-    if (raw) n->use_raw_weights();
-    TreeData * td = n->split(m);
+    TreeData * td = stack_.top()->get_node()->split(m);
     delete stack_.top();
     stack_.pop();
     if(td->is_enabled()){
@@ -88,11 +85,11 @@ void DT::train(const std::string& train_fn){
   SupervisedClassifier::train(train_fn);
   root_->add_document_bag(bag_);
   build(1.0);
-  print();
+  //print();
 }
 
 bool DT::parse_train_line(const std::string& line){
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
@@ -102,7 +99,7 @@ bool DT::parse_train_line(const std::string& line){
   classes_add(doc_class);
   doc->set_class(doc_class);
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
-    double tf = atof(tokens[i+1].data());
+    unsigned int tf = atoi(tokens[i+1].data());
     unsigned int term_id = atoi(tokens[i].data());
     vocabulary_add(term_id);
     doc->insert_term(term_id, tf);
@@ -111,7 +108,7 @@ bool DT::parse_train_line(const std::string& line){
   return true;
 }
 void DT::parse_test_line(const std::string& line){
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
 
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
@@ -122,7 +119,7 @@ void DT::parse_test_line(const std::string& line){
   std::string doc_class = tokens[1];
   doc->set_class(doc_class);
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
-    double tf = atof(tokens[i+1].data());
+    unsigned int tf = atoi(tokens[i+1].data());
     unsigned int term_id = atoi(tokens[i].data());
     doc->insert_term(term_id, tf);
   }
@@ -154,7 +151,7 @@ Scores<double> DT::classify(const DTDocument* doc) const{
   }
 
   Scores<double> similarities(doc->get_id(), doc->get_class());
-  std::map<std::string, double>::const_iterator cIt = current_node->classes_begin();
+  std::map<std::string, unsigned int>::const_iterator cIt = current_node->classes_begin();
   while(cIt != current_node->classes_end()){
     similarities.add(cIt->first, cIt->second);
     ++cIt;
@@ -171,12 +168,12 @@ std::map<std::string, double> DT::get_partial_scores(const DTDocument* doc) cons
     else
       current_node = current_node->left();
   }
-  std::map<std::string, double>::const_iterator cIt = current_node->classes_begin();
+  std::map<std::string, unsigned int>::const_iterator cIt = current_node->classes_begin();
   while(cIt != current_node->classes_end()){
     std::map<std::string, double>::iterator it = (results.insert(std::make_pair(cIt->first, 0.0))).first;
     //it->second = (static_cast<double>(cIt->second) / current_node->get_docs_count())
     //             * (1 - static_cast<double>(root_->get_class_count(cIt->first)) / root_->get_docs_count());
-    it->second = cIt->second / current_node->get_docs_count();
+    it->second = static_cast<double>(cIt->second) / current_node->get_docs_count();
     //std::cerr << "cIt->second: " << static_cast<double>(cIt->second) << " current_node->docs_count: " << current_node->get_docs_count() <<
     //             " root->class_count(cl): " << static_cast<double>(root_->get_class_count(cIt->first)) << " root->docs_count: " << root_->get_docs_count() << std::endl;
     ++cIt;

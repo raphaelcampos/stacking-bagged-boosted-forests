@@ -129,8 +129,8 @@ class ExtOnScoresClassifier : public TemporalClassifier {
             std::vector<std::string> tmp;
             Utils::string_tokenize(tokens[i], tmp, ":");
             std::string pred_class = tmp[0];
-            double sco = atof(tmp[1].data());
-            double w = twf(atoi(actual_time_points[id_doc].data()), atoi(yIt->data()));
+            double sco = atof(tmp[1].c_str());
+            double w = twf(atoi(actual_time_points[id_doc].c_str()), atoi(yIt->c_str()));
 
             std::map<std::string, double>::iterator it = agg_scores[id_doc].find(pred_class);
             if (it == agg_scores[id_doc].end()) agg_scores[id_doc][pred_class] = sco * w;

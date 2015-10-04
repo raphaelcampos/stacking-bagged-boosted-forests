@@ -6,17 +6,13 @@
 #include "nb_log.hpp"
 #include "nb_compl.hpp"
 #include "nb_gaussian.hpp"
-
 #include "knn.hpp"
-
 #include "rocchio.hpp"
-
 #include "dt.hpp"
-
+#include "lazy_dt.hpp"
 #include "rf.hpp"
 #include "rf_knn.hpp"
 #include "rf_kr.hpp"
-#include "rf_bst.hpp"
 
 #include "temporal_rocchio.hpp"
 #include "temporal_nb.hpp"
@@ -39,6 +35,7 @@
 
 #include "tcpp.h"
 
+
 method_t parse_method(const char* m) {
   if (strcmp(m, PNAIVEBAYES_STR) == 0) return NB_PROB;
   else if (strcmp(m, LNAIVEBAYES_STR) == 0) return NB_LOG;
@@ -51,10 +48,10 @@ method_t parse_method(const char* m) {
   else if (strcmp(m, BITI_STR) == 0) return BITI;
   else if (strcmp(m, RF_STR) == 0) return RF1;
   else if (strcmp(m, DT_STR) == 0) return DTree;
+  else if (strcmp(m, LAZYDT_STR) == 0) return LDT;
   else if (strcmp(m, RF2_STR) == 0) return RF2;
   else if (strcmp(m, RFKNN_STR) == 0) return RFKNN;
   else if (strcmp(m, RFKRAND_STR) == 0) return RFKRAND;
-  else if (strcmp(m, BRF_STR) == 0) return BRF;
   else {
     std::stringstream msg; msg << "Invalid method name (" << m << ").";
     print_usage(msg.str().data());
@@ -70,13 +67,6 @@ fs_t parse_fs (const unsigned int t) {
     case 3: return CC;
     default: return NONE;
   }
-}
-
-DistType parse_dist (const char *d) {
-  if (strcmp(d, D_COS_STR) == 0) return COSINE;
-  else if (strcmp(d, D_L2_STR) == 0) return L2;
-  else if (strcmp(d, D_L1_STR) == 0) return L1;
-  else return COSINE;
 }
 
 void print_usage(const char *err_msg) {
@@ -152,18 +142,17 @@ SupervisedClassifier * get_traditional_classifier(method_t &m, params_t &p){
   case DTree:
      cc = new DT(p.round);
      break;
+  case LDT:
+     cc = new LazyDT(p.round);
+     break;
   case RF2:
-     printf("Setup - round: %d, m: %f, trees: %d, rf_height: %d\n", p.round, p.rf_m, p.rf_trees, p.rf_height);  
-     cc = new RF(p.round, p.rf_m, p.rf_trees, p.rf_height);
+     cc = new RF(p.round, p.rf_m, p.rf_trees);
      break;
   case RFKNN:
      cc = new RF_KNN(p.round, p.rf_m, p.k, p.rf_trees);
      break;
   case RFKRAND:
      cc = new RF_KR(p.round, p.rf_m, p.k, p.rf_trees);
-     break;
-  case BRF:
-     cc = new RF_BOOST(p.round, p.rf_m, p.rf_trees, p.rf_height, p.rf_trn);
      break;
   default:
      std::stringstream ss;
@@ -316,8 +305,6 @@ SupervisedClassifier *get_classifier(params_t &p) {
     if(p.fs != NONE)
       cc->set_feature_selector(get_fs(p));
   }
-  if (p.raw) cc->use_raw_weights();
-  cc->set_distance(p.dt);
   return cc;
 }
 
@@ -380,7 +367,7 @@ int main(int argc, char** argv) {
   int opt = -1;
   params_t params;
   init_params(params);
-  while ((opt = getopt (argc, argv, "r:d:t:o:m:n:N:H:x:k:v:s:F:f:a:b:l:T:1:2:D:PESwguRZ")) != -1) {
+  while ((opt = getopt (argc, argv, "r:d:t:o:m:n:N:H:x:k:v:s:F:f:a:b:l:T:1:2:PESwgu")) != -1) {
     switch (opt) {
       case 't': params.test_file = optarg; break;
       case 'd': params.train_file = optarg; break;
@@ -410,9 +397,6 @@ int main(int argc, char** argv) {
       case 'x': params.rf_m = atof(optarg); break;
       case 'N': params.rf_docs = atof(optarg); break;
       case 'H': params.rf_height = atoi(optarg); break;
-      case 'R': params.raw = true; break;
-      case 'D': params.dt = parse_dist(optarg); break;
-      case 'Z': params.rf_trn = true; break; 
       case '?':
         if ((optopt == 'd') || (optopt == 't') || (optopt == 'r') ||
             (optopt == 'm') || (optopt == 'k') || (optopt == 'T'))

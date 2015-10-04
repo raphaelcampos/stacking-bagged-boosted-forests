@@ -27,7 +27,6 @@ class Outputer {
       Similarity<double> s = sco.top();
       ss << " " << s.class_name << ":" << (s.similarity/normalizer);
       sco.pop();
-      break;
     }
 
     #pragma omp critical(output)

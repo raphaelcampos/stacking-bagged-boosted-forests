@@ -79,7 +79,7 @@ class nb : public virtual SupervisedClassifier {
 };
 
 bool nb::check_train_line(const std::string &line) const {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -87,7 +87,7 @@ bool nb::check_train_line(const std::string &line) const {
 }
 
 bool nb::parse_train_line(const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -104,7 +104,7 @@ bool nb::parse_train_line(const std::string &line) {
   // retrieve each term frequency and update occurrencies
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
     unsigned int tf = atoi(tokens[i+1].data());
-    int term_id = atoi(tokens[i].data());
+    int term_id = atoi(tokens[i].c_str());
     vocabulary_add(term_id);
 
     std::string index = Utils::get_index(term_id, doc_class);
@@ -120,7 +120,7 @@ bool nb::parse_train_line(const std::string &line) {
 }
 
 void nb::parse_test_line(const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
@@ -138,8 +138,8 @@ void nb::parse_test_line(const std::string &line) {
 
     MyBig probCond = "1.0";
     for (size_t i = 2; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      unsigned int tf = atoi(tokens[i+1].data());
+      int term_id = atoi(tokens[i].c_str());
+      unsigned int tf = atoi(tokens[i+1].c_str());
       MyBig val = term_conditional(term_id, cur_class);
       MyBig num_t = nt(term_id);
 

@@ -67,9 +67,9 @@ class TrialStatistics {
       double sum_tp    = it->second.TP_;
       double sum_tp_fp = it->second.TP_ + it->second.FP_;
       double sum_tp_fn = it->second.TP_ + it->second.FN_;
-      double p = (sum_tp_fp == 0.0) ? 1.0 : sum_tp / sum_tp_fp;
+      double p = (sum_tp_fp == 0.0) ? 0.0 : sum_tp / sum_tp_fp;
       double r = (sum_tp_fn == 0.0) ? 0.0 : sum_tp / sum_tp_fn;
-      double f1 = ((p+r) == 0.0) ? 0.0 : (2.0 * p * r) / (p + r);
+      double f1 = (r == 0.0) ? 0.0 : (2.0 * p * r) / (p + r);
 //      std::cerr << "F1(" << it->first << ") = " << f1 << std::endl;
       sum_f1 += f1;
       ++it;
@@ -111,11 +111,11 @@ class TrialStatistics {
     while (it != contigency_.end()) {
       double sum_tp    = it->second.TP_;
       double sum_tp_fn = it->second.TP_ + it->second.FN_;
-      double tpr = (sum_tp_fn == 0.0) ? 1.0 : sum_tp / sum_tp_fn;
+      double tpr = sum_tp / sum_tp_fn;
 
       double sum_fp    = it->second.FP_;
       double sum_fp_tn = it->second.FP_ + it->second.TN_;
-      double fpr = (sum_fp_tn == 0.0) ? 1.0 : sum_fp / sum_fp_tn;
+      double fpr = sum_fp / sum_fp_tn;
 
       double auc = ((1.0 + tpr - fpr) / 2.0);
 
@@ -359,37 +359,37 @@ class Statistics {
     for (unsigned int i = 0; i < stats_.size(); i++) {
       double mic_f1  = stats_[i].micro_f1();
       double mac_f1  = stats_[i].macro_f1();
-//      double mic_auc = stats_[i].micro_auc();
-//      double mac_auc = stats_[i].macro_auc();
-//      double mic_sen = stats_[i].micro_sensitivity();
-//      double mac_sen = stats_[i].macro_sensitivity();
-//      double mic_spe = stats_[i].micro_specificity();
-//      double mac_spe = stats_[i].macro_specificity();
-//      double auc     = stats_[i].auc_per_class();
+      double mic_auc = stats_[i].micro_auc();
+      double mac_auc = stats_[i].macro_auc();
+      double mic_sen = stats_[i].micro_sensitivity();
+      double mac_sen = stats_[i].macro_sensitivity();
+      double mic_spe = stats_[i].micro_specificity();
+      double mac_spe = stats_[i].macro_specificity();
+      double auc     = stats_[i].auc_per_class();
 
       sum[0] += mic_f1;
       sum[1] += mac_f1;
-//      sum[2] += mic_auc;
-//      sum[3] += mac_auc;
-//      sum[4] += mic_sen;
-//      sum[5] += mac_sen;
-//      sum[6] += mic_spe;
-//      sum[7] += mac_spe;
-//      sum[8] += auc;
+      sum[2] += mic_auc;
+      sum[3] += mac_auc;
+      sum[4] += mic_sen;
+      sum[5] += mac_sen;
+      sum[6] += mic_spe;
+      sum[7] += mac_spe;
+      sum[8] += auc;
 
       s_sum[0] += pow(mic_f1, 2);
       s_sum[1] += pow(mac_f1, 2);
-//      s_sum[2] += pow(mic_auc, 2);
-//      s_sum[3] += pow(mac_auc, 2);
-//      s_sum[4] += pow(mic_sen, 2);
-//      s_sum[5] += pow(mac_sen, 2);
-//      s_sum[6] += pow(mic_spe, 2);
-//      s_sum[7] += pow(mac_spe, 2);
-//      s_sum[8] += pow(auc, 2);
+      s_sum[2] += pow(mic_auc, 2);
+      s_sum[3] += pow(mac_auc, 2);
+      s_sum[4] += pow(mic_sen, 2);
+      s_sum[5] += pow(mac_sen, 2);
+      s_sum[6] += pow(mic_spe, 2);
+      s_sum[7] += pow(mac_spe, 2);
+      s_sum[8] += pow(auc, 2);
     }
  
     std::cout << "STATISTICS FOR " << stats_.size() << " TRIAL" << (stats_.size() > 1 ? "S." : ".") << std::endl;
-    for (unsigned int i = 0; i < 2/*9*/; i++) {
+    for (unsigned int i = 0; i < 9; i++) {
       double mean = sum[i] / stats_.size();
       double sd = (stats_.size() > 1) ? sqrt(s_sum[i] / stats_.size() - pow(mean, 2)) : 0.0;
       std::cout << names[i] << ": " << (mean*100.0) << " += " << (sd*100.0) << std::endl;

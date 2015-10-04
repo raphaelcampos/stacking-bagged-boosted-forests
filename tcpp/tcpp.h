@@ -1,8 +1,6 @@
 #ifndef TCPP_H__
 #define TCPP_H__
 
-#include "supervised_classifier.hpp"
-
 #define PNAIVEBAYES_STR "pnaivebayes"
 #define LNAIVEBAYES_STR "lnaivebayes"
 #define CNAIVEBAYES_STR "cnaivebayes"
@@ -13,15 +11,11 @@
 #define RF2_STR "rf"
 #define RFKNN_STR "rf-knn"
 #define RFKRAND_STR "rf-krand"
-#define BRF_STR "rf-boosted"
 #define DT_STR "decisiontree"
+#define LAZYDT_STR "lazy-dt"
 #define KNN_STR "knn"
 #define ROCCHIO_STR "rocchio"
 #define ONSCO_STR "onsco"
-
-#define D_COS_STR "cosine"
-#define D_L2_STR "l2"
-#define D_L1_STR "l1"
 
 enum method_t {
   ROCCHIO=0,
@@ -35,10 +29,10 @@ enum method_t {
   BITI,
   RF1,
   DTree,
+  LDT,
   RF2,
   RFKNN,
   RFKRAND,
-  BRF,
   UNKNOWN
 };
 
@@ -53,9 +47,6 @@ enum fs_t {
 struct params_t {
   unsigned int round;
   method_t method;
-  bool raw;
-
-  DistType dt;
 
   fs_t fs;     // feature selector
   double fs_p; // percentage of vocabulary
@@ -80,7 +71,6 @@ struct params_t {
   int rf_trees;
   double rf_docs;
   int rf_height;
-  bool rf_trn;
 
   bool two_pass;
   method_t fst_pass_cl;
@@ -96,8 +86,6 @@ struct params_t {
 
 void init_params(params_t &p) {
   p.method = ROCCHIO;
-  p.raw = false;
-  p.dt = COSINE;
   p.fs = NONE;
   p.fs_p = 1.0;
   p.k = 30;
@@ -113,7 +101,6 @@ void init_params(params_t &p) {
   p.rf_trees = 10;
   p.rf_docs = 1.0;
   p.rf_height = 0;
-  p.rf_trn=false;
   p.unif_prior = false;
   p.round = 0;
   p.validation = false;

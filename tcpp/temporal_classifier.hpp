@@ -49,8 +49,8 @@ class TemporalClassifier : public virtual SupervisedClassifier {
       while (file >> line) {
         std::vector<std::string> tokens;
         Utils::string_tokenize(line, tokens, ";");
-        int delta = atoi(tokens[0].data());
-        double value = atof(tokens[1].data());
+        int delta = atoi(tokens[0].c_str());
+        double value = atof(tokens[1].c_str());
         twf_[delta] = value;
         // REMOVE-ME IF WORSE THAN JUST 0.0
         if (value < min_twf_) min_twf_ = value;

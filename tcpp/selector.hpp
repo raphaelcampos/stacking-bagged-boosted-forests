@@ -130,7 +130,7 @@ class KNN_Selector : public Selector {
     dataset_[id] = ln;
 
     for (size_t i = 3; i < tokens.size()-1; i+=2) {
-      double tf = 1.0 + log(atof(tokens[i+1].data()));
+      double tf = 1.0 + log(atof(tokens[i+1].c_str()));
       std::string term_id = tokens[i];
       ExpNetHead head;
       head.term_id = static_cast<unsigned int>(atoi(term_id.data()));
@@ -256,7 +256,7 @@ class KNN_Selector : public Selector {
         }
 
         for (size_t i = 3; i < tokens.size()-1; i+=2) {
-          double tf = 1.0 + log(atof(tokens[i+1].data()));
+          double tf = 1.0 + log(atof(tokens[i+1].c_str()));
           ExpNetHead head;
           head.term_id = static_cast<unsigned int>(atoi(tokens[i].data()));
           head.idf = 0.0;
@@ -287,7 +287,7 @@ class KNN_Selector : public Selector {
     Centroid doc;
 
     for (size_t i = 3; i < tokens.size()-1; i+=2) {
-      double tf = 1.0 + log(atof(tokens[i+1].data()));
+      double tf = 1.0 + log(atof(tokens[i+1].c_str()));
       std::string term_id = tokens[i];
       doc.terms[term_id] += tf;
     }

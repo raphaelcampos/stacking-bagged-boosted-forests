@@ -29,7 +29,7 @@ class Rocchio : public virtual SupervisedClassifier {
  public:
   Rocchio(unsigned int round=0) :
     SupervisedClassifier(round),
-    maxIDF(-9999.99) {}
+    maxIDF(-9999.99), no_weight(false) {}
 
   virtual bool parse_train_line(const std::string &l);
   virtual void parse_test_line(const std::string &l);
@@ -55,10 +55,11 @@ class Rocchio : public virtual SupervisedClassifier {
   std::map<int, unsigned int> DFperTerm;
 
   double maxIDF;
+  bool no_weight;
 };
 
 bool Rocchio::check_train_line(const std::string &line) const {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -66,7 +67,7 @@ bool Rocchio::check_train_line(const std::string &line) const {
 }
 
 bool Rocchio::parse_train_line(const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   // input format: doc_id;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
@@ -79,8 +80,8 @@ bool Rocchio::parse_train_line(const std::string &line) {
   sumDFperClass[doc_class]++;
 
   for (unsigned int i = 2; i < tokens.size()-1; i+=2) {
-    double weight = (raw) ? atof(tokens[i+1].data()) :
-                    1.0 + log10(atof(tokens[i+1].data()));
+    double weight = (no_weight) ? atof(tokens[i+1].c_str()) :
+                    1.0 + log10(atof(tokens[i+1].c_str()));
     int term_id = atoi(tokens[i].data());
     DFperTerm[term_id]++;
     vocabulary_add(term_id);
@@ -107,7 +108,7 @@ void Rocchio::updateCentroidsSize() {
     double centSize = 0.0;
     std::map<int, double>::iterator vIt = (cIt->second).terms.begin();
     while(vIt != (cIt->second).terms.end()) {
-      double idf = (raw) ? 1.0 :
+      double idf = (no_weight) ? 1.0 :
        log10(static_cast<double>(get_total_docs() + 1.0) /
              static_cast<double>(Utils::get_value(DFperTerm,vIt->first)+1.0))
                / maxIDF;
@@ -124,12 +125,12 @@ void Rocchio::updateCentroidsSize() {
 
 void Rocchio::train(const std::string &trn) {
   SupervisedClassifier::train(trn);
-  if (!raw) updateMaxIDF();
+  if (!no_weight) updateMaxIDF();
   updateCentroidsSize();
 }
 
 void Rocchio::parse_test_line(const std::string &line) {
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, ";");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
 
@@ -147,9 +148,9 @@ void Rocchio::parse_test_line(const std::string &line) {
 
       for (size_t i = 2; i < tokens.size()-1; i+=2) {
         int term_id = atoi(tokens[i].data());
-        double tf = (raw) ? atof(tokens[i+1].data()) :
-          1.0 + log10(atof(tokens[i+1].data()));
-        double idf = (raw) ? 1.0 :
+        double tf = (no_weight) ? atof(tokens[i+1].c_str()) :
+          1.0 + log10(atof(tokens[i+1].c_str()));
+        double idf = (no_weight) ? 1.0 :
           log10(static_cast<double>(get_total_docs() + 1.0) /
                 static_cast<double>(Utils::get_value(DFperTerm, term_id)+1.0)) 
                   / maxIDF;

@@ -62,8 +62,8 @@ void nb_compl::parse_test_line(const std::string &line) {
 
     double probCond = 0.0;
     for (size_t i = 2; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      unsigned int tf = atoi(tokens[i+1].data());
+      int term_id = atoi(tokens[i].c_str());
+      unsigned int tf = atoi(tokens[i+1].c_str());
       double val = term_conditional(term_id, cur_class);
       double num_t = nt(term_id);
       

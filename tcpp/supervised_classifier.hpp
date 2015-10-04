@@ -14,22 +14,13 @@
 #include "scores.hpp"
 #include "outputer.hpp"
 
-enum DistType {COSINE, L2, L1};
-
 class SupervisedClassifier {
  public:
-
   SupervisedClassifier(unsigned int r=0)
-    : total_docs(0), fs(NULL), out(NULL), round(r), out_file(""), raw(false), dist_type(COSINE) {}
+    : total_docs(0), fs(NULL), out(NULL), round(r), out_file("") {}
 
   void set_round(unsigned int i) { round = i; }
   unsigned int get_round() const { return round; }
-
-  void use_raw_weights() { raw=true; }
-  void use_computed_weights() { raw=false; }
-  bool is_raw_weights() { return raw; }
-
-  void set_distance(DistType d) { dist_type = d; }
 
   void set_feature_selector(AbstractFeatureSelector *f) { fs = f; }
 
@@ -79,7 +70,6 @@ class SupervisedClassifier {
   unsigned int get_total_docs() const { return total_docs; }
 
  protected:
-
   std::set<std::string> classes;
   std::set<int> vocabulary;
   unsigned int total_docs;
@@ -87,9 +77,6 @@ class SupervisedClassifier {
   Outputer *out;
   unsigned int round;
   std::string out_file;
-  bool raw;
-  DistType dist_type;
-
 };
 
 void SupervisedClassifier::train(const std::string &train_fn) {
@@ -98,7 +85,7 @@ void SupervisedClassifier::train(const std::string &train_fn) {
     std::cerr << "[SUPERVISED CLASSIFIER] Training..." << std::endl;
     if (fs != NULL) fs->select(train_fn);
     std::string line;
-    while (std::getline(file, line)) {
+    while (getline(file, line)) {
       if (fs != NULL) line = fs->filter(line);
       if (parse_train_line(line)) total_docs++;
     }
@@ -149,7 +136,7 @@ void SupervisedClassifier::test(const std::string &test_fn) {
     }
   }
   else {
-    std::cerr << "Error while opening test file." << std::endl;
+    std::cerr << "Error while opening training file." << std::endl;
     exit(1);
   }
 }

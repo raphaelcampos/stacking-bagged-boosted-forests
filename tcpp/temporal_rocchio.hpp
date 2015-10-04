@@ -74,9 +74,9 @@ bool TemporalRocchio::parse_train_line(const std::string &line) {
 
   std::string cl_yr_idx = Utils::get_index(doc_class, year);
   for (unsigned int i = 3; i < tokens.size()-1; i+=2) {
-    double weight = (raw) ? atof(tokens[i+1].data()) :
-                    1.0 + log10(atof(tokens[i+1].data()));
-    int term_id = atoi(tokens[i].data());
+    double weight = (no_weight) ? atof(tokens[i+1].c_str()) :
+                    1.0 + log10(atof(tokens[i+1].c_str()));
+    int term_id = atoi(tokens[i].c_str());
     vocabulary_add(term_id);
     DFperTerm[term_id]++;
     sumTF[doc_class][term_id][year] += weight;
@@ -88,7 +88,7 @@ bool TemporalRocchio::parse_train_line(const std::string &line) {
 
 void TemporalRocchio::train(const std::string &trn) {
   Rocchio::train(trn);
-  if (!raw) updateMaxIDF();
+  if (!no_weight) updateMaxIDF();
 }
 
 void TemporalRocchio::parse_test_line(const std::string &line) {
@@ -128,10 +128,10 @@ void TemporalRocchio::parse_test_line(const std::string &line) {
     double doc_size = 0.0;
 
     for (size_t i = 3; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      double tf = (raw) ? atof(tokens[i+1].data()) :
-        1.0 + log10(atof(tokens[i+1].data()));
-      double idf = (raw) ? 1.0 :
+      int term_id = atoi(tokens[i].c_str());
+      double tf = (no_weight) ? atof(tokens[i+1].c_str()) :
+        1.0 + log10(atof(tokens[i+1].c_str()));
+      double idf = (no_weight) ? 1.0 :
         log10(static_cast<double>(get_total_docs() + 1.0) /
               static_cast<double>(Utils::get_value(DFperTerm, term_id)+1.0)) 
                 / maxIDF;
@@ -148,7 +148,7 @@ void TemporalRocchio::parse_test_line(const std::string &line) {
         if (snd_it != fst_it->second.end()) {
           std::map<std::string, double>::const_iterator yIt = snd_it->second.begin();
           while(yIt != snd_it->second.end()) {
-            double t = twf(atoi(year.data()), atoi((yIt->first).data()));
+            double t = twf(atoi(year.c_str()), atoi((yIt->first).c_str()));
             double val = yIt->second * t; 
             cent_tfidf += val;
             ++yIt;
@@ -180,14 +180,14 @@ void TemporalRocchio::parse_test_line(const std::string &line) {
           if (snd_it != fst_it->second.end()) {
             std::map<std::string, double>::const_iterator yIt = snd_it->second.begin();
             while(yIt != snd_it->second.end()) {
-              double w = yIt->second * twf(atoi(year.data()),
-                                       atoi((yIt->first).data()));
+              double w = yIt->second * twf(atoi(year.c_str()),
+                                       atoi((yIt->first).c_str()));
               val += w; 
               ++yIt;
             }
           }
         }
-        double idf = (raw) ? 1.0 :
+        double idf = (no_weight) ? 1.0 :
           log10(static_cast<double>(get_total_docs() + 1.0) /
             static_cast<double>(Utils::get_value(DFperTerm,term_id)+1.0)) 
               / maxIDF;

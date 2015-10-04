@@ -52,15 +52,15 @@ class nb_gaussian : public virtual SupervisedClassifier {
       if(get_count(idx) == 0) return 1.0;
 
       double expected_value = sum_tf(idx) / (get_count(idx));
-      double variance = ((squared_sum_tf(idx) - ((sum_tf(idx)*sum_tf(idx)) / (get_count(idx)))) 
+      double variance = std::fabs((squared_sum_tf(idx) - ((sum_tf(idx)*sum_tf(idx)) / (get_count(idx)))) 
                                                   / (get_count(idx)));
       double diff = (term_freq-expected_value);
       
-//      if (variance == 0.0) variance = 1.0;
+      if (variance == 0.0) variance = 1.0;
            
-      double normal_a = (variance > 0 ) ? 1.0/sqrt(2*M_PI*variance) : 0.0;
-      double normal_exp = (variance > 0.0) ? ((-0.5) * (diff * diff) / variance) : 0.0;
-      normal_exp = exp(normal_exp);
+      double normal_a = 1.0/sqrt(2*M_PI*variance);
+      double normal_exp = (-0.5) * (diff * diff) / variance;
+      normal_exp = pow (M_E, normal_exp);
 
       double ret_value = normal_a * normal_exp;      
       return ret_value;
@@ -105,7 +105,7 @@ bool nb_gaussian::parse_train_line (const std::string &line) {
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
     double tf = atof(tokens[i+1].data());
     
-    int term_id = atoi(tokens[i].data());
+    int term_id = atoi(tokens[i].c_str());
     vocabulary_add(term_id);
 
     std::string idx = Utils::get_index(term_id, doc_class);
@@ -149,8 +149,8 @@ void nb_gaussian::parse_test_line(const std::string &line) {
     double probCond = 0.0;
    
     for (size_t i = 2; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      double tf = atof(tokens[i+1].data());
+      int term_id = atoi(tokens[i].c_str());
+      double tf = atof(tokens[i+1].c_str());
       double val = term_conditional(term_id, tf, cur_class);
       if(val != 0.0) 
         probCond += log(val);

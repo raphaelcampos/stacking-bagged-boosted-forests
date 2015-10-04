@@ -208,7 +208,7 @@ void RandomForest::train(const std::string &train_fn){
   SupervisedClassifier::train(train_fn);
   if(instances_.size() < 1){
     std::cerr << "Zero docs in train file. Aborting..." << std::endl;
-    exit(1);
+    exit(0);
   }
   std::cerr << "Train file contains " << instances_.size() << " docs." << std::endl;
  

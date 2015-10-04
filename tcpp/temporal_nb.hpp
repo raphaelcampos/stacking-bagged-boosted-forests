@@ -99,7 +99,7 @@ bool temporal_nb::parse_train_line(const std::string &line) {
   // retrieve each term frequency and update occurrencies
   for (size_t i = 3; i < tokens.size()-1; i+=2) {
     unsigned int tf = atoi(tokens[i+1].data());
-    int term_id = atoi(tokens[i].data());
+    int term_id = atoi(tokens[i].c_str());
     vocabulary_add(term_id);
 
     std::string trm_cl_yr_idx = Utils::get_index(term_id,
@@ -125,7 +125,7 @@ MyBig temporal_nb::apriori_den(const std::string &ref_year) {
         std::string idx = Utils::get_index(*(cIt), *(yIt));
         aPrioriDen += static_cast<MyBig>(
                         static_cast<double>(Utils::get_value(DF, idx)) *
-                        twf(atoi(ref_year.data()), atoi(yIt->data())));
+                        twf(atoi(ref_year.c_str()), atoi(yIt->c_str())));
         ++yIt;
       }
       ++cIt;
@@ -151,7 +151,7 @@ MyBig temporal_nb::apriori_num(const std::string &doc_class,
       std::string cl_yr_idx = Utils::get_index(doc_class, *(yIt));
       aPrioriNum += static_cast<MyBig>(
                       static_cast<double>(Utils::get_value(DF, cl_yr_idx)) *
-                      twf(atoi(ref_year.data()), atoi(yIt->data())));
+                      twf(atoi(ref_year.c_str()), atoi(yIt->c_str())));
       ++yIt;
     }
     aPrioriNum = aPrioriNum + alpha_;
@@ -174,7 +174,7 @@ MyBig temporal_nb::term_conditional_den(const std::string &cur_class,
       std::string cl_yr_idx = Utils::get_index(cur_class, *(yIt));
       condDen += static_cast<MyBig>(
                    static_cast<double>(Utils::get_value(sumTF, cl_yr_idx)) *
-                   twf(atoi(ref_year.data()), atoi(yIt->data())));
+                   twf(atoi(ref_year.c_str()), atoi(yIt->c_str())));
       ++yIt;
     }
     condDen = condDen + (alpha_ * static_cast<MyBig>(vocabulary_size()));
@@ -197,7 +197,7 @@ MyBig temporal_nb::term_conditional_num(const int &term_id,
                         Utils::get_index(cur_class, *(yIt)));
     condNum += static_cast<MyBig>(
                  static_cast<double>(Utils::get_value(TF, idx)) *
-                 twf(atoi(ref_year.data()), atoi(yIt->data())));
+                 twf(atoi(ref_year.c_str()), atoi(yIt->c_str())));
     ++yIt;
   }
   condNum = condNum + alpha_;
@@ -229,8 +229,8 @@ void temporal_nb::parse_test_line(const std::string &line) {
 
     MyBig probCond = "0.0e+800"; probCond += MyBig("1.0");
     for (size_t i = 3; i < tokens.size()-1; i+=2) {
-      int term_id = atoi(tokens[i].data());
-      unsigned int tf = atoi(tokens[i+1].data());
+      int term_id = atoi(tokens[i].c_str());
+      unsigned int tf = atoi(tokens[i+1].c_str());
       MyBig val = term_conditional(term_id, cur_class, ref_year, condDen);
       MyBig num_t = nt(term_id);
 

@@ -47,8 +47,7 @@ class KNN_Doc_Sim{
 
 class RF_KNN : public SupervisedClassifier{
   public:
-    RF_KNN(unsigned int r, double m=1.0, unsigned int k=30, unsigned int num_trees=10)
-      : SupervisedClassifier(r), num_trees_(num_trees), k_(k), m_(m), maxIDF(0.0) {docs_processed_ = correct_cosine = wrong_cosine = 0; std::cerr << k << std::endl;}
+    RF_KNN(unsigned int r, double m=1.0, unsigned int k=30, unsigned int num_trees=10) : SupervisedClassifier(r), num_trees_(num_trees), k_(k), m_(m), maxIDF(0.0) {docs_processed_ = 0; std::cerr << k << std::endl;}
     ~RF_KNN();
     bool parse_train_line(const std::string&);
     void train(const std::string&);
@@ -68,9 +67,6 @@ class RF_KNN : public SupervisedClassifier{
     std::map<const DTDocument*, double> knn_doc_sizes_;
     double maxIDF;
     unsigned int docs_processed_;
-    unsigned int correct_cosine;
-    unsigned int wrong_cosine;
-      
 };
 
 void RF_KNN::insert_knn_term(unsigned int term_id, const DTDocument* const& doc, double tf){
@@ -90,7 +86,6 @@ void RF_KNN::insert_knn_term(unsigned int term_id, const DTDocument* const& doc,
 
 
 void RF_KNN::updateIDF(){
-  if (raw) return;
   std::map<KNN_Term_IDF, std::set<KNN_Doc_TF> >::iterator it = knn_term_list_.begin();
   while(it != knn_term_list_.end()){
     (it->first).idf = log10((static_cast<double>(docs_.size()) + 1.0)/ ((it->second).size() + 1.0));
@@ -104,7 +99,7 @@ void RF_KNN::updateTFIDF(){
   while(it != knn_term_list_.end()){
     std::set<KNN_Doc_TF>::iterator it_d = (it->second).begin();
     while(it_d != (it->second).end()){
-      if (!raw) it_d->tf_idf *= (it->first).idf / maxIDF;
+      it_d->tf_idf *= (it->first).idf / maxIDF;
       knn_doc_sizes_[it_d->doc] += it_d->tf_idf * it_d->tf_idf; //update doc sizes
       ++it_d;
     }
@@ -127,23 +122,24 @@ void RF_KNN::reset_model(){
 }
 
 bool RF_KNN::parse_train_line(const std::string& line){
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
-  double maxTF = 0;
+  unsigned int maxTF = 0;
   std::string doc_id = tokens[0];
   doc->set_id(doc_id);
   std::string doc_class = tokens[1];
   doc->set_class(doc_class);
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
-    double tf = atof(tokens[i+1].data());
+    unsigned int tf = atoi(tokens[i+1].data());
     int term_id = atoi(tokens[i].data());
     doc->insert_term(term_id, tf);
     if(tf > maxTF){
       maxTF = tf;
     }
-    insert_knn_term(term_id, doc, (raw) ? tf : 1.0+log(tf));
+
+    insert_knn_term(term_id, doc, 1.0+log(tf));
   }
   docs_.push_back(doc);
   return true;
@@ -161,21 +157,11 @@ Scores<double> RF_KNN::classify(const DTDocument* doc, std::map<const DTDocument
   std::priority_queue<KNN_Doc_Sim, std::vector<KNN_Doc_Sim> > ordered_docs;
   std::map<const DTDocument*, double>::iterator it = sim.begin();
   while(it != sim.end()){
-    double s = it->second;
-    switch(dist_type) {
-      case L2:
-        s = 1.0 - sqrt(s);
-        break;
-      case L1:
-        s = 1.0 - s;
-        break;
-    }
-    KNN_Doc_Sim pqel(it->first, s);
+    KNN_Doc_Sim pqel(it->first, it->second);
     ordered_docs.push(pqel);
     ++it;
   }
   RF * rf = new RF(round, m_, num_trees_);
-  if (raw) rf->use_raw_weights();
   rf->set_doc_delete(false);
   unsigned count = 0;
   while(!ordered_docs.empty() && count < k_){
@@ -211,11 +197,12 @@ Scores<double> RF_KNN::classify(const DTDocument* doc, std::map<const DTDocument
 }
 
 void RF_KNN::parse_test_line(const std::string& line){
-  std::vector<std::string> tokens; tokens.reserve(100);
+  std::vector<std::string> tokens;
   Utils::string_tokenize(line, tokens, " ");
 
   double test_size = 0.0;
   std::map<const DTDocument*, double> doc_similarities;
+
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
 
   DTDocument * doc = new DTDocument();
@@ -224,41 +211,30 @@ void RF_KNN::parse_test_line(const std::string& line){
   std::string doc_class = tokens[1];
   doc->set_class(doc_class);
   for (size_t i = 2; i < tokens.size()-1; i+=2) {
-    double tf = atof(tokens[i+1].data());
+    unsigned int tf = atoi(tokens[i+1].data());
     int term_id = atoi(tokens[i].data());
     KNN_Term_IDF knn_t(term_id, 0.0);
 
-    double tf_idf = (raw) ? tf : 1.0 + log(tf);
+    double tf_idf = 1.0 + log(tf);
     std::map<KNN_Term_IDF, std::set<KNN_Doc_TF> >::iterator it = knn_term_list_.find(knn_t);
     if(it != knn_term_list_.end()){
-      if (!raw) tf_idf *= (it->first).idf / maxIDF;
+      tf_idf *= (it->first).idf / maxIDF;
       test_size += tf_idf * tf_idf;
     }
 
     doc->insert_term(term_id, tf);
   }
 
-  std::map<TermID, double>::const_iterator cit_t = doc->terms_begin();
+  std::map<TermID, unsigned int>::const_iterator cit_t = doc->terms_begin();
   while(cit_t != doc->terms_end()){
     KNN_Term_IDF knn_t(cit_t->first, 0.0);
     std::map<KNN_Term_IDF, std::set<KNN_Doc_TF> >::iterator it_d = knn_term_list_.find(knn_t);
     if(it_d != knn_term_list_.end()){
       std::set<KNN_Doc_TF>::iterator it_s = (it_d->second).begin();
       while(it_s != (it_d->second).end()){
-        double tf_idf = (raw) ? cit_t->second : 1.0 + log(cit_t->second);
-        if (!raw) tf_idf *= (it_d->first).idf / maxIDF;
-        switch(dist_type) {
-          case L2:
-            doc_similarities[it_s->doc] += pow((it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) - (tf_idf/sqrt(test_size)), 2.0);
-            break;
-          case L1:
-            doc_similarities[it_s->doc] += abs((it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) - (tf_idf/sqrt(test_size)));
-            break;
-          case COSINE:
-          default:
-            doc_similarities[it_s->doc] += (it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) * (tf_idf/sqrt(test_size));
-            break;
-        }
+        double tf_idf = 1.0 + log(cit_t->second);
+        tf_idf *= (it_d->first).idf / maxIDF;
+        doc_similarities[it_s->doc] += (it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) * (tf_idf/sqrt(test_size));
         ++it_s;
       }
     }
@@ -268,15 +244,9 @@ void RF_KNN::parse_test_line(const std::string& line){
   Scores<double> similarities = classify(doc, doc_similarities);
   docs_processed_++;
   std::cerr.precision(4);
-  
-  if(similarities.top().class_name == doc->get_class()){
-    correct_cosine++;
-  }else{
-    wrong_cosine++;
-  }
   std::cerr.setf(std::ios::fixed);
-  std::cerr << "\r" << double(docs_processed_)/docs_.size() * 900 << "%" << " - " << double(correct_cosine) / docs_processed_;
-
+  std::cerr << "\r" << double(docs_processed_)/docs_.size() * 900 << "%";
+  
   get_outputer()->output(similarities);
   delete doc;
 }

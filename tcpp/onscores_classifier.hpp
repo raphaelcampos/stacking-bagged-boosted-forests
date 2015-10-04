@@ -88,14 +88,14 @@ class OnScoresClassifier : public TemporalClassifier {
         for (size_t i = 2; i < tokens.size(); i++) {
           Utils::string_tokenize(tokens[i], tmp, ":");
           std::string cmb = tmp[0];
-          double sco = atof(tmp[1].data());
+          double sco = atof(tmp[1].c_str());
           tmp.clear();
           Utils::string_tokenize(cmb, tmp, "-");
           std::string cl  = tmp[0];
           std::string yr = tmp[1];
           tmp.clear();
 
-          double w = twf(atoi(ref_year.data()), atoi(yr.data()));
+          double w = twf(atoi(ref_year.c_str()), atoi(yr.c_str()));
 
           std::map < std::string, double >::iterator it = scores.find(cl);
           if (it == scores.end()) scores[cl] = sco * w;

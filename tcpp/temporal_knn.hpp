@@ -102,23 +102,23 @@ bool temporal_knn::parse_train_line(const std::string &line) {
   // input format: doc_id;year;CLASS=class_name;{term_id;tf}+
   if ((tokens.size() < 5) || (tokens.size() % 2 == 0)) return false;
 
-  TempKNN_Document cur_doc(atoi(tokens[0].data()),
+  TempKNN_Document cur_doc(atoi(tokens[0].c_str()),
                            tokens[2], tokens[1]);
 
   double maxTF = 1.0;
 
 /*
-  double maxTF = 1.0 + log(atof(tokens[2].data()));
+  double maxTF = 1.0 + log(atof(tokens[2].c_str()));
   for (unsigned int i = 4; i < tokens.size()-1; i+=2) {
-    double tf = 1.0 + log(atof(tokens[i+1].data()));
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
     maxTF = (tf > maxTF) ? tf : maxTF;
   }
 */
 
   // for each term, insert a post for this doc in the posting lists
   for (size_t i = 3; i < tokens.size()-1; i+=2) {
-    double tf = 1.0 + log(atof(tokens[i+1].data()));
-    unsigned int term_id = atoi(tokens[i].data());
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
+    unsigned int term_id = atoi(tokens[i].c_str());
     ExpNetHead head;
     head.term_id = term_id;
     head.idf = 0.0; // we still need to update IDF, after everything !!!
@@ -167,7 +167,7 @@ bool temporal_knn::updateDocumentSize(const std::string &train_fn) {
       Utils::string_tokenize(line, tokens, ";");
       if ((tokens.size() < 5) || (tokens.size() % 2 == 0)) return false;
 
-      int id = atoi(tokens[0].data());
+      int id = atoi(tokens[0].c_str());
       std::string year = tokens[1];
 
       double size = 0.0;
@@ -175,18 +175,18 @@ bool temporal_knn::updateDocumentSize(const std::string &train_fn) {
       double maxTF = 1.0;
 
 /*
-      double maxTF = 1.0 + log(atof(tokens[4].data()));
+      double maxTF = 1.0 + log(atof(tokens[4].c_str()));
       for (unsigned int i = 5; i < tokens.size()-1; i+=2) {
-        double tf = 1.0 + log(atof(tokens[i+1].data()));
+        double tf = 1.0 + log(atof(tokens[i+1].c_str()));
         maxTF = (tf > maxTF) ? tf : maxTF;
       }
 */
 
       for (size_t i = 3; i < tokens.size()-1; i+=2) {
-        double tf = 1.0 + log(atof(tokens[i+1].data()));
+        double tf = 1.0 + log(atof(tokens[i+1].c_str()));
         tf /= maxTF;
         ExpNetHead head;
-        head.term_id = atoi(tokens[i].data());
+        head.term_id = atoi(tokens[i].c_str());
         head.idf = 0.0;
 
         temp_exp_net::iterator it = index.find(head);
@@ -215,8 +215,8 @@ void temporal_knn::getKNearest(unsigned int test_id,
   std::priority_queue<temp_similarity_t, std::vector<temp_similarity_t> > sim;
   std::map<TempKNN_Document, double>::iterator it = similarities.begin();
   while (it != similarities.end()) {
-    double w = it->second * twf(atoi(ref_year.data()),
-                       atoi(it->first.doc_year.data()));
+    double w = it->second * twf(atoi(ref_year.c_str()),
+                       atoi(it->first.doc_year.c_str()));
     temp_similarity_t simil(it->first, w);
     sim.push(simil);
     ++it;
@@ -245,17 +245,17 @@ void temporal_knn::parse_test_line(const std::string &line) {
 
   double maxTF = 1.0;
 
-  maxTF = atoi(tokens[4].data());
+  maxTF = atoi(tokens[4].c_str());
   for (unsigned int i = 5; i < tokens.size()-1; i+=2) {
-    double tf = (atof(tokens[i+1].data()));
+    double tf = (atof(tokens[i+1].c_str()));
     maxTF = (tf > maxTF) ? tf : maxTF;
   }
 
   double test_size = 0.0;
 
   for (int i = 3; i < static_cast<int>(tokens.size())-1; i+=2) {
-    unsigned int term_id = atoi(tokens[i].data());
-    double tf = 1.0 + log(atof(tokens[i+1].data()));
+    unsigned int term_id = atoi(tokens[i].c_str());
+    double tf = 1.0 + log(atof(tokens[i+1].c_str()));
     tf /= maxTF;
     ExpNetHead head;
     head.term_id = term_id;
@@ -274,8 +274,8 @@ void temporal_knn::parse_test_line(const std::string &line) {
 
   std::map<TempKNN_Document, double> similarities;
   for (int i = 3; i < static_cast<int>(tokens.size())-1; i+=2) {
-    double tf = 1 + log(atof(tokens[i+1].data()));
-    int term_id = atoi(tokens[i].data());
+    double tf = 1 + log(atof(tokens[i+1].c_str()));
+    int term_id = atoi(tokens[i].c_str());
     ExpNetHead head;
     head.term_id = term_id;
     head.idf = 0.0;
@@ -298,7 +298,7 @@ void temporal_knn::parse_test_line(const std::string &line) {
     }
   }
 
-  TempKNN_Document cur_doc(atoi(tokens[0].data()),
+  TempKNN_Document cur_doc(atoi(tokens[0].c_str()),
                            tokens[2], tokens[1]);
 
   Scores<double> scores(tokens[0], cur_doc.doc_class);
