@@ -172,13 +172,14 @@ void knn::updateIDF() {
     (const_cast<ExpNetHead *> (&(it->first)))->idf = idf;
     ++it;
   }
-  //maxIDF = 1.0;
+  std::cerr << maxIDF << std::endl;
+  maxIDF = 1.0;
 }
 
 bool knn::updateDocumentSize(const std::string &train_fn) {
   std::ifstream file(train_fn.data(), std::ios::in);
   std::string line;
-
+  std::cerr << maxIDF << std::endl;
   if (file) {
     file.seekg(0, std::ios::beg);
     while (std::getline(file, line)) {
@@ -271,11 +272,11 @@ void knn::parse_test_line(const std::string &line) {
 
   double maxTF = 1.0;
 
-  maxTF = atoi(tokens[3].c_str());
+  /*maxTF = atoi(tokens[3].c_str());
   for (unsigned int i = 4; i < tokens.size()-1; i+=2) {
     double tf = atof(tokens[i+1].c_str());
     maxTF = (tf > maxTF) ? tf : maxTF;
-  }
+  }*/
 
   double test_size = 0.0;
 

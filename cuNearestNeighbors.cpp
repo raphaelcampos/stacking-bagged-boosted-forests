@@ -87,7 +87,7 @@ int cuNearestNeighbors::getMajorityVote(cuSimilarity *k_nearest, int K){
 
     for(int i = 0; i < K; ++i) {
         cuSimilarity &sim = k_nearest[i];
-        ++vote_count[doc_to_class[sim.doc_id]];
+        vote_count[doc_to_class[sim.doc_id]] += sim.distance;
         //vote_count[doc_to_class[sim.doc_id]]+=((further.distance-sim.distance)/(further.distance-closest.distance))*((sim.distance+further.distance)/(closest.distance+further.distance))*(i);
         
         //vote_count[doc_to_class[sim.doc_id]]+=((further.distance-sim.distance)/(further.distance-closest.distance))*((double)i);

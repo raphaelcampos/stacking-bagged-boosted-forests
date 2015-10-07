@@ -3,9 +3,9 @@ cur_path=`pwd`;
 dataset=$1;
 
 
-for method in 'broof'; do
+for method in 'knn'; do
 	# get results
-	../test_${method} datasets/${dataset}/treino0_temp datasets/$dataset/teste0_temp ../venn-diagrams/${dataset}/t0/resul_${method}
+	../test_${method} datasets/${dataset}/treino2_temp datasets/$dataset/teste2_temp ../venn-diagrams/${dataset}/t0/resul_${method}
 
 	# replace : for white space
 	cat ../venn-diagrams/${dataset}/t0/resul_${method} | perl -pe 's/:/\ /g' > ../venn-diagrams/${dataset}/t0/resul_${method}_s

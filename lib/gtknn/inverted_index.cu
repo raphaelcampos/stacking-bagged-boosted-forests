@@ -130,7 +130,7 @@ __global__ void mount_inverted_index_and_compute_tf_idf(Entry *entries, Entry *i
         entry.tf_idf = (1 + log(float(entry.tf))) * log(float(num_docs) / float(count[entry.term_id]));
         inverted_index[pos] = entry;
 
-        atomicAdd(&d_norms[entry.doc_id], pow(entry.tf_idf, 2.0f));
+        atomicAdd(&d_norms[entry.doc_id], entry.tf_idf * entry.tf_idf);
         atomicAdd(&d_normsl1[entry.doc_id], entry.tf_idf);
 
     }

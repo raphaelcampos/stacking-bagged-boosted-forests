@@ -21,7 +21,7 @@ inline void prepareTrainSamples(RF *rf, Dataset &training, cuSimilarity *k_neare
 			unsigned int term_id = it->first;
 			float term_count = it->second;
 			
-			doc->insert_term(term_id, 1 + log(term_count)); //* log((double)training.size() / float(max(1, training.getIdf(term_id))));
+			doc->insert_term(term_id, term_count); //* log((double)training.size() / float(max(1, training.getIdf(term_id))));
 		}
     	
     	rf->add_document(doc);
@@ -60,8 +60,6 @@ int cuLazyNN_RF::classify(const std::map<unsigned int, float> &test_features, in
 	cuSimilarity *k_nearest = cuKNN.getKNearestNeighbors(test_features, K);
 	
 	RF * rf = new RF(0, 0.03, 200);
-	if(rf->is_raw_weights()) rf->use_computed_weights();
-	rf->set_doc_delete(true);
 	
 	prepareTrainSamples(rf, training, k_nearest, K);
 	
