@@ -74,17 +74,19 @@ bool RF_BOOST::parse_train_line(const std::string& line) {
   for (unsigned int i = 0; i < max_trees_; i++) {
     ensemble_[i]->add_document(doc);
   }
-
+  docs_processed_++;
   return true;
 
 }
 
 void RF_BOOST::train(const std::string& train_fn) {
+  docs_processed_ = 0;
   SupervisedClassifier::train(train_fn);
-  WeightSet w;
+  WeightSet w(1.0/docs_processed_);
   for (unsigned int i = 0; i < max_trees_; i++) {
     ensemble_[i]->build(&w);
   }
+  docs_processed_ = 0;
 }
 
 Scores<double> RF_BOOST::classify(const DTDocument* doc, std::map<const DTDocument*, double>& sim){

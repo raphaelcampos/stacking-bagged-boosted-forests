@@ -22,6 +22,36 @@
 
 #define NUM_THREADS 8
 
+typedef std::pair<float, unsigned int> pair_;
+
+bool compPairs(pair_ lhs, pair_ rhs) { return lhs.first < rhs.first; }
+
+
+template<class Iterator>
+std::vector<pair_> getProbAcumulatedVector(Iterator first, Iterator last, WeightSet *w) {
+
+  std::vector<pair_> v;
+
+  unsigned int i = 0;
+  while(first != last){
+    pair_ p = std::make_pair(((v.empty())? 0.0 : v.back().first) + w->get((*first)->get_id()), i);
+    v.push_back(p);
+
+    ++i;
+    ++first;
+  }
+
+  return v;
+}
+
+unsigned chooseDoc(std::vector<pair_> &v){
+  double r = ((double) rand() / (RAND_MAX)) * v.back().first ;
+  pair_ p = *std::lower_bound(v.begin(), v.end(), pair_(r, 0), compPairs);
+
+  return p.second;
+}
+
+
 class RF : public SupervisedClassifier{
   public:
     RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); }
@@ -121,13 +151,18 @@ void RF::add_document_bag(std::set<const DTDocument*>& bag){
 // 1) Map: out-of-bag sample ID -> bool misclassified ?
 WeightSet *RF::build(WeightSet *w) {
   const unsigned int docs_size = docs_.size();
+  
+  std::vector<pair_> probAcumulatedVector = getProbAcumulatedVector(docs_.begin(), docs_.end(), w);
+  
   #pragma omp parallel for num_threads(8) schedule(static)
   for(int i = 0; i < num_trees_; i++) {
     std::set<const DTDocument*> bag;
+
     for(int j = 0; j < docs_size; j++) {
       #pragma omp critical (oob_update)
       {
-        unsigned int rndIdx = rand() % docs_size;
+        //unsigned int rndIdx = rand() % docs_size;
+        unsigned int rndIdx = chooseDoc(probAcumulatedVector);
         bag.insert(docs_[rndIdx]);
         if (!trn_err_) {
           oob_[i][rndIdx] = NULL; // it isn't an oob sample
@@ -176,6 +211,7 @@ WeightSet *RF::build(WeightSet *w) {
         }
       }
     }
+
     oob_err_.push_back(oob_err);
     total_oob_ += oob_err;
     }
