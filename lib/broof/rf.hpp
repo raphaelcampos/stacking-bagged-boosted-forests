@@ -134,7 +134,7 @@ WeightSet *RF::build(WeightSet *w) {
         }
       }
     }
-    trees_[i] = new DT(round, maxh_);
+    trees_[i] = new DT(round);
     trees_[i]->add_document_bag(bag);
     trees_[i]->build(m_);
     // evaluate OOB error

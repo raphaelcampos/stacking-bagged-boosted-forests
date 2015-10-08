@@ -3,7 +3,7 @@ cur_path=`pwd`;
 dataset=$1;
 
 
-for method in 'knn'; do
+for method in 'lazy', 'rf'; do
 	# get results
 	../test_${method} datasets/${dataset}/treino2_temp datasets/$dataset/teste2_temp ../venn-diagrams/${dataset}/t0/resul_${method}
 

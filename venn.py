@@ -31,9 +31,15 @@ parser.add_argument("-c", "--correct_only", action="store_false",
 parser.add_argument("--cols", type=int,
                     help="Number of columns to display the diagrams", default=4)
 
+parser.add_argument("--labels", type=str,
+                    help="Set labels", default='A,B,C')
+
+
 args = parser.parse_args()
 
 only_correct_class = args.correct_only
+
+set_labels = args.labels.split(',')
 
 sets = []
 classess = set()
@@ -77,7 +83,7 @@ for i, clazz in enumerate(classess):
 	ax.set_title("class " + str(clazz))
 
 	#v = venn3([s[0], s[1], s[2]], ('lazy', 'rf', 'broof'), ax=ax)
-	subset_values(venn3(subsets=(1,1,1,1,1,1,1,1,1), set_labels=('lazy', 'rf', 'broof'), ax=ax), [s[0], s[1], s[2]])
+	subset_values(venn3(subsets=(1,1,1,1,1,1,1,1,1), set_labels=set_labels, ax=ax), [s[0], s[1], s[2]])
 	v = venn3_circles(subsets=(1,1,1,1,1,1,1,1,1), ax=ax, linestyle='dashed')
 	v[0].set_ec('red')
 	v[0].set_alpha(0.5)
