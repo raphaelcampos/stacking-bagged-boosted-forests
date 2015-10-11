@@ -1,17 +1,17 @@
 cur_path=`pwd`;
 
 dataset=$1;
+trial=$2;
 
-
-for method in 'broof'; do
+for method in 'rf' 'lazy' 'knn'; do
 	# get results
-	../test_${method} datasets/${dataset}/treino2_temp datasets/$dataset/teste2_temp ../venn-diagrams/${dataset}/t0/resul_${method}
+	../test_${method} datasets/${dataset}/treino${trial}_temp datasets/$dataset/teste${trial}_temp ../venn-diagrams/${dataset}/t${trial}/resul_${method}
 
 	# replace : for white space
-	cat ../venn-diagrams/${dataset}/t0/resul_${method} | perl -pe 's/:/\ /g' > ../venn-diagrams/${dataset}/t0/resul_${method}_s
-	mv ../venn-diagrams/${dataset}/t0/resul_${method}_s ../venn-diagrams/${dataset}/t0/resul_${method}
+	cat ../venn-diagrams/${dataset}/t${trial}/resul_${method} | perl -pe 's/:/\ /g' > ../venn-diagrams/${dataset}/t${trial}/resul_${method}_s
+	mv ../venn-diagrams/${dataset}/t${trial}/resul_${method}_s ../venn-diagrams/${dataset}/t${trial}/resul_${method}
 done
+ 
+python ../venn.py -c --labels lazy,rf,knn ../venn-diagrams/${dataset}/t${trial}/resul_lazy ../venn-diagrams/${dataset}/t${trial}/resul_rf ../venn-diagrams/${dataset}/t${trial}/resul_knn
 
-python ../venn.py ../venn-diagrams/${dataset}/t0/resul_lazy ../venn-diagrams/${dataset}/t0/resul_rf ../venn-diagrams/${dataset}/t0/resul_knn
-
-python ../venn.py ../venn-diagrams/${dataset}/t0/resul_lazy ../venn-diagrams/${dataset}/t0/resul_rf ../venn-diagrams/${dataset}/t0/resul_broof
+python ../venn.py -c --labels lazy,rf,broof ../venn-diagrams/${dataset}/t${trial}/resul_lazy ../venn-diagrams/${dataset}/t${trial}/resul_rf ../venn-diagrams/${dataset}/t${trial}/resul_broof
