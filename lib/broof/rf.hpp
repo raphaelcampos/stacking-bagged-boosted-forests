@@ -147,18 +147,25 @@ void RF::add_document_bag(std::set<const DTDocument*>& bag){
   }
 }
 
+struct rw_oob
+{
+  bool is_oob;
+  std::map<std::string, unsigned int> classification;
+  std::string clazz;
+};
+
 // Should return
 // 1) Map: out-of-bag sample ID -> bool misclassified ?
 WeightSet *RF::build(WeightSet *w) {
   const unsigned int docs_size = docs_.size();
   
   std::vector<pair_> probAcumulatedVector = getProbAcumulatedVector(docs_.begin(), docs_.end(), w);
-  
+  std::map<std::string, rw_oob> is_oob;
   #pragma omp parallel for num_threads(8) schedule(static)
-  for(int i = 0; i < num_trees_; i++) {
+  for(int i = 0; i < num_trees_; ++i) {
     std::set<const DTDocument*> bag;
 
-    for(int j = 0; j < docs_size; j++) {
+    for(int j = 0; j < docs_size; ++j) {
       #pragma omp critical (oob_update)
       {
         //unsigned int rndIdx = rand() % docs_size;
@@ -172,11 +179,26 @@ WeightSet *RF::build(WeightSet *w) {
     trees_[i] = new DT(round);
     trees_[i]->add_document_bag(bag);
     trees_[i]->build(m_);
+  }
+  
+  for (int i = 0; i < num_trees_; ++i)
+  {
     // evaluate OOB error
     double miss = 0.0, total = 0.0;
     std::map<unsigned int, bool> is_miss;
     for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
       if (oob_[i][oobidx] != NULL) {
+        std::map<std::string, rw_oob>::iterator oobIt = is_oob.find(oob_[i][oobidx]->get_id());
+
+        if(oobIt == is_oob.end()){
+          rw_oob v;
+          std::pair<std::string, rw_oob> p = std::make_pair(oob_[i][oobidx]->get_id(), v);
+          std::pair<std::map<std::string, rw_oob>::iterator, bool> res = is_oob.insert(p);
+
+          oobIt = res.first;
+        }
+
+        oobIt->second.is_oob = true;
         std::map<std::string, double> partial_scores = trees_[i]->get_partial_scores(oob_[i][oobidx]);
         // see if its a missclassification
         double max = -9999.99;
@@ -189,9 +211,12 @@ WeightSet *RF::build(WeightSet *w) {
           }
           ++cIt;
         }
+        //std::cerr << maxCl << std::endl;
+        ++(oobIt->second.classification[maxCl]);
+        oobIt->second.clazz = oob_[i][oobidx]->get_class();
         if (maxCl != oob_[i][oobidx]->get_class()) {
           is_miss[oobidx] = true;
-          miss++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+          miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
         }
         total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
       }
@@ -201,22 +226,59 @@ WeightSet *RF::build(WeightSet *w) {
 
     #pragma omp critical (oob_update)
     {
-    if (w != NULL) { 
-      {
-        for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
-          if (oob_[i][oobidx] != NULL) {
-            w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp((is_miss[oobidx] ? -1.0 : 1.0) * alpha));
-            //std::cerr << "i=" << i << " oobidx=" << oobidx << " w=" << w->get(oob_[i][oobidx]->get_id()) << " alpha=" << alpha << std::endl;
-          }
-        }
-      }
-    }
-
     oob_err_.push_back(oob_err);
     total_oob_ += oob_err;
     }
+  }
+  double miss = 0.0, total = 0.0;
+  for (std::map<std::string, rw_oob>::iterator it = is_oob.begin(); it != is_oob.end(); ++it) {
+      if (it->second.is_oob) {
+        unsigned int max = 0;
+        std::string maxCl;
+        std::map<std::string, unsigned int>::const_iterator cIt = it->second.classification.begin();
+        while(cIt !=  it->second.classification.end()) {
+          if (cIt->second > max) {
+            maxCl = cIt->first;
+            max = cIt->second;
+          }
+          ++cIt;
+        }
 
-    //std::cerr << "trr_oob[" << i << "] = " << miss << "/" << total << "=" << oob_err << std::endl;
+        if(maxCl != it->second.clazz){
+          miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+        }
+        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+      }
+    }
+
+  double oob_err = avg_oob_err();
+  double alpha = oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err);
+
+  if (w != NULL) {
+    ;
+    for (std::map<std::string, rw_oob>::iterator it = is_oob.begin(); it != is_oob.end(); ++it) {
+      if (it->second.is_oob) {
+        double before = w->get(it->first);
+
+        unsigned int max = 0;
+        std::string maxCl;
+        std::map<std::string, unsigned int>::const_iterator cIt = it->second.classification.begin();
+        while(cIt !=  it->second.classification.end()) {
+          //std::cerr << cIt->first << " : " << cIt->second << std::endl;
+          if (cIt->second > max) {
+            maxCl = cIt->first;
+            max = cIt->second;
+          }
+          ++cIt;
+        }
+
+        double after = w->get(it->first) * exp(((maxCl != it->second.clazz) ? 1.0 : -1.0) * alpha);
+        
+        w->set(it->first, after);
+        
+        //std::cerr << maxCl << " : " << it->second.clazz << " ss " << before << " : " << after << std::endl;
+      }
+    }
   }
 }
 
