@@ -98,13 +98,13 @@ Scores<double> RF_BOOST::classify(const DTDocument* doc, std::map<const DTDocume
   std::map<std::string, double> sco;
   for (unsigned int i = 0; i < max_trees_; i++) {
     double oob_err = ensemble_[i]->avg_oob_err();
-    //double alpha = ensemble_[i]->alpha();
+    double alpha = ensemble_[i]->alpha();
     Scores<double> s = ensemble_[i]->classify(doc);
     while (!s.empty()) {
       Similarity<double> sim = s.top();
-      sco[sim.class_name] += sim.similarity * (oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err));
+      //sco[sim.class_name] += sim.similarity * (oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err));
       //printf("%f : %f\n", (oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err)), alpha);
-      //sco[sim.class_name] += sim.similarity * alpha;
+      sco[sim.class_name] += sim.similarity * alpha;
       s.pop();
     }
   }
