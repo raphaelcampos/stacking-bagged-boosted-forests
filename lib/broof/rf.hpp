@@ -54,7 +54,9 @@ unsigned chooseDoc(std::vector<pair_> &v){
 
 class RF : public SupervisedClassifier{
   public:
-    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); }
+    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); 
+      alpha_ = 0;
+    }
     ~RF();
     bool parse_train_line(const std::string&);
     void train(const std::string&);
@@ -66,6 +68,7 @@ class RF : public SupervisedClassifier{
     void set_doc_delete(const bool&);
     Scores<double> classify(const DTDocument*);
     double avg_oob_err() { return (oob_err_.size() > 0) ? total_oob_/oob_err_.size() : 0.0; }
+    double alpha() {return alpha_;}
   private:
     std::vector<DT*> trees_;
     std::vector<const DTDocument*> docs_;
@@ -77,6 +80,7 @@ class RF : public SupervisedClassifier{
     bool doc_delete_;
     unsigned int maxh_;
     bool trn_err_;
+    double alpha_;
 };
 
 RF::~RF(){
@@ -181,6 +185,10 @@ WeightSet *RF::build(WeightSet *w) {
     trees_[i]->build(m_);
   }
   
+  /*
+  http://stats.stackexchange.com/questions/68740/computing-out-of-bag-error-in-random-forest
+  A more complicated way would be to take each OOB Example, look up for each tree if it was included or not in the training, and take a majority vote over all trees that didn't use that Example for training. This is computationally more painful, but seems like it would properly take into account the fact that a forest is more than the sum of its parts.
+   */
   for (int i = 0; i < num_trees_; ++i)
   {
     // evaluate OOB error
@@ -214,22 +222,23 @@ WeightSet *RF::build(WeightSet *w) {
         //std::cerr << maxCl << std::endl;
         ++(oobIt->second.classification[maxCl]);
         oobIt->second.clazz = oob_[i][oobidx]->get_class();
-        if (maxCl != oob_[i][oobidx]->get_class()) {
+        /*if (maxCl != oob_[i][oobidx]->get_class()) {
           is_miss[oobidx] = true;
           miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
         }
-        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;*/
       }
     }
-    double oob_err = total == 0.0 ? 0.0 : (miss / total);
+    /*double oob_err = total == 0.0 ? 0.0 : (miss / total);
     double alpha = oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err);
 
     #pragma omp critical (oob_update)
     {
     oob_err_.push_back(oob_err);
     total_oob_ += oob_err;
-    }
+    }*/
   }
+
   double miss = 0.0, total = 0.0;
   for (std::map<std::string, rw_oob>::iterator it = is_oob.begin(); it != is_oob.end(); ++it) {
       if (it->second.is_oob) {
@@ -244,15 +253,21 @@ WeightSet *RF::build(WeightSet *w) {
           ++cIt;
         }
 
+        double weight = w->get(it->first);
         if(maxCl != it->second.clazz){
-          miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+          ++miss;
         }
-        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+        ++total;
       }
     }
 
-  double oob_err = avg_oob_err();
+  double oob_err = total == 0.0 ? 0.0 : (miss / total);
   double alpha = oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err);
+
+  //oob_err = avg_oob_err();
+  //printf("%f : %f \n",  oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err),alpha);
+
+  alpha_ = alpha;
 
   if (w != NULL) {
     ;
@@ -272,11 +287,9 @@ WeightSet *RF::build(WeightSet *w) {
           ++cIt;
         }
 
-        double after = w->get(it->first) * exp(((maxCl != it->second.clazz) ? 1.0 : -1.0) * alpha);
+        double after = before * exp(((maxCl != it->second.clazz) ? 1.0 : -1.0) * alpha);
         
         w->set(it->first, after);
-        
-        //std::cerr << maxCl << " : " << it->second.clazz << " ss " << before << " : " << after << std::endl;
       }
     }
   }
