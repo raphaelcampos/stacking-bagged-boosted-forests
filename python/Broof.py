@@ -1,27 +1,24 @@
-from sklearn.neighbors import KNeighborsClassifier as kNN
-
 from sklearn.ensemble import RandomForestClassifier as ForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesClassifier
+from sklearn.ensemble import AdaBoostClassifier
+
+from numpy.core.umath_tests import inner1d
 
 import numpy as np
 
-import multiprocessing as mp
-
-from math import ceil
-
-class Broof(BaseWeightBoosting):         
+class Broof(AdaBoostClassifier):         
     def __init__(self,
                  n_estimators=50,
                  estimator_params=tuple(),
-                 learning_rate=1.,
+                 learning_rate=1,
                  random_state=None):
         
         super(Broof, self).__init__(
-            base_estimator=base_estimator,
+            base_estimator=ForestClassifier(n_estimators=20, n_jobs=8, oob_score=True),
             n_estimators=n_estimators,
-            estimator_params=estimator_params)
-
-
+            learning_rate=learning_rate,
+            random_state=None)
+    
     def fit(self, X, y, sample_weight=None):
         """Build a forest of trees from the training set (X, y).
         Parameters
@@ -45,7 +42,7 @@ class Broof(BaseWeightBoosting):
             Returns self.
         """
         
-        return super(AdaBoostClassifier, self).fit(X, y, sample_weight)
+        return super(Broof, self).fit(X, y, sample_weight)
 
     def _boost(self, iboost, X, y, sample_weight):
         """Implement a single boost using the SAMME.R real algorithm."""
@@ -58,7 +55,8 @@ class Broof(BaseWeightBoosting):
 
         estimator.fit(X, y, sample_weight=sample_weight)
 
-        y_predict_proba = estimator.predict_proba(X)
+        unsampled_indices = np.where(np.any(estimator.oob_decision_function_ != 0.0, axis=1))[0]
+        y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
 
         if iboost == 0:
             self.classes_ = getattr(estimator, 'classes_', None)
@@ -68,7 +66,7 @@ class Broof(BaseWeightBoosting):
                                        axis=0)
 
         # Instances incorrectly classified
-        incorrect = y_predict != y
+        incorrect = y_predict != y[unsampled_indices,]
 
         # Error fraction
         estimator_error = np.mean(
@@ -88,7 +86,7 @@ class Broof(BaseWeightBoosting):
         n_classes = self.n_classes_
         classes = self.classes_
         y_codes = np.array([-1. / (n_classes - 1), 1.])
-        y_coding = y_codes.take(classes == y[:, np.newaxis])
+        y_coding = y_codes.take(classes == y[unsampled_indices, np.newaxis])
 
         # Displace zero probabilities so the log is defined.
         # Also fix negative elements which may occur with
@@ -103,54 +101,8 @@ class Broof(BaseWeightBoosting):
         # Only boost the weights if it will fit again
         if not iboost == self.n_estimators - 1:
             # Only boost positive weights
-            sample_weight *= np.exp(estimator_weight *
+            sample_weight[unsampled_indices,] *= np.exp(estimator_weight *
                                     ((sample_weight > 0) |
                                      (estimator_weight < 0)))
 
         return sample_weight, 1., estimator_error
-
-    def predict(self, X):
-        """Predict class for X.
-        The predicted class of an input sample is computed as the majority
-        prediction of the trees in the forest.
-        Parameters
-        ----------
-        X : array-like or sparse matrix of shape = [n_samples, n_features]
-            The input samples. Internally, it will be converted to
-            ``dtype=np.float32`` and if a sparse matrix is provided
-            to a sparse ``csr_matrix``.
-        Returns
-        -------
-        y : array of shape = [n_samples] or [n_samples, n_outputs]
-            The predicted classes.
-        """
-        # get knn for all test sample
-        idx = self.kNN.kneighbors(X, return_distance=False)
-    
-        jobs = []
-        q = mp.Queue() 
-        length = len(idx)
-        chunk_size = int(ceil(len(idx)/float(self.n_jobs)))
-
-        # Run processes
-        for p in xrange(1, self.n_jobs + 1):
-            s = (p-1)*chunk_size
-            e = p*chunk_size if p*chunk_size <= length else length 
-            p = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
-            jobs.append(p)
-            p.start()
-
-        # Exit the completed processes
-        for p in jobs:
-            p.join()
-    
-        # Get process results from the output queue
-        results = [q.get() for p in jobs]
-
-        # make sure that it retrieves results in the correct order
-        results.sort()
-        pred = []
-        for r in results:
-            pred = pred + r[1]
-
-        return np.array(pred)
