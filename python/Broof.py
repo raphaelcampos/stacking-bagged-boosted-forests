@@ -9,37 +9,17 @@ import multiprocessing as mp
 
 from math import ceil
 
-class LazyNNRF:            
+class Broof(BaseWeightBoosting):         
     def __init__(self,
-                 n_neighbors=30,
-                 n_estimators=200,
-                 criterion="gini",
-                 max_depth=None,
-                 min_samples_split=2,
-                 min_samples_leaf=1,
-                 min_weight_fraction_leaf=0.,
-                 max_features="auto",
-                 max_leaf_nodes=None,
-                 bootstrap=True,
-                 oob_score=False,
-                 n_jobs=1,
-                 random_state=None,
-                 verbose=0,
-                 warm_start=False,
-                 class_weight=None):
+                 n_estimators=50,
+                 estimator_params=tuple(),
+                 learning_rate=1.,
+                 random_state=None):
         
-        
-        self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, weights='distance', algorithm='brute', metric='cosine')
-
-        self.n_jobs = n_jobs
-        self.n_estimators = n_estimators
-        self.criterion = criterion
-        self.max_depth = max_depth
-        self.min_samples_split = min_samples_split
-        self.min_samples_leaf = min_samples_leaf
-        self.min_weight_fraction_leaf = min_weight_fraction_leaf
-        self.max_features = max_features
-        self.max_leaf_nodes = max_leaf_nodes
+        super(Broof, self).__init__(
+            base_estimator=base_estimator,
+            n_estimators=n_estimators,
+            estimator_params=estimator_params)
 
 
     def fit(self, X, y, sample_weight=None):
@@ -64,28 +44,70 @@ class LazyNNRF:
         self : object
             Returns self.
         """
-        self.X_train = X
-        self.y_train = y
-
-        self.kNN.fit(self.X_train, self.y_train)
         
-        return self
+        return super(AdaBoostClassifier, self).fit(X, y, sample_weight)
 
-    def runForests(self, X, idx, q, p):
-        pred = []
-        for i,ids in enumerate(idx):
-            rf = ForestClassifier(n_estimators=self.n_estimators,
-                                 criterion=self.criterion,
-                                 max_depth=self.max_depth,
-                                 min_samples_split=self.min_samples_split,
-                                 min_samples_leaf=self.min_samples_leaf,
-                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes)
+    def _boost(self, iboost, X, y, sample_weight):
+        """Implement a single boost using the SAMME.R real algorithm."""
+        estimator = self._make_estimator()
 
-            rf.fit(self.X_train[ids], self.y_train[ids])
-            pred = pred + [rf.predict(X[i])[0]]
-        q.put((p, pred))
+        try:
+            estimator.set_params(random_state=self.random_state)
+        except ValueError:
+            pass
+
+        estimator.fit(X, y, sample_weight=sample_weight)
+
+        y_predict_proba = estimator.predict_proba(X)
+
+        if iboost == 0:
+            self.classes_ = getattr(estimator, 'classes_', None)
+            self.n_classes_ = len(self.classes_)
+
+        y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),
+                                       axis=0)
+
+        # Instances incorrectly classified
+        incorrect = y_predict != y
+
+        # Error fraction
+        estimator_error = np.mean(
+            np.average(incorrect, weights=sample_weight, axis=0))
+
+        # Stop if classification is perfect
+        if estimator_error <= 0:
+            return sample_weight, 1., 0.
+
+        # Construct y coding as described in Zhu et al [2]:
+        #
+        #    y_k = 1 if c == k else -1 / (K - 1)
+        #
+        # where K == n_classes_ and c, k in [0, K) are indices along the second
+        # axis of the y coding with c being the index corresponding to the true
+        # class label.
+        n_classes = self.n_classes_
+        classes = self.classes_
+        y_codes = np.array([-1. / (n_classes - 1), 1.])
+        y_coding = y_codes.take(classes == y[:, np.newaxis])
+
+        # Displace zero probabilities so the log is defined.
+        # Also fix negative elements which may occur with
+        # negative sample weights.
+        y_predict_proba[y_predict_proba <= 0] = 1e-5
+
+        # Boost weight using multi-class AdaBoost SAMME.R alg
+        estimator_weight = (-1. * self.learning_rate
+                                * (((n_classes - 1.) / n_classes) *
+                                   inner1d(y_coding, np.log(y_predict_proba))))
+
+        # Only boost the weights if it will fit again
+        if not iboost == self.n_estimators - 1:
+            # Only boost positive weights
+            sample_weight *= np.exp(estimator_weight *
+                                    ((sample_weight > 0) |
+                                     (estimator_weight < 0)))
+
+        return sample_weight, 1., estimator_error
 
     def predict(self, X):
         """Predict class for X.
@@ -132,6 +154,3 @@ class LazyNNRF:
             pred = pred + r[1]
 
         return np.array(pred)
-
-    def score(self, X, y):
-        return np.mean(self.predict(X) == y)
