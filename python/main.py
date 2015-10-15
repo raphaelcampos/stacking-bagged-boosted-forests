@@ -27,7 +27,7 @@ X_train, X_test,y_train,y_test = train_test_split(X,y,test_size=0.1, random_stat
 #print "lazy : ", lazy.score(X_test, y_test)
 
 
-broof = Broof(n_estimators=100)
+broof = Broof(n_estimators=20)
 broof.fit(X_train, y_train)
 print "broof : ", broof.score(X_test, y_test)
 
