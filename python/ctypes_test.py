@@ -2,6 +2,9 @@ import numpy as np
 import ctypes
 from ctypes import *
 
+# Example reference
+#http://bikulov.org/blog/2013/10/01/using-cuda-c-plus-plus-functions-in-python-via-star-dot-so-and-ctypes/
+
 # extract cuda_sum function pointer in the shared object cuda_sum.so
 def get_cuda_sum():
     dll = ctypes.CDLL('./cuda_sum.so', mode=ctypes.RTLD_GLOBAL)
