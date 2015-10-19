@@ -43,15 +43,31 @@ set_labels = args.labels.split(',')
 
 sets = []
 classess = set()
+docs = []
 for arg in args.result :
 	results = np.loadtxt(arg, dtype=int, usecols=(0, 1, 2))
 	classess = classess | (set(results[:,1]) & set(results[:,2])) 
 	sets = sets + [{"docs": results, "label": "kNN"}]
-
+	docs = docs + [set(results[results[:,1]==results[:,2]][:,0])]
 
 #classess = classess & set(xrange(len(classess)/2+1,len(classess)))
 
 print "classess:", classess
+
+A,B,C = docs
+
+all_docs = set(sets[0]['docs'][:,0])
+print len(A)/float(len(sets[0]['docs']))
+print len(C)/float(len(sets[0]['docs']))
+print len(B)/float(len(sets[0]['docs']))
+print len( (A | C) )/float(len(sets[0]['docs']))
+print len( all_docs - (A | C) )/float(len(all_docs))
+
+#for r in sets[0]['docs']:
+#	if r[0] in (A | C):
+#		print r[0], r[1], r[1]
+#	else:
+#		print r[0], r[1], r[2]
 
 cols = args.cols
 rows = int(math.ceil((len(classess))/float(cols)))
