@@ -3,13 +3,17 @@ from sklearn.neighbors import KNeighborsClassifier as kNN
 from sklearn.ensemble import RandomForestClassifier as ForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesClassifier
 
+from sklearn.base import BaseEstimator, ClassifierMixin
+
+
+
 import numpy as np
 
 import multiprocessing as mp
 
 from math import ceil
 
-class LazyNNRF:            
+class LazyNNRF(BaseEstimator, ClassifierMixin):
     def __init__(self,
                  n_neighbors=30,
                  n_estimators=200,
@@ -31,7 +35,13 @@ class LazyNNRF:
         
         self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, weights='distance', algorithm='brute', metric='cosine')
 
+        # everyone's params 
         self.n_jobs = n_jobs
+
+        # kNN params
+        self.n_neighbors = n_neighbors
+        
+        # ForestBase params
         self.n_estimators = n_estimators
         self.criterion = criterion
         self.max_depth = max_depth
@@ -40,6 +50,12 @@ class LazyNNRF:
         self.min_weight_fraction_leaf = min_weight_fraction_leaf
         self.max_features = max_features
         self.max_leaf_nodes = max_leaf_nodes
+        self.bootstrap=bootstrap
+        self.oob_score=oob_score
+        self.random_state=random_state
+        self.verbose=verbose
+        self.warm_start=warm_start
+        self.class_weight=class_weight
 
 
     def fit(self, X, y, sample_weight=None):
@@ -85,7 +101,9 @@ class LazyNNRF:
 
             rf.fit(self.X_train[ids], self.y_train[ids])
             pred = pred + [rf.predict(X[i])[0]]
+
         q.put((p, pred))
+        return
 
     def predict(self, X):
         """Predict class for X.
@@ -104,24 +122,25 @@ class LazyNNRF:
         """
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
-    
+        
         jobs = []
         q = mp.Queue() 
         length = len(idx)
-        chunk_size = int(ceil(len(idx)/float(self.n_jobs)))
+        chunk_size = int(ceil(length/float(self.n_jobs)))
 
         # Run processes
         for p in xrange(1, self.n_jobs + 1):
             s = (p-1)*chunk_size
             e = p*chunk_size if p*chunk_size <= length else length 
-            p = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
-            jobs.append(p)
-            p.start()
+            print s, e
+            process = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
+            jobs.append(process)
+            process.start()
 
         # Exit the completed processes
         for p in jobs:
             p.join()
-    
+        
         # Get process results from the output queue
         results = [q.get() for p in jobs]
 
@@ -135,3 +154,22 @@ class LazyNNRF:
 
     def score(self, X, y):
         return np.mean(self.predict(X) == y)
+
+class LazyNNExtraTrees(LazyNNRF):
+    def runForests(self, X, idx, q, p):
+        pred = []
+        for i,ids in enumerate(idx):
+            rf = ExtraTreesClassifier(n_estimators=self.n_estimators,
+                                 criterion=self.criterion,
+                                 max_depth=self.max_depth,
+                                 min_samples_split=self.min_samples_split,
+                                 min_samples_leaf=self.min_samples_leaf,
+                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                                 max_features=self.max_features,
+                                 max_leaf_nodes=self.max_leaf_nodes)
+
+            rf.fit(self.X_train[ids], self.y_train[ids])
+            pred = pred + [rf.predict(X[i])[0]]
+
+        q.put((p, pred))
+        return
