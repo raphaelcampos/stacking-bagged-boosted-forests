@@ -222,21 +222,21 @@ WeightSet *RF::build(WeightSet *w) {
         //std::cerr << maxCl << std::endl;
         ++(oobIt->second.classification[maxCl]);
         oobIt->second.clazz = oob_[i][oobidx]->get_class();
-        /*if (maxCl != oob_[i][oobidx]->get_class()) {
+        if (maxCl != oob_[i][oobidx]->get_class()) {
           is_miss[oobidx] = true;
           miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
         }
-        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;*/
+        total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
       }
     }
-    /*double oob_err = total == 0.0 ? 0.0 : (miss / total);
+    double oob_err = total == 0.0 ? 0.0 : (miss / total);
     double alpha = oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err);
 
     #pragma omp critical (oob_update)
     {
     oob_err_.push_back(oob_err);
     total_oob_ += oob_err;
-    }*/
+    }
   }
 
   double miss = 0.0, total = 0.0;

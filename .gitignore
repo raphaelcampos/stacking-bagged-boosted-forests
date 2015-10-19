@@ -5,3 +5,4 @@ release/lazynn_rf
 release/datasets/
 release/results/
 venn-diagrams/
+*.pyc
