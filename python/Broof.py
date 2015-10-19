@@ -18,7 +18,7 @@ class Broof(AdaBoostClassifier):
         self.n_trees = n_trees
 
         super(Broof, self).__init__(
-            base_estimator=ForestClassifier(n_estimators=n_trees, n_jobs=n_jobs, oob_score=True),
+            base_estimator=ForestClassifier(criterion='entropy',max_features=0.30,n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
@@ -48,6 +48,8 @@ class Broof(AdaBoostClassifier):
 
         unsampled_indices = np.where((estimator.oob_decision_function_ > 0.0).any(1))[0]
 
+	print (np.isnan(estimator.oob_decision_function_[:,0])).sum()
+
         y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
         y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),axis=0)
 
@@ -55,8 +57,8 @@ class Broof(AdaBoostClassifier):
         incorrect = y_predict != y[unsampled_indices]
 
         # Error fraction
-        estimator_error = 1 - estimator.oob_score_ #np.mean(
-            #np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
+        estimator_error = np.mean(
+            np.average(incorrect, axis=0))
 
         print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
 
@@ -77,7 +79,7 @@ class Broof(AdaBoostClassifier):
 
         # Boost weight using multi-class AdaBoost SAMME alg
         estimator_weight = self.learning_rate * (
-            np.log((1. - estimator_error) / estimator_error) + np.log(n_classes - 1))
+            np.log((1. - estimator_error) / estimator_error))
 
         # Only boost the weights if I will fit again
         if not iboost == self.n_estimators - 1:
@@ -114,7 +116,7 @@ class Broof(AdaBoostClassifier):
         estimator_error = np.mean(
             np.average(incorrect, weights=sample_weight, axis=0))
 
-        print iboost, estimator_error, 1 - estimator.oob_score_
+        #print iboost, estimator_error, 1 - estimator.oob_score_
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -139,9 +141,7 @@ class Broof(AdaBoostClassifier):
         # Only boost the weights if I will fit again
         if not iboost == self.n_estimators - 1:
             # Only boost positive weights
-            sample_weight *= np.exp(estimator_weight * incorrect *
-                                    ((sample_weight > 0) |
-                                     (estimator_weight < 0)))
+            sample_weight *= np.exp(estimator_weight * (2*incorrect - 1))
 
         return sample_weight, estimator_weight, estimator_error
 
@@ -219,6 +219,53 @@ class Broof(AdaBoostClassifier):
 
             if iboost < self.n_estimators - 1:
                 # Normalize
-                sample_weight /= sample_weight_sum
+                sample_weight
 
         return self
+
+
+    def decision_function(self, X):	
+	print "classifying..."
+	#check_is_fitted(self, "n_classes_")
+        X = self._validate_X_predict(X)
+
+        n_classes = self.n_classes_
+        classes = self.classes_[:, np.newaxis]
+        pred = None
+
+        print classes, self.estimators_[0].oob_score_, self.estimator_weights_[0] 
+	
+        pred = sum((estimator.predict(X) == classes).T * w * estimator.oob_score_
+                    for estimator, w in zip(self.estimators_,
+                                            self.estimator_weights_))
+
+        pred #/= self.estimator_weights_.sum()
+        if n_classes == 2:
+            pred[:, 0] *= -1
+            return pred.sum(axis=1)
+        return pred
+
+
+    def predict(self, X):
+        """Predict classes for X.
+
+        The predicted class of an input sample is computed as the weighted mean
+        prediction of the classifiers in the ensemble.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+
+        Returns
+        -------
+        y : array of shape = [n_samples]
+            The predicted classes.
+        """
+        pred = self.decision_function(X)
+	print "pred"
+        if self.n_classes_ == 2:
+            return self.classes_.take(pred > 0, axis=0)
+
+        return self.classes_.take(np.argmax(pred, axis=1), axis=0)

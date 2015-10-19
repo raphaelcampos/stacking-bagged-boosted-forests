@@ -3,6 +3,8 @@ from sklearn.cross_validation import train_test_split, cross_val_predict, cross_
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.base import clone
 
+from sklearn.metrics import f1_score
+
 import numpy as np
 
 from LazyNN_RF import *
@@ -36,11 +38,12 @@ args = parser.parse_args()
 
 start = time.time()
 
-X, y = load_svmlight_file(args.dataset)
+X, y = load_svmlight_file("xac")
+X_t, y_t = X[6000:],y[6000:]
+X, y = X[0:6000],y[0:6000]
+tf_transformer = TfidfTransformer(use_idf=True)
 
-#tf_transformer = TfidfTransformer(use_idf=True)
-
-#X = tf_transformer.fit_transform(X)
+X = tf_transformer.fit_transform(X)
 
 end = time.time()
 
@@ -49,7 +52,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features=0.3)
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
 elif args.method == 'adarf':
@@ -64,12 +67,12 @@ kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
 folds_time = []
 folds_predict = []
 
-f=open('results_20ng_rf','ab')
+f=open('results_20ng_lazy0.30','ab')
 k = 1
 for train_index, test_index in kf:
 	# split dataset
-	X_train, X_test = X[train_index], X[test_index]
-	y_train, y_test = y[train_index], y[test_index]
+	X_train, X_test = X, X_t
+	y_train, y_test = y, y_t
 	print len(y_train), len(y_test)
 	e = clone(estimator)
 	# fit and predict
@@ -80,9 +83,14 @@ for train_index, test_index in kf:
 	
 	# stores fold results
 	folds_time = folds_time + [end - start]
-	result = np.array([test_index, pred, y_test])
+	print pred
+	result = np.array([range(len(y_test)), pred, y_test])
+	print result
 	np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
 	k = k + 1
+	print "\tMicro: ", f1_score(y_true=y_test, y_pred=pred, average='micro')
+	print "\tMacro: ", f1_score(y_true=y_test, y_pred=pred, average='macro')
+	break
 
 f.close()
 
