@@ -1,49 +1,89 @@
 from sklearn.datasets import load_svmlight_file
-from sklearn.cross_validation import train_test_split
+from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfTransformer
-import numpy as np
+from sklearn.base import clone
 
+import numpy as np
 
 from LazyNN_RF import *
 from Broof import *
 
-X, y = load_svmlight_file("../release/datasets/20ng.svm")
+import argparse
+import time
 
-tf_transformer = TfidfTransformer(use_idf=True)
+parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 
-X = tf_transformer.fit_transform(X)
+parser.add_argument("dataset", type=str,
+                    help="SVM light format dataset")
 
-X_train, X_test,y_train,y_test = train_test_split(X,y,test_size=0.1, random_state=42)
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'broof', 'lazy_xt'], default='rf')
 
+parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
+parser.add_argument("-j", "--jobs", type=int, help='Number of CPUs available to parallelize the execution (Default:1). If -1 is given then it gets all CPUs available', default=1)
 
-#knn = kNN(n_neighbors=30, weights='distance', algorithm='brute', metric='cosine',n_jobs=8)
-#knn.fit(X_train, y_train)
+parser.add_argument("-i", "--ibroof", type=int, help='Number of iteration for broof to perform (Default:100).', default=100)
 
-#print "kNN : ", knn.score(X_test, y_test)
+parser.add_argument("-t", "--trees", type=int, help='Number of trees (Default:100).', default=100)
 
-#lazy = LazyNNRF(n_jobs=8, n_estimators=200, n_neighbors=60)
-#lazy.fit(X_train, y_train)
-#print "lazy : ", lazy.score(X_test, y_test)
-
-
-broof = Broof(n_estimators=20)
-broof.fit(X_train, y_train)
-print "broof : ", broof.score(X_test, y_test)
+parser.add_argument("-k", "--kneighbors", type=int, help='Number of nearrest neirghbors (Default:30).', default=30)
 
 
-#rf = ForestClassifier(n_estimators=50, n_jobs=8, oob_score=True)
-#rf.fit(X_train, y_train)
-#print rf.oob_score_
-#print rf.oob_decision_function_
-#print len(rf.oob_decision_function_),len(rf.oob_decision_function_[0])
-#for estimator in self.estimators_:
-#            unsampled_indices = _generate_unsampled_indices(
-#                estimator.random_state, n_samples)
-#            p_estimator = estimator.predict_proba(X[unsampled_indices, :],
-#                                                  check_input=False)
+parser.add_argument("--trials", type=int, help='Number of trials (Default:10).', default=10)
 
-#print "RF : ", rf.score(X_test, y_test)
-#print rf.predict_proba(X_test)
 
-#np.where(np.any(rf.oob_decision_function_ != 0.0, axis=1),rf.oob_decision_function_ , -1)
+args = parser.parse_args()
+
+start = time.time()
+
+X, y = load_svmlight_file(args.dataset)
+
+#tf_transformer = TfidfTransformer(use_idf=True)
+
+#X = tf_transformer.fit_transform(X)
+
+end = time.time()
+
+datasetLoadingTime = end - start;
+
+estimator = None
+if args.method == 'lazy':
+	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
+elif args.method == 'lazy_xt':
+	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
+elif args.method == 'adarf':
+	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, oob_score=True),n_estimators=args.ibroof, n_jobs=args.jobs)
+elif args.method == 'broof':
+	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees)
+else:
+	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs)
+
+kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
+
+folds_time = []
+folds_predict = []
+
+f=open('results_20ng_rf','ab')
+k = 1
+for train_index, test_index in kf:
+	# split dataset
+	X_train, X_test = X[train_index], X[test_index]
+	y_train, y_test = y[train_index], y[test_index]
+	print len(y_train), len(y_test)
+	e = clone(estimator)
+	# fit and predict
+	start = time.time()
+	e.fit(X_train, y_train)
+	pred = e.predict(X_test) 
+	end = time.time()
+	
+	# stores fold results
+	folds_time = folds_time + [end - start]
+	result = np.array([test_index, pred, y_test])
+	np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+	k = k + 1
+
+f.close()
+
+print 'times : ', np.average(folds_time), np.std(folds_time) 
