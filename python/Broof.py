@@ -84,7 +84,7 @@ class Broof(AdaBoostClassifier):
         # Only boost the weights if I will fit again
         if not iboost == self.n_estimators - 1:
             # Only boost positive weights
-            sample_weight[unsampled_indices] *= np.exp(estimator_weight * incorrect)
+            sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
         return sample_weight, estimator_weight, estimator_error 
 
@@ -264,7 +264,7 @@ class Broof(AdaBoostClassifier):
             The predicted classes.
         """
         pred = self.decision_function(X)
-	print "pred"
+        print "pred"
         if self.n_classes_ == 2:
             return self.classes_.take(pred > 0, axis=0)
 

@@ -38,9 +38,10 @@ args = parser.parse_args()
 
 start = time.time()
 
-X, y = load_svmlight_file("xac")
-X_t, y_t = X[6000:],y[6000:]
-X, y = X[0:6000],y[0:6000]
+X, y = load_svmlight_file(args.dataset)
+n_train = 7404
+X_t, y_t = X[n_train:],y[n_train:]
+X, y = X[0:n_train],y[0:n_train]
 tf_transformer = TfidfTransformer(use_idf=True)
 
 X = tf_transformer.fit_transform(X)
