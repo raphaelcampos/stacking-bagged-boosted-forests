@@ -131,8 +131,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         # Run processes
         for p in xrange(1, self.n_jobs + 1):
             s = (p-1)*chunk_size
-            e = p*chunk_size if p*chunk_size <= length else length 
-            print s, e
+            e = p*chunk_size if p*chunk_size <= length else length
             process = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
             jobs.append(process)
             process.start()
