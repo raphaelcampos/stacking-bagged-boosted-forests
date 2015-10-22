@@ -18,17 +18,14 @@ class Broof(AdaBoostClassifier):
         self.n_trees = n_trees
 
         super(Broof, self).__init__(
-            base_estimator=ForestClassifier(criterion='entropy',max_features=0.30,n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
+            base_estimator=ForestClassifier(criterion='gini',max_features='auto',n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
             random_state=random_state)
 
     def _boost(self, iboost, X, y, sample_weight):
-        if self.weighting_algorithm == 'SAMME':
-            return self._boost_samme(iboost, X, y, sample_weight)
-        else:
-            return self._boost_broof(iboost, X, y, sample_weight)
+        return self._boost_broof(iboost, X, y, sample_weight)
 
 
     def _boost_broof(self, iboost, X, y, sample_weight):
@@ -47,8 +44,6 @@ class Broof(AdaBoostClassifier):
             self.n_classes_ = len(self.classes_)
 
         unsampled_indices = np.where((estimator.oob_decision_function_ > 0.0).any(1))[0]
-
-	print (np.isnan(estimator.oob_decision_function_[:,0])).sum()
 
         y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
         y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),axis=0)
@@ -79,7 +74,7 @@ class Broof(AdaBoostClassifier):
 
         # Boost weight using multi-class AdaBoost SAMME alg
         estimator_weight = self.learning_rate * (
-            np.log((1. - estimator_error) / estimator_error))
+            np.log((1. - estimator_error) / estimator_error) + np.log(n_classes - 1))
 
         # Only boost the weights if I will fit again
         if not iboost == self.n_estimators - 1:
@@ -87,63 +82,6 @@ class Broof(AdaBoostClassifier):
             sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
         return sample_weight, estimator_weight, estimator_error 
-
-
-    def _boost_samme(self, iboost, X, y, sample_weight):
-        """Implement a single boost using the SAMME discrete algorithm."""
-        estimator = self._make_estimator()
-
-        try:
-            estimator.set_params(random_state=self.random_state)
-        except ValueError:
-            pass
-
-        estimator.fit(X, y, sample_weight=sample_weight)
-        
-        y_predict = estimator.predict(X)
-
-        if iboost == 0:
-            self.classes_ = getattr(estimator, 'classes_', None)
-            self.n_classes_ = len(self.classes_)
-
-        #y_predict_proba = estimator.oob_decision_function_
-        #y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1), axis=0)
-
-        # Instances incorrectly classified
-        incorrect = y_predict != y
-
-        # Error fraction
-        estimator_error = np.mean(
-            np.average(incorrect, weights=sample_weight, axis=0))
-
-        #print iboost, estimator_error, 1 - estimator.oob_score_
-
-        # Stop if classification is perfect
-        if estimator_error <= 0:
-            return sample_weight, 1., 0.
-
-        n_classes = self.n_classes_
-
-        # Stop if the error is at least as bad as random guessing
-        if estimator_error >= 1. - (1. / n_classes):
-            self.estimators_.pop(-1)
-            if len(self.estimators_) == 0:
-                raise ValueError('BaseClassifier in AdaBoostClassifier '
-                                 'ensemble is worse than random, ensemble '
-                                 'can not be fit.')
-            return None, None, None
-
-        # Boost weight using multi-class AdaBoost SAMME alg
-        estimator_weight = self.learning_rate * (
-            np.log((1. - estimator_error) / estimator_error) +
-            np.log(n_classes - 1.))
-
-        # Only boost the weights if I will fit again
-        if not iboost == self.n_estimators - 1:
-            # Only boost positive weights
-            sample_weight *= np.exp(estimator_weight * (2*incorrect - 1))
-
-        return sample_weight, estimator_weight, estimator_error
 
 
     def fit(self, X, y, sample_weight=None):
@@ -219,27 +157,25 @@ class Broof(AdaBoostClassifier):
 
             if iboost < self.n_estimators - 1:
                 # Normalize
-                sample_weight
+                sample_weight /= sample_weight_sum
 
         return self
 
 
     def decision_function(self, X):	
-	print "classifying..."
-	#check_is_fitted(self, "n_classes_")
+	
+        #check_is_fitted(self, "n_classes_")
         X = self._validate_X_predict(X)
 
         n_classes = self.n_classes_
         classes = self.classes_[:, np.newaxis]
         pred = None
-
-        print classes, self.estimators_[0].oob_score_, self.estimator_weights_[0] 
 	
         pred = sum((estimator.predict(X) == classes).T * w * estimator.oob_score_
                     for estimator, w in zip(self.estimators_,
                                             self.estimator_weights_))
 
-        pred #/= self.estimator_weights_.sum()
+        pred /= self.estimator_weights_.sum()
         if n_classes == 2:
             pred[:, 0] *= -1
             return pred.sum(axis=1)
@@ -264,7 +200,7 @@ class Broof(AdaBoostClassifier):
             The predicted classes.
         """
         pred = self.decision_function(X)
-        print "pred"
+        
         if self.n_classes_ == 2:
             return self.classes_.take(pred > 0, axis=0)
 

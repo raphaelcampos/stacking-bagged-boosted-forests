@@ -1,6 +1,9 @@
 from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
+
+from sklearn.grid_search import GridSearchCV
+
 from sklearn.base import clone
 from sklearn.metrics import f1_score
 
@@ -29,10 +32,13 @@ parser.add_argument("-t", "--trees", type=int, help='Number of trees (Default:10
 
 parser.add_argument("-k", "--kneighbors", type=int, help='Number of nearrest neirghbors (Default:30).', default=30)
 
+parser.add_argument("--learning_rate", type=float, help='Algorithm learning rate. It controls algorithm\'s convergence.')
 
 parser.add_argument("--trials", type=int, help='Number of trials (Default:10).', default=10)
 
-parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.')
+parser.add_argument("--cv", type=int, help='Search for best parameters using cross-validation (Default:1). When 1 is given there will not be search at all.', default=1)
+
+parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.', default=1.0)
 
 
 args = parser.parse_args()
@@ -41,7 +47,7 @@ start = time.time()
 
 if args.dataset == 'toy':
 	twenty_train = fetch_20newsgroups(subset='train', shuffle=True, random_state=42)
-	count_vect = CountVectorizer(min_df=1, stop_words='english')
+	count_vect = CountVectorizer(min_df=6, stop_words='english')
 	X = count_vect.fit_transform(twenty_train.data)
 	y = twenty_train.target
 else:
@@ -58,20 +64,30 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features=0.3)
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
+	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
+	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'adarf':
-	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, oob_score=True),n_estimators=args.ibroof, n_jobs=args.jobs)
+	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs),n_estimators=args.ibroof, n_jobs=args.jobs)
+	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
 elif args.method == 'broof':
-	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees)
+	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate)
+	tuned_parameters = [{'n_trees': [30,100,500], 'n_estimators': [50, 100, 200, 400], 'learning_rate': [0.1, 0.5, 1.0]}]
 else:
 	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs)
+	tuned_parameters = [{'n_estimators': [50, 100, 200, 400]}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
 
 folds_time = []
 folds_predict = []
+folds_macro = []
+folds_micro = []
+
+if(args.cv > 1):
+	estimator = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=5)
 
 f=open('results_20ng_lazy0.30','ab')
 k = 1
@@ -81,6 +97,7 @@ for train_index, test_index in kf:
 	y_train, y_test = y[train_index], y[test_index]
 	
 	e = clone(estimator)
+	
 	# fit and predict
 	start = time.time()
 	e.fit(X_train, y_train)
@@ -92,11 +109,20 @@ for train_index, test_index in kf:
 	result = np.array([range(len(y_test)), pred, y_test])
 	np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
 	k = k + 1
-	print "\tMicro: ", f1_score(y_true=y_test, y_pred=pred, average='micro')
-	print "\tMacro: ", f1_score(y_true=y_test, y_pred=pred, average='macro')
+	folds_micro = folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
+	folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
+
+	print "F1-Score"
+	print "\tMicro: ", folds_micro[k-2]
+	print "\tMacro: ", folds_macro[k-2]
 	if args.test:
 		break
 
 f.close()
-print 'loading time : ', 
+
+print "F1-Score"
+print "\tMicro: ", np.average(folds_micro), np.std(folds_micro)
+print "\tMacro: ", np.average(folds_macro), np.std(folds_macro)
+
+print 'loading time : ', datasetLoadingTime
 print 'times : ', np.average(folds_time), np.std(folds_time) 
