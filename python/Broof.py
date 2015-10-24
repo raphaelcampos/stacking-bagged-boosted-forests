@@ -55,7 +55,7 @@ class Broof(AdaBoostClassifier):
         estimator_error = np.mean(
             np.average(incorrect, axis=0))
 
-        print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
+        #print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -107,7 +107,6 @@ class Broof(AdaBoostClassifier):
         # Check parameters
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be greater than zero")
-
 
         if sample_weight is None:
             # Initialize weights to 1 / n_samples

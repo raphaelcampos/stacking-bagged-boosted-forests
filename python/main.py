@@ -40,6 +40,7 @@ parser.add_argument("--cv", type=int, help='Search for best parameters using cro
 
 parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.', default=1.0)
 
+parser.add_argument("-o", "--output", type=str, help="Output file for results.", default="")
 
 args = parser.parse_args()
 
@@ -64,7 +65,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
+	estimator = LazyNNRF5 (n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
@@ -74,7 +75,7 @@ elif args.method == 'adarf':
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
 elif args.method == 'broof':
 	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate)
-	tuned_parameters = [{'n_trees': [30,100,500], 'n_estimators': [50, 100, 200, 400], 'learning_rate': [0.1, 0.5, 1.0]}]
+	tuned_parameters = [{'n_trees': [5,10], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [5,10,30], 'n_estimators': [10, 20, 50], 'learning_rate': [0.1, 0.5, 1.0]}]
 else:
 	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400]}]
@@ -86,16 +87,23 @@ folds_predict = []
 folds_macro = []
 folds_micro = []
 
-if(args.cv > 1):
-	estimator = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=5)
+print estimator.get_params()
 
-f=open('results_20ng_lazy0.30','ab')
+if not (args.output == "") :
+	f=open(args.output,'ab')
+
 k = 1
 for train_index, test_index in kf:
 	# split dataset
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
 	
+	if(args.cv > 1 and k == 1):
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=5,scoring='f1_micro')
+		gs.fit(X_train, y_train)
+		print gs.best_score_, gs.best_params_
+		estimator = gs.best_estimator
+
 	e = clone(estimator)
 	
 	# fit and predict
@@ -107,7 +115,8 @@ for train_index, test_index in kf:
 	# stores fold results
 	folds_time = folds_time + [end - start]
 	result = np.array([range(len(y_test)), pred, y_test])
-	np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+	if not (args.output == "") :
+		np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
 	k = k + 1
 	folds_micro = folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
 	folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
@@ -118,7 +127,8 @@ for train_index, test_index in kf:
 	if args.test:
 		break
 
-f.close()
+if not (args.output == "") :
+	f.close()
 
 print "F1-Score"
 print "\tMicro: ", np.average(folds_micro), np.std(folds_micro)
