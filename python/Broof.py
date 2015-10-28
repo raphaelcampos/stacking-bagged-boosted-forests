@@ -1,8 +1,9 @@
 from sklearn.ensemble import RandomForestClassifier as ForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesClassifier
 from sklearn.ensemble import AdaBoostClassifier
-
+from sklearn.externals import six
 import numpy as np
+
 
 class Broof(AdaBoostClassifier):         
     def __init__(self,
@@ -16,6 +17,8 @@ class Broof(AdaBoostClassifier):
         self.weighting_algorithm = weighting_algorithm
         self.n_jobs = n_jobs
         self.n_trees = n_trees
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
 
         super(Broof, self).__init__(
             base_estimator=ForestClassifier(criterion='gini',max_features='auto',n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
@@ -55,7 +58,7 @@ class Broof(AdaBoostClassifier):
         estimator_error = np.mean(
             np.average(incorrect, axis=0))
 
-        #print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
+        print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -204,3 +207,44 @@ class Broof(AdaBoostClassifier):
             return self.classes_.take(pred > 0, axis=0)
 
         return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
+    def set_params(self, **params):
+        """Set the parameters of this estimator.
+        The method works on simple estimators as well as on nested objects
+        (such as pipelines). The former have parameters of the form
+        ``<component>__<parameter>`` so that it's possible to update each
+        component of a nested object.
+        Returns
+        -------
+        self
+        """
+        if not params:
+            # Simple optimisation to gain speed (inspect is slow)
+            return self
+        valid_params = self.get_params(deep=True)
+        for key, value in six.iteritems(params):
+            split = key.split('__', 1)
+            
+            if len(split) > 1:
+                # nested objects case
+                name, sub_name = split
+                if name not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (name, self))
+                sub_object = valid_params[name]
+                sub_object.set_params(**{sub_name: value})
+            else:
+                # simple objects case
+                if key not in valid_params:
+                    raise ValueError('Invalid parameter %s for estimator %s. '
+                                     'Check the list of available parameters '
+                                     'with `estimator.get_params().keys()`.' %
+                                     (key, self.__class__.__name__))
+                if key == 'n_trees':
+                    setattr(self.base_estimator, 'n_estimators', value)
+                else:
+                    setattr(self, key, value)
+
+        return self

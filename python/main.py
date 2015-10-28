@@ -32,13 +32,13 @@ parser.add_argument("-t", "--trees", type=int, help='Number of trees (Default:10
 
 parser.add_argument("-k", "--kneighbors", type=int, help='Number of nearrest neirghbors (Default:30).', default=30)
 
-parser.add_argument("--learning_rate", type=float, help='Algorithm learning rate. It controls algorithm\'s convergence.')
+parser.add_argument("--learning_rate", type=float, help='Algorithm learning rate. It controls algorithm\'s convergence.', default=1.0)
 
 parser.add_argument("--trials", type=int, help='Number of trials (Default:10).', default=10)
 
 parser.add_argument("--cv", type=int, help='Search for best parameters using cross-validation (Default:1). When 1 is given there will not be search at all.', default=1)
 
-parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.', default=1.0)
+parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.')
 
 parser.add_argument("-o", "--output", type=str, help="Output file for results.", default="")
 
@@ -65,7 +65,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF5 (n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
@@ -75,10 +75,10 @@ elif args.method == 'adarf':
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
 elif args.method == 'broof':
 	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate)
-	tuned_parameters = [{'n_trees': [5,10], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [5,10,30], 'n_estimators': [10, 20, 50], 'learning_rate': [0.1, 0.5, 1.0]}]
+	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30], 'n_estimators': [10, 20, 50], 'learning_rate': [0.1, 0.5, 1.0]}]
 else:
-	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs)
-	tuned_parameters = [{'n_estimators': [50, 100, 200, 400]}]
+	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini')
+	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
 
@@ -98,11 +98,11 @@ for train_index, test_index in kf:
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
 	
-	if(args.cv > 1 and k == 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=5,scoring='f1_micro')
+	if(args.cv > 1):
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_micro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
-		estimator = gs.best_estimator
+		estimator = gs.best_estimator_
 
 	e = clone(estimator)
 	
