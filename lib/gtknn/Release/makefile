@@ -35,6 +35,8 @@ ifneq ($(strip $(C_UPPER_DEPS)),)
 endif
 endif
 
+current_folder=$(shell pwd)
+
 -include ../makefile.defs
 
 # Add inputs and outputs from these tool invocations to the build variables 
@@ -46,7 +48,7 @@ all: gtknn secondary-outputs
 gtknn: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	nvcc --relocatable-device-code=true -gencode arch=compute_20,code=sm_20 -link -o "gtknn" $(OBJS) $(USER_OBJS) $(LIBS) -I../lib/cudpp-2.1/include/ -L../lib/cudpp-2.1/lib/ -lcudpp
+	nvcc --relocatable-device-code=true -gencode arch=compute_20,code=sm_20 -link -Xcompiler -fPIC -shared -o "gtknn.so" $(OBJS) $(USER_OBJS) $(LIBS) -Xlinker "-rpath,./" -I../lib/cudpp-2.1/include/ -L../lib/cudpp-2.1/lib/ -lcudpp
 	@echo 'Finished building target: $@'
 	@echo ' '
 

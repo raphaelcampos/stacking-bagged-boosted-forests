@@ -35,6 +35,7 @@
 /**
  * Cosine cuSimilarity distance
  */
+extern "C"
 __host__ void CosineDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
 __global__ void initDistancesCosine(InvertedIndex inverted_index, cuSimilarity *dist);
@@ -46,6 +47,7 @@ __global__ void calculateDistancesCosine(InvertedIndex inverted_index, Entry *d_
 /**
  * Euclidean distance functions
  */
+extern "C"
 __host__ void EuclideanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
 __global__ void initDistancesEuclidean(InvertedIndex inverted_index, cuSimilarity *dist);
@@ -56,6 +58,7 @@ __global__ void calculateDistancesEuclidean(InvertedIndex inverted_index, Entry 
 
 __global__ void calculateDistancesManhattan(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
+extern "C"
 __host__ void ManhattanDistance(InvertedIndex inverted_index, Entry *d_query, int *index, cuSimilarity *dist, int D);
 
 __global__ void initDistancesManhattan(InvertedIndex inverted_index, cuSimilarity *dist);

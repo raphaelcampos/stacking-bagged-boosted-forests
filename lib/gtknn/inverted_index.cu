@@ -72,6 +72,60 @@ __host__ InvertedIndex make_inverted_index(int num_docs, int num_terms, std::vec
     return InvertedIndex(d_inverted_index, d_index, d_count, d_norms, d_normsl1, num_docs, entries.size(), num_terms);
 }
 
+__host__ InvertedIndex make_inverted_index(int num_docs, int num_terms, Entry* entries, int n_entries) {
+    /*for (int i = 0; i < n_entries; ++i)
+    {
+        printf("%d - %d - %d - %f\n", entries[i].doc_id,entries[i].term_id,entries[i].tf, entries[i].tf_idf);
+    }*/
+
+    printf("Creating inverted index... \n", num_terms);
+    Entry *d_entries, *d_inverted_index;
+    int *d_count, *d_index;
+    float *d_norms, *d_normsl1;
+
+    printf("Allocating memory...\n");
+
+    gpuAssert(cudaMalloc(&d_inverted_index, n_entries * sizeof(Entry)));
+    gpuAssert(cudaMalloc(&d_entries, n_entries * sizeof(Entry)));
+    gpuAssert(cudaMalloc(&d_index, num_terms * sizeof(int)));
+    gpuAssert(cudaMalloc(&d_count, num_terms * sizeof(int)));
+    gpuAssert(cudaMalloc(&d_norms, num_docs * sizeof(float)));
+    gpuAssert(cudaMalloc(&d_normsl1, num_docs * sizeof(float)));
+
+    gpuAssert(cudaMemset(d_count, 0, num_terms * sizeof(int)));
+    gpuAssert(cudaMemset(d_norms, 0, num_docs * sizeof(float)));
+    gpuAssert(cudaMemset(d_normsl1, 0, num_docs * sizeof(float)));
+    gpuAssert(cudaMemcpy(d_entries, entries, n_entries * sizeof(Entry), cudaMemcpyHostToDevice));
+
+    gpuAssert(cudaGetLastError());
+
+    cudaDeviceSynchronize();
+
+
+    dim3 grid, threads;
+    get_grid_config(grid, threads);
+
+    double start = gettime();
+    count_occurrences<<<grid, threads>>>(d_entries, d_count, n_entries);
+
+    gpuAssert(cudaGetLastError());
+
+    prefix_scan(d_index, d_count, num_terms, CUDPP_OPTION_FORWARD | CUDPP_OPTION_EXCLUSIVE);
+
+    mount_inverted_index_and_compute_tf_idf<<<grid, threads>>>(d_entries, d_inverted_index, d_count, d_index, d_norms, d_normsl1, n_entries, num_docs);
+
+    cudaDeviceSynchronize();
+
+    gpuAssert(cudaGetLastError());
+
+    double end = gettime();
+
+    printf("time for insertion: %lf\n", end - start);
+    cudaFree(d_entries);
+    return InvertedIndex(d_inverted_index, d_index, d_count, d_norms, d_normsl1, num_docs, n_entries, num_terms);
+}
+
+
 __host__ void prefix_scan(int *d_out, int *d_in, int num_terms, unsigned int options) {
     CUDPPHandle scan_plan = create_exclusive_scan_plan(theCudpp, num_terms, options);
 

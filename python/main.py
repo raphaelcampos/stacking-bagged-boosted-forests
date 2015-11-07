@@ -2,6 +2,8 @@ from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
 
+from sklearn.neighbors import NearestNeighbors as kNN
+
 from sklearn.grid_search import GridSearchCV
 
 from sklearn.base import clone
@@ -56,7 +58,7 @@ else:
 
 tf_transformer = TfidfTransformer(use_idf=True)
 
-X = tf_transformer.fit_transform(X)
+#X = tf_transformer.fit_transform(X)
 
 end = time.time()
 
@@ -67,6 +69,7 @@ if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
 	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
+
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
@@ -103,6 +106,32 @@ for train_index, test_index in kf:
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
+
+
+	e = cuKNeighborsSparseClassifier()
+	start = time.time()
+	
+	e.fit(X_train, y_train)
+	ind =  e.kneighbors(X_test)[-1]
+	end = time.time()
+
+	print(end - start)
+	print y_train[ind], y_test[-1]
+
+	e = kNN(n_jobs=1, n_neighbors=30, algorithm='brute', metric='cosine')
+
+	X_train = tf_transformer.fit_transform(X_train)
+	start = time.time()
+	e.fit(X_train, y_train)
+	X_test = tf_transformer.fit_transform(X_test)
+	ind = e.kneighbors(X_test, return_distance=False)[-1]
+	end = time.time()
+
+	print(end - start)
+
+	print y_train[ind], y_test[-1] 
+
+	exit()
 
 	e = clone(estimator)
 	

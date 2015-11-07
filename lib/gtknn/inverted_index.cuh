@@ -70,6 +70,9 @@ __host__ void prefix_scan(int *d_out, int *d_in, int num_terms, unsigned int opt
 
 __host__ CUDPPHandle create_exclusive_scan_plan(CUDPPHandle theCudpp, int num_elements, unsigned int options);
 
+extern "C"
+__host__ InvertedIndex make_inverted_index(int num_docs, int num_terms, Entry * entries, int n_entries);
+
 __host__ InvertedIndex make_inverted_index(int num_docs, int num_terms, std::vector<Entry> &entries);
 
 __global__ void count_occurrences(Entry *entries, int *count, int n);

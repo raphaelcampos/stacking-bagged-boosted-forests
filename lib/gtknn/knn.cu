@@ -37,6 +37,111 @@
 #include "cuda_distances.cuh"
 #include "partial_bitonic_sort.cuh"
 
+__host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, int query_size) {
+    //Obtain the smallest power of 2 greater than K (facilitates the sorting algorithm)
+    int KK = 1;
+    while(KK < K) KK <<= 1;
+
+    dim3 grid, threads;
+    get_grid_config(grid, threads);
+
+    int *d_count, *d_index;
+    Entry *d_query;
+    cuSimilarity *d_dist, *d_nearestK, *h_nearestK;
+    float *d_qnorm, *d_qnorml1;
+    float fzero=0;
+    gpuAssert(cudaMalloc(&d_dist, inverted_index.num_docs * sizeof(cuSimilarity)));
+    gpuAssert(cudaMalloc(&d_nearestK, KK * grid.x * sizeof(cuSimilarity)));
+    gpuAssert(cudaMalloc(&d_query, query_size * sizeof(Entry)));
+    gpuAssert(cudaMalloc(&d_index, query_size * sizeof(int)));
+    gpuAssert(cudaMalloc(&d_count, query_size * sizeof(int)));
+    gpuAssert(cudaMemcpy(d_query, query, query_size * sizeof(Entry), cudaMemcpyHostToDevice));
+    gpuAssert(cudaMalloc(&d_qnorm, sizeof(float)));
+    gpuAssert(cudaMemset(d_qnorm, 0,  sizeof(float)));
+    gpuAssert(cudaMalloc(&d_qnorml1, sizeof(float)));
+    gpuAssert(cudaMemset(d_qnorml1, 0,  sizeof(float)));
+
+
+    cudaDeviceSynchronize();
+
+    double time = gettime();
+
+    get_term_count_and_tf_idf<<<grid, threads>>>(inverted_index, d_query, d_count, d_qnorm,d_qnorml1, query_size);
+
+    prefix_scan(d_index, d_count, query_size, CUDPP_OPTION_FORWARD | CUDPP_OPTION_INCLUSIVE);
+
+    int *index = (int*) malloc(query_size * sizeof(int));
+    cudaMemcpy(index, d_index, query_size * sizeof(int), cudaMemcpyDeviceToHost);
+    float qnorm, qnorml1;
+    cudaMemcpy(&qnorm, d_qnorm, sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&qnorml1, d_qnorml1, sizeof(float), cudaMemcpyDeviceToHost);
+
+    float qnormeucl=qnorm;
+    float qnormcos=sqrt(qnorm);
+    if (qnormcos==0)qnormcos=1; //avoid NaN
+
+    CosineDistance(inverted_index, d_query, d_index, d_dist, query_size);
+
+    bitonicPartialSort<<<grid, threads>>>(d_dist, d_nearestK, inverted_index.num_docs, KK);
+
+    cudaDeviceSynchronize();
+    gpuAssert(cudaGetLastError());
+
+    time = gettime();
+    h_nearestK = (cuSimilarity*) malloc(KK * grid.x * sizeof(cuSimilarity));
+    gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(cuSimilarity), cudaMemcpyDeviceToHost));
+
+    //Priority queue to obtain the K nearest neighbors
+    std::priority_queue<cuSimilarity> pq;
+
+    for(int i = 0, lim = KK * grid.x; i < lim; i++) {
+        //adjust the correct distances:
+        //if(distance==CosineDistance) {
+            h_nearestK[i].distance/=qnormcos;
+            //printf("sim: %f, id: %d qnorm: %f\n",h_nearestK[i].distance, h_nearestK[i].doc_id, qnorm);
+        /*}
+        else if(distance==EuclideanDistance) {
+            h_nearestK[i].distance-=qnormeucl;
+            h_nearestK[i].distance=sqrt(h_nearestK[i].distance*-1.0)*-1.0;
+            //printf("sim: %f, id: %d qnorm: %f\n",h_nearestK[i].distance, h_nearestK[i].doc_id, qnorm);
+        }
+        else if(distance==ManhattanDistance) {
+            h_nearestK[i].distance-=qnorml1;
+            //printf("sim: %f, id: %d qnorm: %f\n",h_nearestK[i].distance, h_nearestK[i].doc_id, qnorml1);
+        }*/
+
+//        if(alreadyIn.find(h_nearestK[i].doc_id)==alreadyIn.end()) continue;
+//        alreadyIn.insert(h_nearestK[i].doc_id);
+        if(pq.size() != K) {
+            pq.push(h_nearestK[i]);
+        } else {
+            const cuSimilarity &sim = pq.top();
+            if(sim > h_nearestK[i]) {
+                pq.pop();
+                pq.push(h_nearestK[i]);
+            }
+        }
+    }
+
+    cuSimilarity* h_knearest = (cuSimilarity*) malloc(K * sizeof(cuSimilarity));
+    int i = K - 1;
+    while(!pq.empty()) {
+        const cuSimilarity &sim = pq.top();
+        h_knearest[i--] = sim;        
+        pq.pop();
+    }
+
+    cudaFree(d_dist);
+    cudaFree(d_nearestK);
+    cudaFree(d_query);
+    cudaFree(d_index);
+    cudaFree(d_count);
+    cudaFree(d_qnorm);
+    free(h_nearestK);
+
+    return h_knearest;
+}
+
 /*
 * We pass the distance function  as a pointer  (*distance)
 */

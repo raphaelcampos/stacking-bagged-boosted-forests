@@ -6,3 +6,4 @@ release/datasets/
 release/results/
 venn-diagrams/
 *.pyc
+python/libcudpp.so

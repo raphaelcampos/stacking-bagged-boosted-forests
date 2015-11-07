@@ -36,6 +36,9 @@ __global__ void bitonicPartialSort(cuSimilarity *dist, cuSimilarity *nearestK, i
 
 __global__ void get_term_count_and_tf_idf(InvertedIndex inverted_index, Entry *query, int *count, float *qnorm, float *qnorml1, int N);
 
+extern "C"
+__host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, int query_size);
+
 __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query, int K,
                          void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D));
 
