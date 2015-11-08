@@ -65,6 +65,8 @@ class cuKNeighborsSparseClassifier(object):
 
         self._init_methods()
 
+        self._init_gtknn(0)
+
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
         self.n_neighbors = n_neighbors
@@ -86,6 +88,10 @@ class cuKNeighborsSparseClassifier(object):
 
         self._KNN = func
 
+        func = dll.initGtknn
+        func.argtypes = [c_int]
+
+        self._init_gtknn = func
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)

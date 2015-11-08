@@ -57,6 +57,13 @@ void write_output(ofstream &fileout, int trueclass, int guessedclass, int docid)
 int get_class(std::string token);
 
 
+extern "C"
+void initGtknn(int deviceId = 0){
+    initCudpp(); //initializes the CUDPP library
+    cuInit(deviceId);
+    cudaDeviceSynchronize();
+}
+
 /**
  * Receives as parameters the training file name and the test file name
  */
