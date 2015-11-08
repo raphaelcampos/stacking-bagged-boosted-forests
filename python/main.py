@@ -56,6 +56,10 @@ if args.dataset == 'toy':
 else:
 	X, y = load_svmlight_file(args.dataset)
 
+
+print X.nnz, (X.nnz*4*4)/(2.0**20)
+
+
 tf_transformer = TfidfTransformer(use_idf=True)
 
 #X = tf_transformer.fit_transform(X)
@@ -67,7 +71,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto')
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
@@ -101,37 +105,23 @@ for train_index, test_index in kf:
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
 	
+
 	if(args.cv > 1):
 		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_micro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
-
-
-	e = cuKNeighborsSparseClassifier()
-	start = time.time()
 	
-	e.fit(X_train, y_train)
-	ind =  e.kneighbors(X_test)[-1]
-	end = time.time()
+	
 
-	print(end - start)
-	print y_train[ind], y_test[-1]
+	#e = cuKNeighborsSparseClassifier(n_neighbors=30)
 
-	e = kNN(n_jobs=1, n_neighbors=30, algorithm='brute', metric='cosine')
+	#e.fit(X_train, y_train)	
 
-	X_train = tf_transformer.fit_transform(X_train)
-	start = time.time()
-	e.fit(X_train, y_train)
-	X_test = tf_transformer.fit_transform(X_test)
-	ind = e.kneighbors(X_test, return_distance=False)[-1]
-	end = time.time()
-
-	print(end - start)
-
-	print y_train[ind], y_test[-1] 
-
-	exit()
+	#pred = e.predict(X_test)
+	#print (pred.T[0])
+	#print np.mean(pred.T[0] == y_test)
+	#exit()
 
 	e = clone(estimator)
 	

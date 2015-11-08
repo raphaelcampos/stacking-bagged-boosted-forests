@@ -3,6 +3,8 @@ from sklearn.neighbors import NearestNeighbors as kNN
 from sklearn.ensemble import RandomForestClassifier as ForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesClassifier
 
+import time
+
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.utils import check_array
 
@@ -10,13 +12,14 @@ import numpy as np
 
 import scipy
 
-
 import multiprocessing as mp
 
 from math import ceil
 
 import ctypes
 from ctypes import *
+
+from sklearn.feature_extraction.text import TfidfTransformer
 
 VALID_METRICS = ['cosine']
 
@@ -28,6 +31,9 @@ class Entry(Structure):
        ("tf_idf", c_float)]
 
     def __init__(self, doc_id, term_id, tf, tf_idf):
+        self.set(doc_id, term_id, tf, tf_idf)
+
+    def set(self, doc_id, term_id, tf, tf_idf):
         self.doc_id = doc_id
         self.term_id = term_id
         self.tf = tf
@@ -83,16 +89,26 @@ class cuKNeighborsSparseClassifier(object):
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
-        return [Entry(i, j, int(v), 0) for i,j,v in zip(cx.row, cx.col, cx.data)]
-
+        
+        #entries = (Entry*X.nnz)()
+        # TODO: find a faster way to populate the entries that does not cosume more memory.
+        # Faster way entries = (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row))), but consumes a way too much memory
+        #for i in xrange(1, len(entries)):
+        #    entries[i].set(cx.row[i], cx.col[i], int(cx.data[i]), 0.0)        
+        
+        #return entries
+        return (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row)))
+        
     def fit(self, X, y):
 
-        entries = self._get_entries(X) 
-        
+        entries = self._get_entries(X)
+
         num_docs = X.shape[0]
         num_terms = X.shape[1]
 
-        self.inverted_idx = self._make_inverted_index(num_docs, num_terms, (type(entries[0])*len(entries))(*entries), len(entries))
+        self.y = y
+
+        self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries))
 
 
 
@@ -157,8 +173,7 @@ class cuKNeighborsSparseClassifier(object):
         neigh_ind = None
         for x in X:
             query = self._get_entries(x)
-            similarities = self._KNN(self.inverted_idx, (type(query[0])*len(query))(*query), n_neighbors, len(query))
-
+            similarities = self._KNN(self.inverted_idx, query, n_neighbors, len(query))
 
             idxs = np.array(similarities[:n_neighbors], dtype=cuSimilarity._fields_)['doc_id']
 
@@ -169,6 +184,43 @@ class cuKNeighborsSparseClassifier(object):
 
         return neigh_ind
         
+
+    def predict(self, X):
+        """Predict the class labels for the provided data
+        Parameters
+        ----------
+        X : array-like, shape (n_query, n_features), \
+                or (n_query, n_indexed) if metric == 'precomputed'
+            Test samples.
+        Returns
+        -------
+        y : array of shape [n_samples] or [n_samples, n_outputs]
+            Class labels for each data sample.
+        """
+        X = check_array(X, accept_sparse='csr')
+
+        neigh_ind = self.kneighbors(X)
+        
+        from scipy import stats
+        classes_ = np.unique(self.y)
+        _y = self.y
+
+        _y = self.y.reshape((-1, 1))
+        classes_ = [classes_]
+
+        n_outputs = len(classes_)
+        n_samples = X.shape[0]
+        
+
+        y_pred = np.empty((n_samples, n_outputs), dtype=classes_[0].dtype)
+        for k, classes_k in enumerate(classes_):
+            mode, _ = stats.mode(_y[neigh_ind, k], axis=1)
+            
+            mode = np.asarray(mode.ravel(), dtype=np.intp)
+            y_pred[:, k] = classes_k.take(mode)
+
+
+        return y_pred
 
 
 class LazyNNRF(BaseEstimator, ClassifierMixin):
@@ -188,16 +240,21 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                  random_state=None,
                  verbose=0,
                  warm_start=False,
-                 class_weight=None):
+                 class_weight=None,
+                 cuda=False):
         
         
-        self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, weights='distance', algorithm='brute', metric='cosine')
+        if cuda:
+            self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors)
+        else:
+            self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, algorithm='brute', metric='cosine')
 
         # everyone's params 
         self.n_jobs = n_jobs
 
         # kNN params
         self.n_neighbors = n_neighbors
+        self.cuda = cuda
         
         # ForestBase params
         self.n_estimators = n_estimators
@@ -238,6 +295,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         self : object
             Returns self.
         """
+        
         self.X_train = X
         self.y_train = y
 
@@ -280,7 +338,13 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         """
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
-        
+        #print idx
+        #exit()
+            
+        #tf_transformer = TfidfTransformer(use_idf=True)
+        #self.X_train = X = tf_transformer.fit_transform(self.X_train)
+        #X = tf_transformer.fit_transform(X)
+
         jobs = []
         q = mp.Queue() 
         length = len(idx)
