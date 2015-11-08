@@ -6,6 +6,29 @@
 
 RM := rm -rf
 
+# Gencode arguments
+ifeq ($(OS_ARCH),armv7l)
+SMS ?= 20 30 32 35 37 50
+else
+SMS ?= 20 30 35 37 50
+endif
+
+ifeq ($(SMS),)
+$(info >>> WARNING - no SM architectures have been specified - waiving sample <<<)
+SAMPLE_ENABLED := 0
+endif
+
+ifeq ($(GENCODE_FLAGS),)
+# Generate SASS code for each SM architecture listed in $(SMS)
+$(foreach sm,$(SMS),$(eval GENCODE_FLAGS += -gencode arch=compute_$(sm),code=sm_$(sm)))
+
+# Generate PTX code from the highest SM architecture in $(SMS) to guarantee forward-compatibility
+HIGHEST_SM := $(lastword $(sort $(SMS)))
+ifneq ($(HIGHEST_SM),)
+GENCODE_FLAGS += -gencode arch=compute_$(HIGHEST_SM),code=compute_$(HIGHEST_SM)
+endif
+endif
+
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include subdir.mk
@@ -48,7 +71,7 @@ all: gtknn secondary-outputs
 gtknn: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	nvcc --relocatable-device-code=true -gencode arch=compute_20,code=sm_20 -link -Xcompiler -fPIC -shared -o "gtknn.so" $(OBJS) $(USER_OBJS) $(LIBS) -Xlinker "-rpath,./" -I../lib/cudpp-2.1/include/ -L../lib/cudpp-2.1/lib/ -lcudpp
+	nvcc --relocatable-device-code=true -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) -o "gtknn.so" $(OBJS) $(USER_OBJS) $(LIBS) -Xlinker "-rpath,./" -I../lib/cudpp-2.1/include/ -L../lib/cudpp-2.1/lib/ -lcudpp
 	@echo 'Finished building target: $@'
 	@echo ' '
 
