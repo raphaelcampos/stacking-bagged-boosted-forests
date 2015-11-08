@@ -89,20 +89,22 @@ class cuKNeighborsSparseClassifier(object):
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
-        
-        #entries = (Entry*X.nnz)()
+
+        entries = (Entry*X.nnz)()
         # TODO: find a faster way to populate the entries that does not cosume more memory.
         # Faster way entries = (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row))), but consumes a way too much memory
-        #for i in xrange(1, len(entries)):
-        #    entries[i].set(cx.row[i], cx.col[i], int(cx.data[i]), 0.0)        
+        for i in xrange(0, len(entries)):
+            entries[i].set(cx.row[i], cx.col[i], int(cx.data[i]), 0.0)
+            #print entries[i].doc_id, test[i].doc_id
+
         
-        #return entries
-        return (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row)))
+        return entries
+        #return (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row)))
         
     def fit(self, X, y):
 
         entries = self._get_entries(X)
-
+     
         num_docs = X.shape[0]
         num_terms = X.shape[1]
 
@@ -220,7 +222,7 @@ class cuKNeighborsSparseClassifier(object):
             y_pred[:, k] = classes_k.take(mode)
 
 
-        return y_pred
+        return y_pred.T[0]
 
 
 class LazyNNRF(BaseEstimator, ClassifierMixin):
@@ -338,12 +340,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         """
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
-        #print idx
-        #exit()
-            
-        #tf_transformer = TfidfTransformer(use_idf=True)
-        #self.X_train = X = tf_transformer.fit_transform(self.X_train)
-        #X = tf_transformer.fit_transform(X)
 
         jobs = []
         q = mp.Queue() 
