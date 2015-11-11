@@ -21,6 +21,88 @@ from ctypes import *
 
 from sklearn.feature_extraction.text import TfidfTransformer
 
+from sklearn.feature_selection.base import SelectorMixin
+from scipy.sparse import vstack, hstack
+from sklearn.utils import check_array
+from sklearn.utils.sparsefuncs import mean_variance_axis
+from sklearn.utils.validation import check_is_fitted
+
+class ReduceFeatureSpace(BaseEstimator, SelectorMixin):
+    """Feature selector that removes all low-variance features.
+    This feature selection algorithm looks only at the features (X), not the
+    desired outputs (y), and can thus be used for unsupervised learning.
+    Read more in the :ref:`User Guide <variance_threshold>`.
+    Parameters
+    ----------
+    threshold : float, optional
+        Features with a training-set variance lower than this threshold will
+        be removed. The default is to keep all features with non-zero variance,
+        i.e. remove the features that have the same value in all samples.
+    Attributes
+    ----------
+    variances_ : array, shape (n_features,)
+        Variances of individual features.
+    Examples
+    --------
+    The following dataset has integer features, two of which are the same
+    in every sample. These are removed with the default setting for threshold::
+        >>> X = [[0, 2, 0, 3], [0, 1, 4, 3], [0, 1, 1, 3]]
+        >>> selector = VarianceThreshold()
+        >>> selector.fit_transform(X)
+        array([[2, 0],
+               [1, 4],
+               [1, 1]])
+    """
+
+    def __init__(self, threshold=0.):
+        self.threshold = threshold
+
+    def fit(self, X, y=None):
+        """Learn empirical variances from X.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape (n_samples, n_features)
+            Sample vectors from which to compute variances.
+        y : any
+            Ignored. This parameter exists only for compatibility with
+            sklearn.pipeline.Pipeline.
+        Returns
+        -------
+        self
+        """
+        X = check_array(X, ('csr', 'csc'), dtype=np.float64)
+
+        if hasattr(X, "toarray"):   # sparse matrix
+            #_, self.variances_ = mean_variance_axis(X, axis=0)
+            self.variances_ = self._get_nonzero_columns(X)
+        else:
+            self.variances_ = np.var(X, axis=0)
+
+        return self
+
+    def _get_support_mask(self):
+        check_is_fitted(self, 'variances_')
+
+        return self.variances_ > self.threshold
+
+    def _get_nonzero_columns(self, X):
+        n_samples = X.shape[0]
+        n_features = X.shape[1]
+
+        X_data = np.asarray(X.data, dtype=np.float64)     # might copy!
+        X_indices = X.indices
+
+        non_zero = X_indices.shape[0]
+        
+        # means[j] contains the mean of feature j
+        selected_features = np.zeros(n_features, dtype=np.float64)
+
+        for i in xrange(non_zero):
+            col_ind = X_indices[i]
+            selected_features[col_ind] += int(not X_data[i] == 0)
+
+        return selected_features
+
 VALID_METRICS = ['cosine']
 
 class Entry(Structure):
@@ -313,7 +395,12 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
     def runForests(self, X, idx, q, p):
         pred = []
+        selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
+            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
+
+            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
+            #X_t, X_i = (self.X_train[ids],X[i])
             rf = ForestClassifier(n_estimators=self.n_estimators,
                                  criterion=self.criterion,
                                  max_depth=self.max_depth,
@@ -323,8 +410,8 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                                  max_features=self.max_features,
                                  max_leaf_nodes=self.max_leaf_nodes)
 
-            rf.fit(self.X_train[ids], self.y_train[ids])
-            pred = pred + [rf.predict(X[i])[0]]
+            rf.fit(X_t, self.y_train[ids])
+            pred = pred + [rf.predict(X_i)[0]]
 
         q.put((p, pred))
         return
@@ -374,6 +461,28 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
             pred = pred + r[1]
 
         return np.array(pred)
+
+        pred = []
+        selector = VarianceThreshold()
+        for i,ids in enumerate(idx):
+            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
+        
+            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
+
+            rf = ForestClassifier(n_estimators=self.n_estimators,
+                                 criterion=self.criterion,
+                                 max_depth=self.max_depth,
+                                 min_samples_split=self.min_samples_split,
+                                 min_samples_leaf=self.min_samples_leaf,
+                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                                 max_features=self.max_features,
+                                 max_leaf_nodes=self.max_leaf_nodes,
+                                 n_jobs=self.n_jobs)
+
+            rf.fit(X_t, self.y_train[ids])
+            pred = pred + [rf.predict(X_i)[0]]
+
+        return pred
 
     def score(self, X, y):
         return np.mean(self.predict(X) == y)
