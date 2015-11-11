@@ -447,12 +447,28 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
             jobs.append(process)
             process.start()
 
+        results = []
+        liveprocs = list(jobs)
+        while liveprocs:
+            try:
+                while 1:
+                    results = results + [(q.get(False))]
+                    #print results
+            except Exception, e:
+                #print e
+                pass
+
+            time.sleep(0.005)    # Give tasks a chance to put more data in
+            if not q.empty():
+                continue
+            liveprocs = [p for p in liveprocs if p.is_alive()]
+
         # Exit the completed processes
-        for p in jobs:
-            p.join()
+        #for p in jobs:
+        #    p.join()
         
         # Get process results from the output queue
-        results = [q.get() for p in jobs]
+        #results = [q.get() for p in jobs]
 
         # make sure that it retrieves results in the correct order
         results.sort()
