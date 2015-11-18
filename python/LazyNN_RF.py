@@ -139,7 +139,7 @@ class InvertedIndex(Structure):
 
 class cuKNeighborsSparseClassifier(object):
 
-    def __init__(self, n_neighbors=30, metric='cosine'):
+    def __init__(self, n_neighbors=30, metric='cosine',gpu=0):
         
         super(cuKNeighborsSparseClassifier, self).__init__()
 
@@ -147,7 +147,7 @@ class cuKNeighborsSparseClassifier(object):
 
         self._init_methods()
 
-        self._init_gtknn(0)
+        self._init_gtknn(gpu)
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
@@ -174,6 +174,11 @@ class cuKNeighborsSparseClassifier(object):
         func.argtypes = [c_int]
 
         self._init_gtknn = func
+
+        func = dll.freeInvertedIndex
+        func.argtypes = [InvertedIndex]
+
+        self._free_inverted_index = func
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
@@ -312,6 +317,9 @@ class cuKNeighborsSparseClassifier(object):
 
         return y_pred.T[0]
 
+    def __del__(self):
+        self._free_inverted_index(self.inverted_idx)
+        print "Inverted Index freed..."
 
 class LazyNNRF(BaseEstimator, ClassifierMixin):
     def __init__(self,
@@ -401,13 +409,14 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
             #X_t, X_i = (self.X_train[ids],X[i])
+            density = X_t.nnz/float(X_t.shape[0])
             rf = ForestClassifier(n_estimators=self.n_estimators,
                                  criterion=self.criterion,
                                  max_depth=self.max_depth,
                                  min_samples_split=self.min_samples_split,
                                  min_samples_leaf=self.min_samples_leaf,
                                  min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=self.max_features,
+                                 max_features=np.sqrt(density)/density,
                                  max_leaf_nodes=self.max_leaf_nodes)
 
             rf.fit(X_t, self.y_train[ids])
