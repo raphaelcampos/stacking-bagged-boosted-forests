@@ -22,41 +22,9 @@
 
 #define NUM_THREADS 8
 
-typedef std::pair<float, unsigned int> pair_;
-
-bool compPairs(pair_ lhs, pair_ rhs) { return lhs.first < rhs.first; }
-
-
-template<class Iterator>
-std::vector<pair_> getProbAcumulatedVector(Iterator first, Iterator last, WeightSet *w) {
-
-  std::vector<pair_> v;
-
-  unsigned int i = 0;
-  while(first != last){
-    pair_ p = std::make_pair(((v.empty())? 0.0 : v.back().first) + w->get((*first)->get_id()), i);
-    v.push_back(p);
-
-    ++i;
-    ++first;
-  }
-
-  return v;
-}
-
-unsigned chooseDoc(std::vector<pair_> &v){
-  double r = ((double) rand() / (RAND_MAX)) * v.back().first ;
-  pair_ p = *std::lower_bound(v.begin(), v.end(), pair_(r, 0), compPairs);
-
-  return p.second;
-}
-
-
 class RF : public SupervisedClassifier{
   public:
-    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); 
-      alpha_ = 0;
-    }
+    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); }
     ~RF();
     bool parse_train_line(const std::string&);
     void train(const std::string&);
@@ -68,7 +36,6 @@ class RF : public SupervisedClassifier{
     void set_doc_delete(const bool&);
     Scores<double> classify(const DTDocument*);
     double avg_oob_err() { return (oob_err_.size() > 0) ? total_oob_/oob_err_.size() : 0.0; }
-    double alpha() {return alpha_;}
   private:
     std::vector<DT*> trees_;
     std::vector<const DTDocument*> docs_;
@@ -80,7 +47,6 @@ class RF : public SupervisedClassifier{
     bool doc_delete_;
     unsigned int maxh_;
     bool trn_err_;
-    double alpha_;
 };
 
 RF::~RF(){
@@ -151,29 +117,17 @@ void RF::add_document_bag(std::set<const DTDocument*>& bag){
   }
 }
 
-struct rw_oob
-{
-  bool is_oob;
-  std::map<std::string, unsigned int> classification;
-  std::string clazz;
-};
-
 // Should return
 // 1) Map: out-of-bag sample ID -> bool misclassified ?
 WeightSet *RF::build(WeightSet *w) {
   const unsigned int docs_size = docs_.size();
-  
-  std::vector<pair_> probAcumulatedVector = getProbAcumulatedVector(docs_.begin(), docs_.end(), w);
-  std::map<std::string, rw_oob> is_oob;
   #pragma omp parallel for num_threads(8) schedule(static)
-  for(int i = 0; i < num_trees_; ++i) {
+  for(int i = 0; i < num_trees_; i++) {
     std::set<const DTDocument*> bag;
-
-    for(int j = 0; j < docs_size; ++j) {
+    for(int j = 0; j < docs_size; j++) {
       #pragma omp critical (oob_update)
       {
-        //unsigned int rndIdx = rand() % docs_size;
-        unsigned int rndIdx = chooseDoc(probAcumulatedVector);
+        unsigned int rndIdx = rand() % docs_size;
         bag.insert(docs_[rndIdx]);
         if (!trn_err_) {
           oob_[i][rndIdx] = NULL; // it isn't an oob sample
@@ -183,30 +137,11 @@ WeightSet *RF::build(WeightSet *w) {
     trees_[i] = new DT(round);
     trees_[i]->add_document_bag(bag);
     trees_[i]->build(m_);
-  }
-  
-  /*
-  http://stats.stackexchange.com/questions/68740/computing-out-of-bag-error-in-random-forest
-  A more complicated way would be to take each OOB Example, look up for each tree if it was included or not in the training, and take a majority vote over all trees that didn't use that Example for training. This is computationally more painful, but seems like it would properly take into account the fact that a forest is more than the sum of its parts.
-   */
-  for (int i = 0; i < num_trees_; ++i)
-  {
     // evaluate OOB error
     double miss = 0.0, total = 0.0;
     std::map<unsigned int, bool> is_miss;
     for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
       if (oob_[i][oobidx] != NULL) {
-        std::map<std::string, rw_oob>::iterator oobIt = is_oob.find(oob_[i][oobidx]->get_id());
-
-        if(oobIt == is_oob.end()){
-          rw_oob v;
-          std::pair<std::string, rw_oob> p = std::make_pair(oob_[i][oobidx]->get_id(), v);
-          std::pair<std::map<std::string, rw_oob>::iterator, bool> res = is_oob.insert(p);
-
-          oobIt = res.first;
-        }
-
-        oobIt->second.is_oob = true;
         std::map<std::string, double> partial_scores = trees_[i]->get_partial_scores(oob_[i][oobidx]);
         // see if its a missclassification
         double max = -9999.99;
@@ -219,12 +154,9 @@ WeightSet *RF::build(WeightSet *w) {
           }
           ++cIt;
         }
-        //std::cerr << maxCl << std::endl;
-        ++(oobIt->second.classification[maxCl]);
-        oobIt->second.clazz = oob_[i][oobidx]->get_class();
         if (maxCl != oob_[i][oobidx]->get_class()) {
           is_miss[oobidx] = true;
-          miss++;//+= (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+          miss++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
         }
         total++;// += (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
       }
@@ -234,64 +166,21 @@ WeightSet *RF::build(WeightSet *w) {
 
     #pragma omp critical (oob_update)
     {
+    if (w != NULL) { 
+      {
+        for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
+          if (oob_[i][oobidx] != NULL) {
+            w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp((is_miss[oobidx] ? -1.0 : 1.0) * alpha));
+            //std::cerr << "i=" << i << " oobidx=" << oobidx << " w=" << w->get(oob_[i][oobidx]->get_id()) << " alpha=" << alpha << std::endl;
+          }
+        }
+      }
+    }
     oob_err_.push_back(oob_err);
     total_oob_ += oob_err;
     }
-  }
 
-  double miss = 0.0, total = 0.0;
-  for (std::map<std::string, rw_oob>::iterator it = is_oob.begin(); it != is_oob.end(); ++it) {
-      if (it->second.is_oob) {
-        unsigned int max = 0;
-        std::string maxCl;
-        std::map<std::string, unsigned int>::const_iterator cIt = it->second.classification.begin();
-        while(cIt !=  it->second.classification.end()) {
-          if (cIt->second > max) {
-            maxCl = cIt->first;
-            max = cIt->second;
-          }
-          ++cIt;
-        }
-
-        double weight = w->get(it->first);
-        if(maxCl != it->second.clazz){
-          ++miss;
-        }
-        ++total;
-      }
-    }
-
-  double oob_err = total == 0.0 ? 0.0 : (miss / total);
-  double alpha = oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err);
-
-  //oob_err = avg_oob_err();
-  //printf("%f : %f \n",  oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err),alpha);
-
-  alpha_ = alpha;
-
-  if (w != NULL) {
-    ;
-    for (std::map<std::string, rw_oob>::iterator it = is_oob.begin(); it != is_oob.end(); ++it) {
-      if (it->second.is_oob) {
-        double before = w->get(it->first);
-
-        unsigned int max = 0;
-        std::string maxCl;
-        std::map<std::string, unsigned int>::const_iterator cIt = it->second.classification.begin();
-        while(cIt !=  it->second.classification.end()) {
-          //std::cerr << cIt->first << " : " << cIt->second << std::endl;
-          if (cIt->second > max) {
-            maxCl = cIt->first;
-            max = cIt->second;
-          }
-          ++cIt;
-        }
-
-        double after = before * exp(((maxCl != it->second.clazz) ? 1.0 : -1.0) * alpha);
-        
-        w->set(it->first, after);
-      }
-    }
+    //std::cerr << "trr_oob[" << i << "] = " << miss << "/" << total << "=" << oob_err << std::endl;
   }
 }
 
@@ -329,7 +218,8 @@ Scores<double> RF::classify(const DTDocument* doc){
     //  similarities.add(cIt_s->first, cIt_s->second / log(cIt_t->second));
     //}
     else{
-      similarities.add(cIt_s->first, cIt_s->second);// / (1.0 + log(cIt_t->second)));
+      //similarities.add(cIt_s->first, cIt_s->second);// / (1.0 + log(cIt_t->second)));
+      similarities.add(cIt_s->first, cIt_s->second / (1.0 + log(cIt_t->second)));
     }
     ++cIt_s;
   }

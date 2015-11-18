@@ -1,12 +1,13 @@
 #include <iostream>
 
 #include "lib/broof/rf_bst.hpp"
+#include "lib/broof/rf_ada.hpp"
 
 using namespace std;
 
 int main(int argc, char const *argv[])
 {
-	RF_BOOST * broof = new RF_BOOST(0, 0.004047256, atoi(argv[4]));
+	RF_BOOST * broof = new RF_BOOST(0, 0.33, atoi(argv[4]));
 	  
 	broof->train(argv[1]);
 
