@@ -75,7 +75,8 @@ if args.method == 'lazy':
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
-	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs)
+	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
+		max_features='auto', criterion='gini', cuda=True)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'adarf':
 	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs),n_estimators=args.ibroof, n_jobs=args.jobs)

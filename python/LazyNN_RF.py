@@ -149,6 +149,9 @@ class cuKNeighborsSparseClassifier(object):
 
         self._init_gtknn(gpu)
 
+    def __del__(self):
+        self._free_inverted_index(self.inverted_idx)
+
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
         self.n_neighbors = n_neighbors
@@ -317,10 +320,6 @@ class cuKNeighborsSparseClassifier(object):
 
         return y_pred.T[0]
 
-    def __del__(self):
-        self._free_inverted_index(self.inverted_idx)
-        print "Inverted Index freed..."
-
 class LazyNNRF(BaseEstimator, ClassifierMixin):
     def __init__(self,
                  n_neighbors=30,
@@ -416,7 +415,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                                  min_samples_split=self.min_samples_split,
                                  min_samples_leaf=self.min_samples_leaf,
                                  min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=np.sqrt(density)/density,
+                                 max_features=self.max_features,
                                  max_leaf_nodes=self.max_leaf_nodes)
 
             rf.fit(X_t, self.y_train[ids])
@@ -487,35 +486,20 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
         return np.array(pred)
 
-        pred = []
-        selector = VarianceThreshold()
-        for i,ids in enumerate(idx):
-            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
-        
-            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
-
-            rf = ForestClassifier(n_estimators=self.n_estimators,
-                                 criterion=self.criterion,
-                                 max_depth=self.max_depth,
-                                 min_samples_split=self.min_samples_split,
-                                 min_samples_leaf=self.min_samples_leaf,
-                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes,
-                                 n_jobs=self.n_jobs)
-
-            rf.fit(X_t, self.y_train[ids])
-            pred = pred + [rf.predict(X_i)[0]]
-
-        return pred
-
     def score(self, X, y):
         return np.mean(self.predict(X) == y)
 
 class LazyNNExtraTrees(LazyNNRF):
     def runForests(self, X, idx, q, p):
+        print "EXtra-trees"
         pred = []
+        selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
+            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
+
+            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
+            #X_t, X_i = (self.X_train[ids],X[i])
+            density = X_t.nnz/float(X_t.shape[0])
             rf = ExtraTreesClassifier(n_estimators=self.n_estimators,
                                  criterion=self.criterion,
                                  max_depth=self.max_depth,
@@ -525,8 +509,8 @@ class LazyNNExtraTrees(LazyNNRF):
                                  max_features=self.max_features,
                                  max_leaf_nodes=self.max_leaf_nodes)
 
-            rf.fit(self.X_train[ids], self.y_train[ids])
-            pred = pred + [rf.predict(X[i])[0]]
+            rf.fit(X_t, self.y_train[ids])
+            pred = pred + [rf.predict(X_i)[0]]
 
         q.put((p, pred))
         return
