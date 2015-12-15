@@ -491,7 +491,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
 class LazyNNExtraTrees(LazyNNRF):
     def runForests(self, X, idx, q, p):
-        print "EXtra-trees"
         pred = []
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
