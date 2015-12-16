@@ -139,7 +139,7 @@ class InvertedIndex(Structure):
 
 class cuKNeighborsSparseClassifier(object):
 
-    def __init__(self, n_neighbors=30, metric='cosine',gpu=0):
+    def __init__(self, n_neighbors=30, metric='cosine', gpu=0):
         
         super(cuKNeighborsSparseClassifier, self).__init__()
 
@@ -150,7 +150,8 @@ class cuKNeighborsSparseClassifier(object):
         self._init_gtknn(gpu)
 
     def __del__(self):
-        self._free_inverted_index(self.inverted_idx)
+        if hasattr(self, 'inverted_idx'):
+            self._free_inverted_index(self.inverted_idx)
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
@@ -193,7 +194,6 @@ class cuKNeighborsSparseClassifier(object):
             entries[i].set(cx.row[i], cx.col[i], int(cx.data[i]), 0.0)
             #print entries[i].doc_id, test[i].doc_id
 
-        
         return entries
         #return (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row)))
         
@@ -207,7 +207,6 @@ class cuKNeighborsSparseClassifier(object):
         self.y = y
 
         self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries))
-
 
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
