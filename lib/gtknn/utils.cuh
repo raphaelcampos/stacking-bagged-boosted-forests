@@ -31,9 +31,7 @@
 #include <string>
 #include <cstdio>
 #include <vector>
-#include <cudpp.h>
-
-extern CUDPPHandle theCudpp;
+#include <omp.h>
 
 extern int WARP_SIZE;
 
@@ -41,15 +39,13 @@ std::vector<std::string> split(const std::string &s, char delim);
 
 double gettime();
 
-void initCudpp();
-
 void get_grid_config(dim3 &grid, dim3 &threads);
 
 /**
  * This macro checks return value of the CUDA runtime call and exits
  * the application if the call failed.
  */
-void __gpuAssert(cudaError_t stat, int line, char *file);
+void __gpuAssert(cudaError_t stat, int line, std::string file);
 
 //__device__ float atomicAdd(float* address, float val);
 

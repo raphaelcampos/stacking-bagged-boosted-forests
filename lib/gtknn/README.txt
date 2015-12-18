@@ -24,26 +24,15 @@ You need to have a nvidia graphics card and
 the CUDA library installed in your machine. 
 For more information, go to https://developer.nvidia.com/cuda-downloads
 
-You also need to have the cudpp version 2.1 library. We include this library
-in the lib directory. To compile the library:
-
-$ cd lib
-$ tar -zxvf cudpp-2.1.tar.gz
-$ cd cudpp-2.1
-$ cmake .
-$ make 
-$ cd ../..
-
-To compile our GT-kNN implementation:
-$ cd Release
+Compile our GT-kNN implementation:
 $ make
 
-This will generate the gtknn executable in the Release directory.
+This will generate the gtknn executable called gtknn.
 
 
 Run:
 In order to run, you can use the following command:
-$ ./gtknn <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>
+$ ./gtknn <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file> <number of GPUs>
 
 
 where
@@ -54,7 +43,7 @@ There is a training and test example in the data directory. There is also a
 script that converts from the svmlight/libsvm files to our format.
 Be aware that we use the term frequencies of each document as features.
 -> k is number of nearest nighbors used in kNN.
--> cosine, l2 and l1 are the similarity/distance measures you can choose .
+-> cosine, l2 and l1 are the cuSimilarity/distance measures you can choose .
 -> output_classifications_file is the file that contains the classification
 of each test file accoring to kNN. Macro-F1, Micro-F1 and other evaluation 
 measures can be extracted from it using the sofware, in the "evaluate" directory.

@@ -25,7 +25,8 @@
  *      Author: silvereagle
  */
 #include <vector>
-#include <cudpp.h>
+#include <thrust/scan.h>
+#include <thrust/device_ptr.h>
 
 #include "structs.cuh"
 
@@ -43,18 +44,7 @@ struct InvertedIndex {
     int num_entries;		//Number of entries
     int num_terms;			//Number of terms
 
-    __host__ __device__ InvertedIndex() :
-        d_inverted_index(NULL),
-        d_index(NULL),
-        d_count(NULL),
-        d_norms(NULL),
-        d_normsl1(NULL),
-        num_docs(0),
-        num_entries(0),
-        num_terms(0)
-    {}
-
-    __host__ __device__ InvertedIndex(Entry *d_inverted_index, int *d_index, int *d_count, float *d_norms, float *d_normsl1, int num_docs, int num_entries, int num_terms) :
+    __host__ __device__ InvertedIndex(Entry *d_inverted_index = NULL, int *d_index = NULL, int *d_count = NULL, float *d_norms = NULL, float *d_normsl1 = NULL, int num_docs = 0, int num_entries = 0, int num_terms = 0) :
         d_inverted_index(d_inverted_index),
         d_index(d_index),
         d_count(d_count),
@@ -65,10 +55,6 @@ struct InvertedIndex {
         num_terms(num_terms)
     {}
 };
-
-__host__ void prefix_scan(int *d_out, int *d_in, int num_terms, unsigned int options);
-
-__host__ CUDPPHandle create_exclusive_scan_plan(CUDPPHandle theCudpp, int num_elements, unsigned int options);
 
 extern "C"
 __host__ InvertedIndex make_inverted_index(int num_docs, int num_terms, Entry * entries, int n_entries);

@@ -58,4 +58,11 @@ struct cuSimilarity {
     }
 };
 
+struct DeviceVariables{
+	int *d_count, *d_index;
+    Entry *d_query;
+    cuSimilarity *d_dist, *d_nearestK, *h_nearestK;
+    float *d_qnorms;// [2] =  *d_qnorm, *d_qnorml1;
+};
+
 #endif /* STRUCTS_CUH_ */

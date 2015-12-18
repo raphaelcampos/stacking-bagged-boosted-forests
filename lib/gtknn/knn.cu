@@ -21,6 +21,9 @@
 /* *
  * knn.cu
  */
+
+#define CUDA_API_PER_THREAD_DEFAULT_STREAM
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -30,6 +33,8 @@
 #include <set>
 #include <functional>
 
+
+
 #include "knn.cuh"
 #include "structs.cuh"
 #include "utils.cuh"
@@ -37,7 +42,11 @@
 #include "cuda_distances.cuh"
 #include "partial_bitonic_sort.cuh"
 
-__host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, int query_size) {
+/*
+* We pass the distance function  as a pointer  (*distance)
+*/
+
+__host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, int query_size, struct DeviceVariables *dev_vars) {
     //Obtain the smallest power of 2 greater than K (facilitates the sorting algorithm)
     int KK = 1;
     while(KK < K) KK <<= 1;
@@ -45,56 +54,48 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, in
     dim3 grid, threads;
     get_grid_config(grid, threads);
 
-    int *d_count, *d_index;
-    Entry *d_query;
-    cuSimilarity *d_dist, *d_nearestK, *h_nearestK;
-    float *d_qnorm, *d_qnorml1;
-    float fzero=0;
-    gpuAssert(cudaMalloc(&d_dist, inverted_index.num_docs * sizeof(cuSimilarity)));
-    gpuAssert(cudaMalloc(&d_nearestK, KK * grid.x * sizeof(cuSimilarity)));
-    gpuAssert(cudaMalloc(&d_query, query_size * sizeof(Entry)));
-    gpuAssert(cudaMalloc(&d_index, query_size * sizeof(int)));
-    gpuAssert(cudaMalloc(&d_count, query_size * sizeof(int)));
-    gpuAssert(cudaMemcpy(d_query, query, query_size * sizeof(Entry), cudaMemcpyHostToDevice));
-    gpuAssert(cudaMalloc(&d_qnorm, sizeof(float)));
-    gpuAssert(cudaMemset(d_qnorm, 0,  sizeof(float)));
-    gpuAssert(cudaMalloc(&d_qnorml1, sizeof(float)));
-    gpuAssert(cudaMemset(d_qnorml1, 0,  sizeof(float)));
+    int *d_count = dev_vars->d_count, *d_index = dev_vars->d_index;
+    Entry *d_query = dev_vars->d_query;
+    cuSimilarity *d_dist = dev_vars->d_dist, *d_nearestK = dev_vars->d_nearestK, *h_nearestK;
+    float *d_qnorm = &dev_vars->d_qnorms[0],*d_qnorml1 = &dev_vars->d_qnorms[1];
+    
+    gpuAssert(cudaMemcpy(d_query, &query[0], query_size * sizeof(Entry), cudaMemcpyHostToDevice));
+    gpuAssert(cudaMemset(dev_vars->d_qnorms, 0,  2 * sizeof(float))); 
+       
+    get_term_count_and_tf_idf<<<grid, threads>>>(inverted_index, d_query, d_count, d_qnorm, d_qnorml1, query_size);
 
+    thrust::device_ptr<int> thrust_d_count(d_count);
+    thrust::device_ptr<int> thrust_d_index(d_index);
+    thrust::inclusive_scan(thrust_d_count, thrust_d_count + query_size, thrust_d_index);
+    
+   /* int *index = (int*) malloc(query.size() * sizeof(int)); // Useless ?
+    cudaMemcpyAsync(index, d_index, query.size() * sizeof(int), cudaMemcpyDeviceToHost);*/
+    float qnorm, qnorml1, qnorms[2];
 
-    cudaDeviceSynchronize();
-
-    double time = gettime();
-
-    get_term_count_and_tf_idf<<<grid, threads>>>(inverted_index, d_query, d_count, d_qnorm,d_qnorml1, query_size);
-
-    prefix_scan(d_index, d_count, query_size, CUDPP_OPTION_FORWARD | CUDPP_OPTION_INCLUSIVE);
-
-    int *index = (int*) malloc(query_size * sizeof(int));
-    cudaMemcpy(index, d_index, query_size * sizeof(int), cudaMemcpyDeviceToHost);
-    float qnorm, qnorml1;
-    cudaMemcpy(&qnorm, d_qnorm, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&qnorml1, d_qnorml1, sizeof(float), cudaMemcpyDeviceToHost);
-
+    gpuAssert(cudaMemcpy(qnorms, dev_vars->d_qnorms, 2* sizeof(float), cudaMemcpyDeviceToHost));
+    
+    qnorm = qnorms[0];
+    qnorml1 = qnorms[1];
+//  printf("%f\n", qnorm);
     float qnormeucl=qnorm;
     float qnormcos=sqrt(qnorm);
     if (qnormcos==0)qnormcos=1; //avoid NaN
-
+    
     CosineDistance(inverted_index, d_query, d_index, d_dist, query_size);
 
-    bitonicPartialSort<<<grid, threads>>>(d_dist, d_nearestK, inverted_index.num_docs, KK);
-
-    cudaDeviceSynchronize();
-    gpuAssert(cudaGetLastError());
-
-    time = gettime();
+    bitonicPartialSort<<<grid, threads>>>(d_dist, d_nearestK, inverted_index.num_docs, KK); 
+ 
     h_nearestK = (cuSimilarity*) malloc(KK * grid.x * sizeof(cuSimilarity));
     gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(cuSimilarity), cudaMemcpyDeviceToHost));
-
+    
+    gpuAssert(cudaDeviceSynchronize());
     //Priority queue to obtain the K nearest neighbors
     std::priority_queue<cuSimilarity> pq;
+//    std::set<int> alreadyIn;
 
     for(int i = 0, lim = KK * grid.x; i < lim; i++) {
+//      printf("sim: %f\n",sim.distance );
+
         //adjust the correct distances:
         //if(distance==CosineDistance) {
             h_nearestK[i].distance/=qnormcos;
@@ -123,30 +124,20 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, Entry *query, int K, in
         }
     }
 
-    cuSimilarity* h_knearest = (cuSimilarity*) malloc(K * sizeof(cuSimilarity));
     int i = K - 1;
     while(!pq.empty()) {
         const cuSimilarity &sim = pq.top();
-        h_knearest[i--] = sim;        
+//      cuSimilarity sim = pq.top();
+//      sim.distance=sim.distance/qnorm;
+        h_nearestK[i--] = sim;
         pq.pop();
-    }
+    } 
 
-    cudaFree(d_dist);
-    cudaFree(d_nearestK);
-    cudaFree(d_query);
-    cudaFree(d_index);
-    cudaFree(d_count);
-    cudaFree(d_qnorm);
-    free(h_nearestK);
-
-    return h_knearest;
+    return h_nearestK;
 }
 
-/*
-* We pass the distance function  as a pointer  (*distance)
-*/
 __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &query, int K,
-                         void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D)) {
+        void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D), struct DeviceVariables *dev_vars) {
     //Obtain the smallest power of 2 greater than K (facilitates the sorting algorithm)
     int KK = 1;
     while(KK < K) KK <<= 1;
@@ -154,56 +145,48 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &que
     dim3 grid, threads;
     get_grid_config(grid, threads);
 
-    int *d_count, *d_index;
-    Entry *d_query;
-    cuSimilarity *d_dist, *d_nearestK, *h_nearestK;
-    float *d_qnorm, *d_qnorml1;
-    float fzero=0;
-    gpuAssert(cudaMalloc(&d_dist, inverted_index.num_docs * sizeof(cuSimilarity)));
-    gpuAssert(cudaMalloc(&d_nearestK, KK * grid.x * sizeof(cuSimilarity)));
-    gpuAssert(cudaMalloc(&d_query, query.size() * sizeof(Entry)));
-    gpuAssert(cudaMalloc(&d_index, query.size() * sizeof(int)));
-    gpuAssert(cudaMalloc(&d_count, query.size() * sizeof(int)));
+    int *d_count = dev_vars->d_count, *d_index = dev_vars->d_index;
+    Entry *d_query = dev_vars->d_query;
+	cuSimilarity *d_dist = dev_vars->d_dist, *d_nearestK = dev_vars->d_nearestK, *h_nearestK;
+	float *d_qnorm = &dev_vars->d_qnorms[0],*d_qnorml1 = &dev_vars->d_qnorms[1];
+    
     gpuAssert(cudaMemcpy(d_query, &query[0], query.size() * sizeof(Entry), cudaMemcpyHostToDevice));
-    gpuAssert(cudaMalloc(&d_qnorm, sizeof(float)));
-    gpuAssert(cudaMemset(d_qnorm, 0,  sizeof(float)));
-    gpuAssert(cudaMalloc(&d_qnorml1, sizeof(float)));
-    gpuAssert(cudaMemset(d_qnorml1, 0,  sizeof(float)));
+    gpuAssert(cudaMemset(dev_vars->d_qnorms, 0,  2 * sizeof(float))); 
+	   
+    get_term_count_and_tf_idf<<<grid, threads>>>(inverted_index, d_query, d_count, d_qnorm, d_qnorml1, query.size());
 
+	thrust::device_ptr<int> thrust_d_count(d_count);
+	thrust::device_ptr<int> thrust_d_index(d_index);
+	thrust::inclusive_scan(thrust_d_count, thrust_d_count + query.size(), thrust_d_index);
+	
+   /* int *index = (int*) malloc(query.size() * sizeof(int)); // Useless ?
+    cudaMemcpyAsync(index, d_index, query.size() * sizeof(int), cudaMemcpyDeviceToHost);*/
+    float qnorm, qnorml1, qnorms[2];
 
-    cudaDeviceSynchronize();
-
-    double time = gettime();
-
-    get_term_count_and_tf_idf<<<grid, threads>>>(inverted_index, d_query, d_count, d_qnorm,d_qnorml1, query.size());
-
-    prefix_scan(d_index, d_count, query.size(), CUDPP_OPTION_FORWARD | CUDPP_OPTION_INCLUSIVE);
-
-    int *index = (int*) malloc(query.size() * sizeof(int));
-    cudaMemcpy(index, d_index, query.size() * sizeof(int), cudaMemcpyDeviceToHost);
-    float qnorm, qnorml1;
-    cudaMemcpy(&qnorm, d_qnorm, sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&qnorml1, d_qnorml1, sizeof(float), cudaMemcpyDeviceToHost);
-
+    gpuAssert(cudaMemcpy(qnorms, dev_vars->d_qnorms, 2* sizeof(float), cudaMemcpyDeviceToHost));
+	
+	qnorm = qnorms[0];
+	qnorml1 = qnorms[1];
+//	printf("%f\n", qnorm);
     float qnormeucl=qnorm;
     float qnormcos=sqrt(qnorm);
     if (qnormcos==0)qnormcos=1; //avoid NaN
+	
+	distance(inverted_index, d_query, d_index, d_dist, query.size());
 
-    distance(inverted_index, d_query, d_index, d_dist, query.size());
-
-    bitonicPartialSort<<<grid, threads>>>(d_dist, d_nearestK, inverted_index.num_docs, KK);
-
-    cudaDeviceSynchronize();
-    gpuAssert(cudaGetLastError());
-
-    time = gettime();
+	bitonicPartialSort<<<grid, threads>>>(d_dist, d_nearestK, inverted_index.num_docs, KK);	
+ 
     h_nearestK = (cuSimilarity*) malloc(KK * grid.x * sizeof(cuSimilarity));
     gpuAssert(cudaMemcpy(h_nearestK, d_nearestK, KK * grid.x * sizeof(cuSimilarity), cudaMemcpyDeviceToHost));
-
+    
+    gpuAssert(cudaDeviceSynchronize());
     //Priority queue to obtain the K nearest neighbors
     std::priority_queue<cuSimilarity> pq;
+//    std::set<int> alreadyIn;
 
     for(int i = 0, lim = KK * grid.x; i < lim; i++) {
+//		printf("sim: %f\n",sim.distance );
+
         //adjust the correct distances:
         if(distance==CosineDistance) {
             h_nearestK[i].distance/=qnormcos;
@@ -238,16 +221,8 @@ __host__ cuSimilarity* KNN(InvertedIndex inverted_index, std::vector<Entry> &que
 //		cuSimilarity sim = pq.top();
 //		sim.distance=sim.distance/qnorm;
         h_nearestK[i--] = sim;
-        //printf("sim: %f, id: %d\n",sim.distance, sim.doc_id);
         pq.pop();
-    }
-
-    cudaFree(d_dist);
-    cudaFree(d_nearestK);
-    cudaFree(d_query);
-    cudaFree(d_index);
-    cudaFree(d_count);
-    cudaFree(d_qnorm);
+    } 
 
     return h_nearestK;
 }
@@ -265,18 +240,10 @@ __global__ void get_term_count_and_tf_idf(InvertedIndex inverted_index, Entry *q
         Entry entry = query[i];
 
         int idf = inverted_index.d_count[entry.term_id];
-        query[i].tf_idf = (1 + log(float(entry.tf))) * log(inverted_index.num_docs / float(max(1, idf)));
+        query[i].tf_idf = entry.tf * log(inverted_index.num_docs / float(max(1, idf)));
         count[i] = idf;
         atomicAdd(d_qnorm, query[i].tf_idf * query[i].tf_idf);
         atomicAdd(d_qnorml1, query[i].tf_idf );
 
     }
-}
-
-__host__ void freeInvertedIndex(InvertedIndex inverted_index){
-    cudaFree(inverted_index.d_index);
-    cudaFree(inverted_index.d_count);
-    cudaFree(inverted_index.d_inverted_index);
-    cudaFree(inverted_index.d_norms);
-    cudaFree(inverted_index.d_normsl1);
 }

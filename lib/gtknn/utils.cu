@@ -22,18 +22,67 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+#ifdef __linux
 #include <sys/time.h>
 
-#include "utils.cuh"
-#include <cudpp.h>
+#else 
+#include <sys/timeb.h>
+#include <time.h>
 
-CUDPPHandle theCudpp;
+#include <windows.h>
+
+
+#endif
+
+#ifdef __linux
+/*
+int gettimeofday(struct timeval* tv, struct timezone * tzp)
+{
+	struct __timeb32 systime;
+	_ftime32_s(&systime);
+	tv->tv_sec = systime.time;
+	tv->tv_usec = systime.millitm * 1000;
+	return 0;
+}
+double gettime() { // returns 0 seconds first time called
+	static struct timeval t0;
+	struct timeval tv;
+	gettimeofday(&tv, 0);
+	if (!t0.tv_sec)
+		t0 = tv;
+	return tv.tv_sec - t0.tv_sec + (tv.tv_usec - t0.tv_usec) / 1000000.;
+}*/
+
+
+double gettime() {
+    timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
+}
+#else
+#include <windows.h>
+double gettime() { // granularity about 50 microsecs on my machine
+	static LARGE_INTEGER freq, start;
+	LARGE_INTEGER count;
+	if (!QueryPerformanceCounter(&count))
+		// FatalError("QueryPerformanceCounter");
+		fprintf(stderr,"QueryPerformanceCounter");
+	if (!freq.QuadPart) { // one time initialization
+		if (!QueryPerformanceFrequency(&freq))
+			//FatalError("QueryPerformanceFrequency");
+			fprintf(stderr, "QueryPerformanceCounter");
+		start = count;
+	}
+	return (double)(count.QuadPart - start.QuadPart) / freq.QuadPart;
+}
+#endif
+
+#include "utils.cuh"
 
 int WARP_SIZE = 32;
-
-void initCudpp() {
-    cudppCreate(&theCudpp);
-}
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
     std::stringstream ss(s);
@@ -50,28 +99,30 @@ std::vector<std::string> split(const std::string &s, char delim) {
     return elems;
 }
 
-
-double gettime() {
-    timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    return double(ts.tv_sec) + double(ts.tv_nsec) / 1e9;
-}
-
 void get_grid_config(dim3 &grid, dim3 &threads) {
     //get the device properties
-    cudaDeviceProp devProp;
-    cudaGetDeviceProperties(&devProp, 0);
+    static bool flag = 0;
+    static dim3 lgrid, lthreads;
+    if (!flag){
+	cudaDeviceProp devProp;
+	cudaGetDeviceProperties(&devProp, omp_get_thread_num());
 
-    //Adjust the grid dimensions based on the device properties
-    int num_blocks = 2 * devProp.multiProcessorCount;
-    grid = dim3(num_blocks);
-    threads = dim3(devProp.maxThreadsPerBlock / 2);
+	//Adjust the grid dimensions based on the device properties
+	int num_blocks = 2* devProp.multiProcessorCount;
+	lgrid = dim3(num_blocks);
+	lthreads = dim3(devProp.maxThreadsPerBlock / 4);
+	//lgrid = dim3(8);
+	//lthreads = dim3(512);
+	flag = 1;
+    }
+    grid = lgrid;
+    threads = lthreads;
 }
 
-void __gpuAssert(cudaError_t stat, int line, char *file) {
+void __gpuAssert(cudaError_t stat, int line, std::string file) {
     if(stat != cudaSuccess) {
         fprintf(stderr, "Error %s at line %d in file %s\n",
-                cudaGetErrorString(stat), line, file);
+                cudaGetErrorString(stat), line, file.data());
         exit(1);
     }
 }
