@@ -147,11 +147,14 @@ class cuKNeighborsSparseClassifier(object):
 
         self._init_methods()
 
-        self._init_gtknn(gpu)
+        self.n_gpus = 1
+
+        #self._init_gtknn(gpu)
 
     def __del__(self):
-        if hasattr(self, 'inverted_idx'):
-            self._free_inverted_index(self.inverted_idx)
+        #if hasattr(self, 'inverted_idx'):
+        #    self._free_inverted_index(self.inverted_idx)
+        pass
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
@@ -166,7 +169,17 @@ class cuKNeighborsSparseClassifier(object):
         func.argtypes = [c_int, c_int, POINTER(Entry), c_int]
         func.restype = InvertedIndex
 
+        func = dll.make_inverted_indices
+        func.argtypes = [c_int, c_int, POINTER(Entry), c_int, c_int]
+        func.restype = POINTER(InvertedIndex)
+
         self._make_inverted_index = func
+
+        func = dll.csr_make_inverted_indices
+        func.argtypes = [c_int, c_int, POINTER(c_float), POINTER(c_int), POINTER(c_int), c_int, c_int, c_int]
+        func.restype = POINTER(InvertedIndex)
+
+        self._csr_make_inverted_indices = func
 
         func = dll.KNN
         func.argtypes = [InvertedIndex, POINTER(Entry), c_int, c_int]
@@ -174,15 +187,21 @@ class cuKNeighborsSparseClassifier(object):
 
         self._KNN = func
 
-        func = dll.initGtknn
-        func.argtypes = [c_int]
+        func = dll.kneighbors
+        func.argtypes = [POINTER(InvertedIndex), c_int, POINTER(c_float), POINTER(c_int),POINTER(c_int), c_int, c_int, c_int]
+        func.restype = POINTER(POINTER(c_int))
 
-        self._init_gtknn = func
+        self._kneighbors = func
 
-        func = dll.freeInvertedIndex
-        func.argtypes = [InvertedIndex]
+        #func = dll.initGtknn
+        #func.argtypes = [c_int]
 
-        self._free_inverted_index = func
+        #self._init_gtknn = func
+
+        #func = dll.freeInvertedIndex
+        #func.argtypes = [InvertedIndex]
+
+        #self._free_inverted_index = func
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
@@ -199,15 +218,15 @@ class cuKNeighborsSparseClassifier(object):
         
     def fit(self, X, y):
 
-        entries = self._get_entries(X)
+        #entries = self._get_entries(X)
      
         num_docs = X.shape[0]
         num_terms = X.shape[1]
 
         self.y = y
 
-        self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries))
-
+        self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
+        #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
         """Finds the K-neighbors of a point.
@@ -267,6 +286,15 @@ class cuKNeighborsSparseClassifier(object):
         n_samples, _ = X.shape
         sample_range = np.arange(n_samples)[:, None]
 
+        idxs = self._kneighbors(self.inverted_idx, n_neighbors, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), 1)
+        
+        #print np.fromiter(idxs[], dtype=np.int, count=n_neighbors)
+        
+        
+        return np.ctypeslib.as_array(idxs, shape=(len(X.indptr)-1,n_neighbors))
+        
+        exit()
+        
         neigh_ind = None
         for x in X:
             query = self._get_entries(x)
