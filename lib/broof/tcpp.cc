@@ -8,6 +8,7 @@
 #include "nb_gaussian.hpp"
 
 #include "knn.hpp"
+#include "nn_project.hpp"
 
 #include "rocchio.hpp"
 
@@ -55,6 +56,7 @@ method_t parse_method(const char* m) {
   else if (strcmp(m, RFKNN_STR) == 0) return RFKNN;
   else if (strcmp(m, RFKRAND_STR) == 0) return RFKRAND;
   else if (strcmp(m, BRF_STR) == 0) return BRF;
+  else if (strcmp(m, NNPROJECT_STR) == 0) return NNPROJECT;
   else {
     std::stringstream msg; msg << "Invalid method name (" << m << ").";
     print_usage(msg.str().data());
@@ -120,7 +122,6 @@ void errorMessage(const std::string &msg) {
 
 SupervisedClassifier * get_traditional_classifier(method_t &m, params_t &p){
  SupervisedClassifier * cc = NULL;
- 
  switch(m) {
   case NB_LOG:
      cc = new nb_log(p.round, p.alpha, p.lambda, p.unif_prior);
@@ -136,6 +137,9 @@ SupervisedClassifier * get_traditional_classifier(method_t &m, params_t &p){
      break;
   case KNN:
      cc = new knn(p.k, p.round);
+     break;
+  case NNPROJECT:
+     cc = new nn_project(p.k, p.round);
      break;
   case ROCCHIO:
      cc = new Rocchio(p.round);
@@ -430,7 +434,6 @@ int main(int argc, char** argv) {
         return 1;
     }
   }
-
   if (params.validation) {
     if (!params.train_file) {
       print_usage("You must specify the input data with [-d <INPUT>].");

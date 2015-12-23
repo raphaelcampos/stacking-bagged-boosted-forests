@@ -18,10 +18,13 @@
 
 class ExpNetDoc;
 class knn;
+class nn_project;
 
 class KNN_Document {
  friend class ExpNetDoc;
  friend class knn;
+ friend class nn_project;
+
  public:
   KNN_Document(const unsigned int i, const std::string &c)
     : id(i), doc_class(c), size(0.0) {}

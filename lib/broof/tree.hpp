@@ -45,22 +45,22 @@ void shuffle(unsigned int * array, unsigned int size, unsigned int elements_shuf
 class TermInfo{
   public:
     TermInfo() {docs_count_ = 0;}
-    TermInfo(const unsigned int& c, const std::map<std::string, unsigned int>& m){ docs_count_ = c; class_counts_ = m; }
+    TermInfo(const unsigned int& c, const std::map<std::string, double>& m){ docs_count_ = c; class_counts_ = m; }
     TermInfo(const unsigned int& c) { docs_count_ = c; }
     void clear() { class_counts_.clear(); docs_count_ = 0;}
     void increment() { docs_count_++; }
     void increment(const unsigned int& inc) { docs_count_ += inc; }
     void increment_class(const std::string&);
-    void increment_class(const std::string&, const unsigned int&);
+    void increment_class(const std::string&, const double&);
     unsigned int get_docs_count() const { return docs_count_; }
-    unsigned int get_class_count(const std::string&) const;
+    double get_class_count(const std::string&) const;
   private:
     unsigned int docs_count_;
-    std::map<std::string, unsigned int> class_counts_;
+    std::map<std::string, double> class_counts_;
 };
 
 void TermInfo::increment_class(const std::string& cl){
-  std::map<std::string, unsigned int>::iterator it = class_counts_.find(cl);
+  std::map<std::string, double>::iterator it = class_counts_.find(cl);
   if(it != class_counts_.end()){
     (it->second)++;
   }
@@ -69,8 +69,8 @@ void TermInfo::increment_class(const std::string& cl){
   }
 }
 
-void TermInfo::increment_class(const std::string& cl, const unsigned int& inc){
-  std::map<std::string, unsigned int>::iterator it = class_counts_.find(cl);
+void TermInfo::increment_class(const std::string& cl, const double& inc){
+  std::map<std::string, double>::iterator it = class_counts_.find(cl);
   if(it != class_counts_.end()){
     (it->second) += inc;
   }
@@ -79,13 +79,13 @@ void TermInfo::increment_class(const std::string& cl, const unsigned int& inc){
   }
 }
 
-unsigned int TermInfo::get_class_count(const std::string& cl) const {
-  std::map<std::string, unsigned int>::const_iterator cIt = class_counts_.find(cl);
+double TermInfo::get_class_count(const std::string& cl) const {
+  std::map<std::string, double>::const_iterator cIt = class_counts_.find(cl);
   if(cIt != class_counts_.end()){
     return cIt->second;
   }
   else{
-    return 0;
+    return 0.0;
   }
 }
 
@@ -99,21 +99,21 @@ class DTDocument{
     void set_id(const std::string&);
     std::string get_class() const;
     void set_class(const std::string&);
-    std::map<TermID, unsigned int>::const_iterator find_term(const TermID&) const;
-    std::map<TermID, unsigned int>::const_iterator terms_begin() const;
-    std::map<TermID, unsigned int>::const_iterator terms_end() const;
-    void insert_term(const TermID&, const unsigned int&);
+    std::map<TermID, double>::const_iterator find_term(const TermID&) const;
+    std::map<TermID, double>::const_iterator terms_begin() const;
+    std::map<TermID, double>::const_iterator terms_end() const;
+    void insert_term(const TermID&, const double&);
     void print(const std::string& fn) const;
   private:
     std::string doc_id_;
     std::string doc_class_;
-    std::map<TermID, unsigned int> doc_terms_;
+    std::map<TermID, double> doc_terms_;
 };
 
 void DTDocument::print(const std::string& fn) const{
   std::ofstream out_file(fn.c_str(), std::ios::app);
   out_file << doc_id_ << ";" << doc_class_;
-  std::map<TermID, unsigned int>::const_iterator cIt = doc_terms_.begin();
+  std::map<TermID, double>::const_iterator cIt = doc_terms_.begin();
   while(cIt != doc_terms_.end()){
     out_file << ";" << cIt->first << ";" << cIt->second;
     ++cIt;
@@ -129,20 +129,20 @@ std::string DTDocument::get_class() const { return doc_class_; }
 
 void DTDocument::set_class(const std::string& cl){ doc_class_ = cl; }
 
-std::map<TermID, unsigned int>::const_iterator DTDocument::find_term(const TermID& term_id) const {
+std::map<TermID, double>::const_iterator DTDocument::find_term(const TermID& term_id) const {
   return doc_terms_.find(term_id);
 }
 
-std::map<TermID, unsigned int>::const_iterator DTDocument::terms_begin() const {
+std::map<TermID, double>::const_iterator DTDocument::terms_begin() const {
   return doc_terms_.begin();
 }
 
-std::map<TermID, unsigned int>::const_iterator DTDocument::terms_end() const {
+std::map<TermID, double>::const_iterator DTDocument::terms_end() const {
   return doc_terms_.end();
 }
 
-void DTDocument::insert_term(const TermID& term_id, const unsigned int& term_freq){
-  doc_terms_.insert(std::pair<TermID, unsigned int>(term_id, term_freq));
+void DTDocument::insert_term(const TermID& term_id, const double& term_freq){
+  doc_terms_.insert(std::pair<TermID, double>(term_id, term_freq));
 }
 
 class StackElement{
@@ -150,18 +150,24 @@ class StackElement{
     StackElement() {}
     ~StackElement() {bag_.clear(); }
     Node * get_node() { return node_; }
+    void use_raw_weights() { raw_ = true; }
     std::set<const DTDocument*>& get_bag(){ return bag_; }
-    void set_node(Node * nd) { node_ = nd; }
+    void set_node(Node * nd) {
+      node_ = nd; 
+      // if (node_ != NULL && raw_) node_->use_raw_weights(); // FIXME UNCOMMENT ME
+    }
     void add_document(const DTDocument * doc) { bag_.insert(doc); }
   private:
     Node * node_;
     std::set<const DTDocument*> bag_;
+    bool raw_;
 };
 
 class TreeData{
   public:
     TreeData();
     ~TreeData();
+    void use_raw_weights () { raw_ = true; }
     void add_document_lbag(const DTDocument *);
     void add_document_rbag(const DTDocument *);
     void set_left_node(Node * nd) { left_element_->set_node(nd); }
@@ -175,6 +181,7 @@ class TreeData{
     StackElement * right_element_;
     StackElement * left_element_;
     bool control_;
+    bool raw_;
 };
 
 TreeData::TreeData() { 
@@ -202,7 +209,7 @@ void TreeData::add_document_rbag(const DTDocument * doc){
 
 class Node{
   public:
-    Node();
+    Node(unsigned int size=0, unsigned int maxh=0);
     ~Node();
     void add_document(const DTDocument*);
     void add_document_bag(const std::set<const DTDocument*>&);
@@ -210,6 +217,7 @@ class Node{
     void clear_terms();
     void clear_classes();
     std::pair<TermID, double> get_splitting_info() const;
+    void use_raw_weights() { raw_ = true; }
     
     TermContent::const_iterator find_term(const TermID&)const ;
     TermContent::const_iterator term_at(const unsigned int&) const;
@@ -219,10 +227,10 @@ class Node{
     bool splitting_term_in_doc(const DTDocument * doc) const;
     bool is_leaf() const;
 
-    std::map<std::string, unsigned int>::const_iterator find_class(const std::string&) const;
-    unsigned int get_class_count(const std::string&) const;
-    std::map<std::string, unsigned int>::const_iterator classes_begin() const;
-    std::map<std::string, unsigned int>::const_iterator classes_end() const;
+    std::map<std::string, double>::const_iterator find_class(const std::string&) const;
+    double get_class_count(const std::string&) const;
+    std::map<std::string, double>::const_iterator classes_begin() const;
+    std::map<std::string, double>::const_iterator classes_end() const;
 
     unsigned int get_docs_count() const { return docs_count_; }
 
@@ -237,18 +245,21 @@ class Node{
     void find_splitting_term(const double& m);
     void find_splitting_term();
     void find_splitting_term_lazy(const DTDocument*);
-    void update_term(const TermID& term, const unsigned int& tf, const std::string& cl);
+    void update_term(const TermID& term, const double& tf, const std::string& cl);
     std::set<const DTDocument*> documents_;
     std::vector<TermID> * terms_;
     unsigned int num_terms_;
     TermContent term_counts_;
-    std::map<std::string, unsigned int> class_counts_;
+    std::map<std::string, double> class_counts_;
     unsigned int docs_count_;
     Node * left_;
     Node * right_;
     TermID splitting_term_;
     double splitting_term_cutpoint_;
     bool is_root_;
+    unsigned int maxh_;
+    unsigned int size_;
+    bool raw_;
 };
 
 void Node::find_splitting_term_lazy(const DTDocument* doc){
@@ -268,7 +279,7 @@ void Node::find_splitting_term_lazy(const DTDocument* doc){
     imatrix[idxi] = new double[class_counts_.size()];
     iterms[idxi] = 0.0;
     term_indexes[idxi] = cIt_v->first;
-    std::map<std::string , unsigned int>::const_iterator cIt_c = class_counts_.begin();
+    std::map<std::string, double>::const_iterator cIt_c = class_counts_.begin();
     while(cIt_c != class_counts_.end()){
       double n_kc = cIt_v->second.get_class_count(cIt_c->first);
       double n_c = cIt_c->second;
@@ -413,7 +424,7 @@ bool Node::split_lazy(const DTDocument* doc){
   }
 }
 
-Node::Node(){
+Node::Node(unsigned int size, unsigned int maxh){
   terms_ = new std::vector<TermID>();
   left_= NULL;
   right_= NULL;
@@ -422,6 +433,8 @@ Node::Node(){
   is_root_ = false;
   docs_count_ = 0;
   num_terms_ = 0;
+  size_=size;
+  maxh_=maxh;
 }
 
 std::pair<TermID, double> Node::get_splitting_info() const{
@@ -438,7 +451,8 @@ Node::~Node(){
 
 TreeData * Node::split(const double& m){
   TreeData * ret = new TreeData();
-  if (class_counts_.size() < 2){
+  if (raw_) ret->use_raw_weights();
+  if ((size_ > 0 && size_ == maxh_) || class_counts_.size() < 2){
     ret->disable();
     clear_terms();
     clear_documents();
@@ -454,9 +468,14 @@ TreeData * Node::split(const double& m){
     }
     else{
       ret->enable();
+      size_++;
+      left_ = new Node(size_, maxh_); ret->set_left_node(left_);
+      right_ = new Node(size_, maxh_); ret->set_right_node(right_);
+      if (raw_) {
+        left_->use_raw_weights();
+        right_->use_raw_weights();
+      }
       std::set<const DTDocument*>::const_iterator cIt = documents_.begin();
-      left_ = new Node(); ret->set_left_node(left_);
-      right_ = new Node(); ret->set_right_node(right_);
       while(cIt != documents_.end()){
         if((*cIt)->find_term(splitting_term_) != (*cIt)->terms_end()){
           ret->add_document_rbag(*cIt);
@@ -481,7 +500,7 @@ void Node::find_splitting_term(){
   while(cIt_v != term_counts_.end()){
     ig = 0.0;
     parc1 = parc2 = parc3 = 0.0;
-    std::map<std::string , unsigned int>::const_iterator cIt_c = class_counts_.begin();
+    std::map<std::string, double>::const_iterator cIt_c = class_counts_.begin();
     while(cIt_c != class_counts_.end()){
       double n = docs_count_;
       double n_c = cIt_c->second;
@@ -542,7 +561,7 @@ void Node::find_splitting_term(){
     double avg_tf = 0.0;
     std::set<const DTDocument*>::const_iterator cIt_d = documents_.begin();
     while(cIt_d != documents_.end()){
-      std::map<TermID, unsigned int>::const_iterator cIt_td = (*cIt_d)->find_term(splitting_term_);
+      std::map<TermID, double>::const_iterator cIt_td = (*cIt_d)->find_term(splitting_term_);
       if(cIt_td != (*cIt_d)->terms_end()){
         avg_tf += cIt_td->second;
       }
@@ -572,7 +591,7 @@ void Node::find_splitting_term(const double& m){
     cIt_v = term_at(selected_terms[i]);
     chi_sq = 0.0;
     parc1 = parc2 = parc3 = 0.0;
-    std::map<std::string , unsigned int>::const_iterator cIt_c = class_counts_.begin();
+    std::map<std::string, double>::const_iterator cIt_c = class_counts_.begin();
     while(cIt_c != class_counts_.end()){
       double n = docs_count_;
       double n_c = cIt_c->second;
@@ -591,7 +610,7 @@ void Node::find_splitting_term(const double& m){
     double avg_tf = 0.0;
     std::set<const DTDocument*>::const_iterator cIt_d = documents_.begin();
     while(cIt_d != documents_.end()){
-      std::map<TermID, unsigned int>::const_iterator cIt_td = (*cIt_d)->find_term(splitting_term_);
+      std::map<TermID, double>::const_iterator cIt_td = (*cIt_d)->find_term(splitting_term_);
       if(cIt_td != (*cIt_d)->terms_end()){
         avg_tf += cIt_td->second;
       }
@@ -603,7 +622,7 @@ void Node::find_splitting_term(const double& m){
   delete[] selected_terms;
 }
 
-void Node::update_term(const TermID& term, const unsigned int& tf, const std::string& cl){
+void Node::update_term(const TermID& term, const double& tf, const std::string& cl){
   TermContent::iterator it = term_counts_.find(term);
   if(it != term_counts_.end()){
     it->second.increment();
@@ -621,12 +640,12 @@ void Node::update_term(const TermID& term, const unsigned int& tf, const std::st
 void Node::add_document(const DTDocument * doc){
   std::string doc_class = doc->get_class();
   docs_count_++;
-  std::map<TermID, unsigned int>::const_iterator cIt = doc->terms_begin();
+  std::map<TermID, double>::const_iterator cIt = doc->terms_begin();
   while(cIt != doc->terms_end()){
     update_term(cIt->first, cIt->second, doc_class);
     ++cIt;
   }
-  std::map<std::string, unsigned int>::iterator it = class_counts_.find(doc_class);
+  std::map<std::string, double>::iterator it = class_counts_.find(doc_class);
   if(it != class_counts_.end()){
     (it->second)++;
   }
@@ -698,7 +717,7 @@ bool Node::splitting_term_in_doc(const DTDocument * doc) const{
     exit(0);
   }
   double test_tf = 0.0;
-  std::map<TermID, unsigned int>::const_iterator cIt_ttf = doc->find_term(splitting_term_);
+  std::map<TermID, double>::const_iterator cIt_ttf = doc->find_term(splitting_term_);
   return (cIt_ttf != doc->terms_end());
   //  test_tf = cIt_ttf->second;
   //return (test_tf > splitting_term_cutpoint_);
@@ -709,23 +728,23 @@ bool Node::is_leaf() const{
 }
 
 
-std::map<std::string, unsigned int>::const_iterator Node::find_class(const std::string& cl) const{
+std::map<std::string, double>::const_iterator Node::find_class(const std::string& cl) const{
   return class_counts_.find(cl);
 }
 
-unsigned int Node::get_class_count(const std::string& cl) const {
-  std::map<std::string, unsigned int>::const_iterator cIt = class_counts_.find(cl);
+double Node::get_class_count(const std::string& cl) const {
+  std::map<std::string, double>::const_iterator cIt = class_counts_.find(cl);
   if(cIt == class_counts_.end())
     return 0;
   else
     return cIt->second;
 }
 
-std::map<std::string, unsigned int>::const_iterator Node::classes_begin() const{
+std::map<std::string, double>::const_iterator Node::classes_begin() const{
   return class_counts_.begin();
 }
 
-std::map<std::string, unsigned int>::const_iterator Node::classes_end() const {
+std::map<std::string, double>::const_iterator Node::classes_end() const {
   return class_counts_.end();
 }
 

@@ -121,7 +121,7 @@ void RF::add_document_bag(std::set<const DTDocument*>& bag){
 // 1) Map: out-of-bag sample ID -> bool misclassified ?
 WeightSet *RF::build(WeightSet *w) {
   const unsigned int docs_size = docs_.size();
-  #pragma omp parallel for num_threads(8)
+  #pragma omp parallel for num_threads(24)
   for(int i = 0; i < num_trees_; i++) {
     std::set<const DTDocument*> bag;
     for(int j = 0; j < docs_size; j++) {
@@ -134,7 +134,7 @@ WeightSet *RF::build(WeightSet *w) {
         }
       }
     }
-    trees_[i] = new DT(round);
+    trees_[i] = new DT(round, maxh_);
     trees_[i]->add_document_bag(bag);
     trees_[i]->build(m_);
     // evaluate OOB error
