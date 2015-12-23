@@ -1,17 +1,15 @@
 #ifndef WEIGHT_SET_HPP__
 #define WEIGHT_SET_HPP__
 
-#include <string>
-#include <unordered_map>
+#include <map>
 
 class WeightSet {
  public:
-  WeightSet() {}
+  WeightSet(float init_prob=1.0) : init_prob(init_prob) {}
 
   double get(std::string i) {
-    auto it = w_.find(i);
-    if (it == w_.end()) return 1.0;
-    return it->second;
+    if (w_.find(i) == w_.end()) return init_prob;
+    return w_[i];
   }
 
   double set(std::string i, double w) {
@@ -20,8 +18,19 @@ class WeightSet {
 
   bool empty() { return w_.size(); }
 
+  std::map<std::string, double>::const_iterator begin() const
+  {
+    w_.begin();
+  }
+
+  std::map<std::string, double>::const_iterator end() const
+  {
+    w_.end();
+  }
+
  private:
-  std::unordered_map<std::string, double> w_;
+  std::map<std::string, double> w_;
+  float init_prob;
 
 };
 
