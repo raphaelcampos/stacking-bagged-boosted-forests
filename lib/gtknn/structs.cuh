@@ -33,8 +33,10 @@ struct Entry {
     int term_id;
     int tf;
     float tf_idf;
-
-    __host__ __device__ Entry(int doc_id, int term_id, int tf = 0, float tf_idf = 0.0) : doc_id(doc_id), term_id(term_id), tf(tf), tf_idf(tf_idf) {}
+    #ifdef __CUDACC__
+    __host__ __device__ 
+    #endif
+    Entry(int doc_id, int term_id, int tf = 0, float tf_idf = 0.0) : doc_id(doc_id), term_id(term_id), tf(tf), tf_idf(tf_idf) {}
 
     bool operator < (const Entry& e) const {
         if(doc_id != e.doc_id) return doc_id < e.doc_id;
@@ -47,13 +49,22 @@ struct cuSimilarity {
     float distance;
 
     cuSimilarity() {}
-    __host__ __device__ cuSimilarity(int doc_id, float distance) : doc_id(doc_id), distance(distance) {}
+    #ifdef __CUDACC__
+    __host__ __device__ 
+    #endif
+    cuSimilarity(int doc_id, float distance) : doc_id(doc_id), distance(distance) {}
 
-    __host__ __device__ bool operator < (const cuSimilarity &sim) const {
+    #ifdef __CUDACC__
+    __host__ __device__ 
+    #endif
+    bool operator < (const cuSimilarity &sim) const {
         return distance > sim.distance;
     }
 
-    __host__ __device__ bool operator > (const cuSimilarity &sim) const {
+    #ifdef __CUDACC__
+    __host__ __device__ 
+    #endif
+    bool operator > (const cuSimilarity &sim) const {
         return distance < sim.distance;
     }
 };

@@ -32,6 +32,7 @@
 #include <cstdio>
 #include <vector>
 #include <omp.h>
+#include <cuda.h>
 
 extern int WARP_SIZE;
 

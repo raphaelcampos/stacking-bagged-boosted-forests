@@ -258,31 +258,49 @@ int* kneighbors(InvertedIndex* index, int K, float* data, int* indices, int* ind
 
 	int* idxs = new int[(n-1)*K];
 
+	std::cerr << "Using " << gpuNum << "GPUs" << endl;
+
 	omp_set_num_threads(gpuNum);
-	#pragma opm parallel shared(intervals) shared(data) shared(indices)
+	
+	#pragma omp parallel shared(intervals) shared(data) shared(indices) shared(index) shared(idxs)
 	{
 		int cpuid = omp_get_thread_num();
-    	cudaSetDevice(cpuid);
+    		cudaSetDevice(cpuid);
+		int num_test_local = 0, i;
+
+		printf("thread : %d\n", cpuid);
 
     	DeviceVariables dev_vars;
 	
 		initDeviceVariables(&dev_vars, K, index[cpuid].num_docs);
 
-    	#pragma opm for
-		for (int i = 0; i < intervals.size(); ++i)
+		double start = gettime();
+
+    		#pragma omp for
+		for (i = 0; i < intervals.size(); ++i)
 		{
+			num_test_local++;
+			
 			if(distance == "cosine" || distance == "both") {
 				makeQuery(index[cpuid], data, indices, intervals[i].first, intervals[i].second, K, CosineDistance, &idxs[i*K], &dev_vars);
-	        }
+	        	}
 
-	        if(distance == "l2" || distance == "both") {
-	        	makeQuery(index[cpuid], data, indices, intervals[i].first, intervals[i].second, K, EuclideanDistance, &idxs[i*K], &dev_vars);
+	        	if(distance == "l2" || distance == "both") {
+	        		makeQuery(index[cpuid], data, indices, intervals[i].first, intervals[i].second, K, EuclideanDistance, &idxs[i*K], &dev_vars);
 			}
 
 			if(distance == "l1" || distance == "both") {
 				makeQuery(index[cpuid], data, indices, intervals[i].first, intervals[i].second, K, ManhattanDistance, &idxs[i*K], &dev_vars);
 			}
 		}
+		
+		printf("num tests in thread %d: %d\n", omp_get_thread_num(), num_test_local);
+
+		#pragma omp barrier
+		double end = gettime();
+
+		#pragma omp master
+		printf("Time to process: %lf seconds\n", end - start);
 	}
 
 	return idxs;
@@ -316,22 +334,22 @@ InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<En
 	
 	std::cerr << "Using " << gpuNum << "GPUs" << endl;
 
-    omp_set_num_threads(gpuNum);
+    	omp_set_num_threads(gpuNum);
 
-	InvertedIndex* indices = new InvertedIndex[n_gpu];
+	InvertedIndex* indices = new InvertedIndex[gpuNum];
 
 	#pragma omp parallel shared(entries) shared(indices)
-    {
-    	int cpuid = omp_get_thread_num();
-    	cudaSetDevice(cpuid);
-
+    	{
+    		int cpuid = omp_get_thread_num();
+    		cudaSetDevice(cpuid);
+		printf("thread_idx : %d\n", cpuid);
 		double start, end;
 
 		start = gettime();
 		indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);
 		end = gettime();
 
-		#pragma omp single nowait
+		//#pragma omp single nowait
 		printf("Total time taken for insertion: %lf seconds\n", end - start);	
 	}
 

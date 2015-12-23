@@ -94,7 +94,6 @@ class ReduceFeatureSpace(BaseEstimator, SelectorMixin):
 
         non_zero = X_indices.shape[0]
         
-        # means[j] contains the mean of feature j
         selected_features = np.zeros(n_features, dtype=np.float64)
 
         for i in xrange(non_zero):
@@ -288,26 +287,7 @@ class cuKNeighborsSparseClassifier(object):
 
         idxs = self._kneighbors(self.inverted_idx, n_neighbors, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), 1)
         
-        #print np.fromiter(idxs[], dtype=np.int, count=n_neighbors)
-        
-        
         return np.ctypeslib.as_array(idxs, shape=(len(X.indptr)-1,n_neighbors))
-        
-        exit()
-        
-        neigh_ind = None
-        for x in X:
-            query = self._get_entries(x)
-            similarities = self._KNN(self.inverted_idx, query, n_neighbors, len(query))
-
-            idxs = np.array(similarities[:n_neighbors], dtype=cuSimilarity._fields_)['doc_id']
-
-            if neigh_ind == None:
-                neigh_ind = np.array(idxs)
-            else:
-                neigh_ind = np.vstack((neigh_ind, idxs))
-
-        return neigh_ind
         
 
     def predict(self, X):
@@ -343,7 +323,6 @@ class cuKNeighborsSparseClassifier(object):
             
             mode = np.asarray(mode.ravel(), dtype=np.intp)
             y_pred[:, k] = classes_k.take(mode)
-
 
         return y_pred.T[0]
 
@@ -490,7 +469,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                     results = results + [(q.get(False))]
                     #print results
             except Exception, e:
-                #print e
                 pass
 
             time.sleep(0.005)    # Give tasks a chance to put more data in

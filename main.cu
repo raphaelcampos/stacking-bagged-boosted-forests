@@ -37,8 +37,8 @@
 #include  <cuda.h>
 
 #include "Dataset.h"
-#include "cuLazyNN_RF.h"
-#include "cuNearestNeighbors.h"
+#include "cuLazyNN_RF.cuh"
+#include "cuNearestNeighbors.cuh"
 
 #include <map>
 using namespace std;
@@ -98,7 +98,6 @@ void teste_lazynn(std::string trainingFileName, std::string testFileName, std::s
 
 
     file << "#" << trial << endl;
-    #pragma omp parallel for num_threads(8) schedule(dynamic)
     for (int i = 0; i < test_set.getSamples().size(); ++i)
     {
         start = gettime();
@@ -274,8 +273,8 @@ void teste_cuNN(std::string trainingFileName, std::string testFileName, std::str
  * Receives as parameters the training file name and the test file name
  */
 int main(int argc, char **argv) {
-    initCudpp(); //initializes the CUDPP library
-    cuInit(0);
+    //initCudpp(); //initializes the CUDPP library
+    //cuInit(0);
     cudaDeviceSynchronize();
 
     // Wrap everything in a try block.  Do this every time, 
@@ -351,50 +350,6 @@ int main(int argc, char **argv) {
 
     } catch (TCLAP::ArgException &e)  // catch any exceptions
     { std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl; }
-   
-    // tsalles 
-    // tf_idf = (1 + log(tf)) * (idf/MAXIDF)
-
-    /*
-    if(argc < 7) {
-        std::cerr << "Wrong parameters. Correct usage: <executable> <training_file> <test_file> <k> <cosine | l2 | l1> <output_classifications_file> <output_distances_file>" << std::endl;
-        exit(1);
-    }
-
-    std::string trainingFileName(argv[1]);
-    std::string testFileName(argv[2]);
-    int k = atoi(argv[3]);
-    std::string distanceFunction(argv[4]);
-    std::string outputFileName(argv[5]);
-    std::string outputFileDistancesName(argv[6]);
-
-    printf("olá\n");
-
-    std::vector<Entry> entries;
-
-    double start, end;
-
-    printf("Reading file...\n");
-
-    start = gettime();
-    FileStats stats = readTrainingFile(trainingFileName, entries);
-    end = gettime();
-    updateStatsMaxFeatureTest(testFileName, stats);
-
-    printf("time taken: %lf seconds\n", end - start);
-
-    start = gettime();
-    InvertedIndex inverted_index = make_inverted_index(stats.num_docs, stats.num_terms, entries);
-    end = gettime();
-
-    printf("Total time taken for insertion: %lf seconds\n", end - start);
-
-    ofstream ofsfileoutput (outputFileName.c_str(), ios::out);
-    ofstream ofsfiledistances (outputFileDistancesName.c_str(), ios::out);
-
-    readTestFile(inverted_index, stats, testFileName,  k, distanceFunction, ofsfileoutput, ofsfiledistances);
-    ofsfileoutput.close();
-    ofsfiledistances.close();*/
 
     return EXIT_SUCCESS;
 }
@@ -442,125 +397,6 @@ void updateStatsMaxFeatureTest(std::string &filename, FileStats &stats) {
             stats.num_terms = std::max(stats.num_terms, term_id + 1);
         }
     }
-}
-
-
-void readTestFile(InvertedIndex &index, FileStats &stats, std::string &filename, int K, std::string distance, ofstream &outputfile, ofstream &outputdists) {
-    std::ifstream input(filename.c_str());
-    std::string line;
-
-    std::vector<Entry> query;
-
-    int num_tests = 0;
-    int correct_l2 = 0, correct_cosine = 0, correct_l1=0;
-    int wrong_l2 = 0, wrong_cosine = 0, wrong_l1=0;
-
-    double start = gettime();
-
-    while(!input.eof()) {
-        std::getline(input, line);
-        if(line == "") continue;
-        num_tests++;
-
-        if(distance == "cosine" || distance == "both") {
-            if(makeQuery(index, stats, line, K, CosineDistance, outputfile, outputdists)) {
-                correct_cosine++;
-            } else {
-                wrong_cosine++;
-            }
-        }
-
-        if(distance == "l2" || distance == "both") {
-
-            if(makeQuery(index, stats, line, K, EuclideanDistance,outputfile, outputdists)) {
-                correct_l2++;
-            } else {
-                wrong_l2++;
-            }
-        }
-
-        if(distance == "l1" || distance == "both") {
-            if(makeQuery(index, stats, line, K, ManhattanDistance,outputfile, outputdists)) {
-                correct_l1++;
-            } else {
-                wrong_l1++;
-            }
-        }
-
-    }
-
-    double end = gettime();
-
-    printf("Time taken for %d queries: %lf seconds\n\n", num_tests, end - start);
-
-    if(distance == "cosine" || distance == "both") {
-        printf("Cosine similarity\n");
-        printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);
-        printf("Accuracy: %lf%%\n\n", double(correct_cosine) / double(num_tests));
-    }
-
-    if(distance == "l2" || distance == "both") {
-        printf("L2 distance\n");
-        printf("Correct: %d Wrong: %d\n", correct_l2, wrong_l2);
-        printf("Accuracy: %lf%%\n\n", double(correct_l2) / double(num_tests));
-    }
-
-    if(distance == "l1" || distance == "both") {
-        printf("L1 distance\n");
-        printf("Correct: %d Wrong: %d\n", correct_l1, wrong_l1);
-        printf("Accuracy: %lf%%\n\n", double(correct_l1) / double(num_tests));
-    }
-
-}
-
-bool makeQuery(InvertedIndex &inverted_index, FileStats &stats, std::string &line, int K,
-               void (*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D), ofstream &outputfile, ofstream &outputdists) {
-    std::vector<Entry> query;
-
-    std::vector<std::string> tokens = split(line, ' ');
-
-    int clazz = get_class(tokens[1]);
-    int docid = atoi(tokens[0].c_str());
-
-    for(int i = 2, size = tokens.size(); i + 1 < size; i+=2) {
-        int term_id = atoi(tokens[i].c_str());
-        int term_count = atoi(tokens[i+1].c_str());
-
-        query.push_back(Entry(0, term_id, term_count));
-    }
-
-    //Creates an empty document if there are no terms
-    if(query.empty()) {
-        query.push_back(Entry(0, 0, 0));
-    }
-
-
-    cuSimilarity *k_nearest = KNN(inverted_index, query, K, distance);
-    std::map<int, int> vote_count;
-    std::map<int, int>::iterator it;
-
-    for(int i = 0; i < K; i++) {
-        cuSimilarity &sim = k_nearest[i];
-        vote_count[stats.doc_to_class[sim.doc_id]]++;
-        outputdists<<sim.distance<<" ";
-    }
-    outputdists<<std::endl;
-
-    int guessed_class = -1;
-    int max_votes = 0;
-
-    for(it = vote_count.begin(); it != vote_count.end(); it++) {
-        if(it->second > max_votes) {
-            max_votes = it->second;
-            guessed_class = it->first;
-        }
-    }
-
-
-    write_output(outputfile, clazz, guessed_class, docid);
-
-
-    return clazz == guessed_class;
 }
 
 

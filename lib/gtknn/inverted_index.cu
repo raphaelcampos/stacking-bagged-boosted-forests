@@ -166,3 +166,11 @@ __global__ void mount_inverted_index_and_compute_tf_idf(Entry *entries, Entry *i
 
     }
 }
+
+__host__ void freeInvertedIndex(InvertedIndex &index){
+    gpuAssert(cudaFree(index.d_count));
+    gpuAssert(cudaFree(index.d_index));
+    gpuAssert(cudaFree(index.d_inverted_index));
+    gpuAssert(cudaFree(index.d_norms));
+    gpuAssert(cudaFree(index.d_normsl1));
+}

@@ -26,7 +26,7 @@ class RF_BOOST : public SupervisedClassifier {
       : SupervisedClassifier(r), m_(m), max_trees_(max_trees) {
        docs_processed_ = 0;
       for (unsigned int i = 0; i < max_trees_; i++) {
-        RF * rf = new RF(round, m_, 5/*i*/, maxh, trn_err);
+        RF * rf = new RF(round, m_, 5/*25 i*/, maxh, trn_err);
         if (raw) rf->use_raw_weights();
         rf->set_doc_delete(false);
         ensemble_[i] = rf;
@@ -83,10 +83,8 @@ void RF_BOOST::train(const std::string& train_fn) {
   SupervisedClassifier::train(train_fn);
   WeightSet w;
   for (unsigned int i = 0; i < max_trees_; i++) {
+    std::cerr << "BoostIter " << i << std::endl;
     ensemble_[i]->build(&w);
-    std::cerr.precision(4);
-    std::cerr.setf(std::ios::fixed);
-    std::cerr << "\r" << double(i+1)/max_trees_ * 100 << "%";
   }
 }
 
@@ -98,7 +96,7 @@ Scores<double> RF_BOOST::classify(const DTDocument* doc, std::map<const DTDocume
     Scores<double> s = ensemble_[i]->classify(doc);
     while (!s.empty()) {
       Similarity<double> sim = s.top();
-      sco[sim.class_name] += sim.similarity * (oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err));
+      sco[sim.class_name] += sim.similarity;// * (oob_err == 0.0 ? 1.0 : oob_err == 1.0 ? 0.0 : log((1.0-oob_err)/oob_err));
       s.pop();
     }
   }
