@@ -27,7 +27,6 @@ void freeDeviceVariables(DeviceVariables *dev_vars){
 	gpuAssert(cudaFree(dev_vars->d_index));
 	gpuAssert(cudaFree(dev_vars->d_count));
 	gpuAssert(cudaFree(dev_vars->d_qnorms));
-	//printf("aqui\n");
 }
 
 cuSimilarity* makeQuery(InvertedIndex &inverted_index, std::map<unsigned int, float> &test_features, int K,
@@ -110,7 +109,7 @@ cuSimilarity * cuNearestNeighbors::getKNearestNeighbors(const std::map<unsigned 
 	initDeviceVariables(&dev_vars, K, inverted_indices[0].num_docs);
 
 	cuSimilarity* k_nearest = KNN(inverted_indices[0], query, K, CosineDistance, &dev_vars);
-	//printf("aqui\n");
+
 	freeDeviceVariables(&dev_vars);
 
 	return k_nearest;
@@ -137,11 +136,6 @@ std::vector<cuSimilarity*> cuNearestNeighbors::getKNearestNeighbors(Dataset &tes
 	
 	int biggestQuerySize = test.biggestQuerySize;
 
-	printf("biggestQuerySize : %d\n", biggestQuerySize);
-
-
-	std::cerr << "Using " << gpuNum << "GPUs" << std::endl;
-
 	omp_set_num_threads(gpuNum);
 	
 	#pragma omp parallel shared(samples) shared(inverted_indices) shared(idxs)
@@ -151,13 +145,10 @@ std::vector<cuSimilarity*> cuNearestNeighbors::getKNearestNeighbors(Dataset &tes
 
     	cudaSetDevice(cpuid);
 
-		printf("thread : %d\n", cpuid);
-
     	DeviceVariables dev_vars;
 	
 		initDeviceVariables(&dev_vars, K, inverted_indices[cpuid].num_docs, biggestQuerySize);
 
-		double start = gettime();
 
     	#pragma omp for
 		for (i = 0; i < samples.size(); ++i)
@@ -176,14 +167,6 @@ std::vector<cuSimilarity*> cuNearestNeighbors::getKNearestNeighbors(Dataset &tes
 				idxs[i] = makeQuery(inverted_indices[cpuid], samples[i].features, K, ManhattanDistance, &dev_vars);
 			}
 		}
-		
-		printf("num tests in thread %d: %d\n", omp_get_thread_num(), num_test_local);
-
-		#pragma omp barrier
-		double end = gettime();
-
-		#pragma omp master
-		printf("Time to process: %lf seconds\n", end - start);
 	
 		freeDeviceVariables(&dev_vars);
 	}
@@ -255,12 +238,9 @@ void cuNearestNeighbors::buildInvertedIndex(){
 
 	n_gpus = gpuNum;
 
-	std::cerr << "Using " << gpuNum << "GPUs" << std::endl;
-
     omp_set_num_threads(gpuNum);
 
 	this->inverted_indices = new InvertedIndex[gpuNum];
-
 
 	std::vector<Entry> &entries = this->entries;
 	InvertedIndex* inverted_indices = this->inverted_indices;
@@ -268,15 +248,8 @@ void cuNearestNeighbors::buildInvertedIndex(){
 	{
 		int cpuid = omp_get_thread_num();
 		cudaSetDevice(cpuid);
-		printf("thread_idx : %d\n", cpuid);
-		double start, end;
-
-		start = gettime();
-		inverted_indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);
-		end = gettime();
-
-		//#pragma omp single nowait
-		printf("Total time taken for insertion: %lf seconds\n", end - start);	
+		
+		inverted_indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);	
 	}
 
 	entries.clear();
