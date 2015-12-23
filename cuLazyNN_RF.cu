@@ -54,11 +54,11 @@ int cuLazyNN_RF::classify(const std::map<unsigned int, float> &test_features, in
 		unsigned int term_id = it->first;
 		float term_count = it->second;
 
-		doc->insert_term(term_id, 1 + log(term_count));
+		doc->insert_term(term_id, term_count);
 	}
 
 	cuSimilarity *k_nearest = cuKNN.getKNearestNeighbors(test_features, K);
-	
+	//printf("cuLazyNN_RF\n");
 	RF * rf = new RF(0, 0.03, 200);
 	
 	prepareTrainSamples(rf, training, k_nearest, K);
@@ -74,4 +74,56 @@ int cuLazyNN_RF::classify(const std::map<unsigned int, float> &test_features, in
 	return atoi(similarities.top().class_name.c_str());
 
 	//return cuKNN.getMajorityVote(k_nearest, K);
+}
+
+std::vector<int> cuLazyNN_RF::classify(Dataset &test, int K){
+	std::vector<cuSimilarity*> idxs = cuKNN.getKNearestNeighbors(test, K);
+	std::vector<int> pred;
+	
+	int correct_cosine = 0, wrong_cosine = 0;
+
+	for (int i = 0; i < idxs.size(); ++i)
+	{
+		DTDocument * doc = new DTDocument();
+		doc->set_id("0");doc->set_class("1");
+		Scores<double> similarities(doc->get_id(), doc->get_class());
+
+		std::map<unsigned int, float> &test_features = test.getSamples()[i].features;
+
+		std::map<unsigned int, float>::const_iterator it;
+		for(it = test_features.begin(); it != test_features.end(); ++it){
+			unsigned int term_id = it->first;
+			float term_count = it->second;
+
+			doc->insert_term(term_id, term_count);
+		}
+
+		RF * rf = new RF(0, 0.03, 100);
+	
+		prepareTrainSamples(rf, training, idxs[i], K);
+		
+		rf->build();
+
+		similarities = rf->classify(doc);
+		
+		delete rf;
+		delete doc;
+		
+		free(idxs[i]);
+
+		pred.push_back(atoi(similarities.top().class_name.c_str()));
+
+		if(pred.back() == test.getSamples()[i].y) {
+            correct_cosine++;   
+        } else {
+            wrong_cosine++;
+        }
+
+        std::cerr.precision(4);
+        std::cerr.setf(std::ios::fixed);
+        std::cerr << "\r" << double(i+1)/test.getSamples().size() * 100 << "%" << " - " << double(correct_cosine) / (i+1);
+
+	}
+
+	return pred;
 }

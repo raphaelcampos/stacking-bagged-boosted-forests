@@ -10,9 +10,10 @@ void Dataset::loadSVMlightFormat(const char* input){
 	std::ifstream file(input);
 	if (file) {
 		samples.clear();
-
+		biggestQuerySize = -1;
 		std::string ln;
 		while (std::getline(file, ln)) {
+		  int localQuerySize = 0;
 		  sample smp;
 		  std::vector<std::string> tokens;
 		  string_tokenize(ln, tokens, " ");
@@ -27,15 +28,17 @@ void Dataset::loadSVMlightFormat(const char* input){
 
 		    dim = std::max(dim, term_id + 1);
 			if(term_count > 0){
-                                idf[term_id] += 1;
-                        }
-
+                idf[term_id] += 1;
+            }
+			localQuerySize++;                        
 		  }
 		  
-		  smp.y = atof(tokens[0].data());
-		  samples.push_back(smp);
+		  	smp.y = atof(tokens[0].data());
+		  	samples.push_back(smp);
 			
 			doc_per_class[smp.y]++;	
+			
+			biggestQuerySize = std::max(biggestQuerySize, localQuerySize);
 		}
 	}
 	else {
@@ -47,6 +50,7 @@ void Dataset::loadSVMlightFormat(const char* input){
 void Dataset::loadGtKnnFormat(const char* input){
 	std::ifstream file(input);
 	if (file) {
+		biggestQuerySize = -1;
 		int num_docs = 1;
 		samples.clear();
 		std::string line;
@@ -54,6 +58,7 @@ void Dataset::loadGtKnnFormat(const char* input){
 	        std::getline(file, line);
 	        if(line == "") continue;
 
+	        int localQuerySize = 0;
 	        int doc_id = num_docs++;
 	        std::vector<std::string> tokens;
 	        string_tokenize(line, tokens, " ");
@@ -68,14 +73,17 @@ void Dataset::loadGtKnnFormat(const char* input){
 	            
 	            smp.features[term_id] = term_count;
 	        
-			if(term_count > 0){
-				idf[term_id] += 1;
+				if(term_count > 0){
+					idf[term_id] += 1;
+				}
+
+				localQuerySize++; 
 			}
-		}
 	        
 	        smp.y = get_class(tokens[1]);
 	        samples.push_back(smp);
 	        doc_per_class[smp.y]++;
+	        biggestQuerySize = std::max(biggestQuerySize, localQuerySize);
 	    }
 
 		file.close();

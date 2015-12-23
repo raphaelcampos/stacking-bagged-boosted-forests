@@ -97,33 +97,19 @@ void teste_lazynn(std::string trainingFileName, std::string testFileName, std::s
         file.open(resultsFileName.data());
 
 
+    std::vector<int> pred = cLazy.classify(test_set, k);
+
     file << "#" << trial << endl;
-    for (int i = 0; i < test_set.getSamples().size(); ++i)
+    for (int i = 0; i < pred.size(); ++i)
     {
-        start = gettime();
-        int guessed_class = cLazy.classify(test_set.getSamples()[i].features, k);
-        end = gettime();
-        
-        total += end - start;
-	
-        if(guessed_class == test_set.getSamples()[i].y) {
-            correct_cosine++;   
-        } else {
-            wrong_cosine++;
-        }
-
-        std::cerr.precision(4);
-        std::cerr.setf(std::ios::fixed);
-        std::cerr << "\r" << double(i+1)/test_set.getSamples().size() * 100 << "%" << " - " << double(correct_cosine) / (i+1);
-
-        file << i << " CLASS=" <<  test_set.getSamples()[i].y << " CLASS=" << guessed_class << ":1" << endl;
+        file << i << " CLASS=" <<  test_set.getSamples()[i].y << " CLASS=" << pred[i] << ":1" << endl;
     }
 
-    printf("Total time taken to classify all queries: %lf seconds\n", total);
+    //printf("Total time taken to classify all queries: %lf seconds\n", total);
 
     printf("Cosine similarity\n");
-    printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);
-    printf("Accuracy: %lf%%\n\n", double(correct_cosine) / double(test_set.size()));
+    //printf("Correct: %d Wrong: %d\n", correct_cosine, wrong_cosine);
+    //printf("Accuracy: %lf%%\n\n", double(correct_cosine) / double(test_set.size()));
 
 
     file.close();

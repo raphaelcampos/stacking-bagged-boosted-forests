@@ -46,6 +46,13 @@ class cuLazyNN_RF : LazyNN_RF{
 		 */
 		int classify(const std::map<unsigned int, float> &test_sample, int K);
 
+		/**
+		 * Classify a given feature vector.
+		 * \param  test_sample - Feature vector
+		 * \param  K           - K nearest neighbors to training the random forest
+		 */
+		std::vector<int> classify(Dataset &test, int K);
+
 	private:
 		Dataset training;
 

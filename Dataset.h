@@ -101,6 +101,8 @@ class Dataset{
 
 		std::map<int, int> doc_per_class;
 
+		int biggestQuerySize;
+		
 	private:
 		std::vector<sample> samples;
 		

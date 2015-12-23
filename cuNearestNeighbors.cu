@@ -10,7 +10,7 @@ void initDeviceVariables(DeviceVariables *dev_vars, int K, int num_docs, int big
     dim3 grid, threads;
     
     get_grid_config(grid, threads);
-		
+	
 	gpuAssert(cudaMalloc(&dev_vars->d_dist, num_docs * sizeof(cuSimilarity)));
 	gpuAssert(cudaMalloc(&dev_vars->d_nearestK, KK * grid.x * sizeof(cuSimilarity)));
 	gpuAssert(cudaMalloc(&dev_vars->d_query, biggestQuerySize * sizeof(Entry)));
@@ -27,6 +27,30 @@ void freeDeviceVariables(DeviceVariables *dev_vars){
 	gpuAssert(cudaFree(dev_vars->d_index));
 	gpuAssert(cudaFree(dev_vars->d_count));
 	gpuAssert(cudaFree(dev_vars->d_qnorms));
+	//printf("aqui\n");
+}
+
+cuSimilarity* makeQuery(InvertedIndex &inverted_index, std::map<unsigned int, float> &test_features, int K,
+	void(*distance)(InvertedIndex, Entry*, int*, cuSimilarity*, int D), DeviceVariables *dev_vars) {
+
+    std::vector<Entry> query;
+    std::map<unsigned int, float>::const_iterator end = test_features.end();
+	for(std::map<unsigned int, float>::const_iterator it = test_features.begin(); it != end; ++it){
+		unsigned int term_id = it->first;
+		double term_count = it->second;
+
+		// it means that query has higher dimensonality
+		// than traning set. Thus, we remove that term
+		if(term_id < inverted_index.num_terms)		
+			query.push_back(Entry(0, term_id, term_count)); // doc_id, term_id, term_count
+	}
+
+    //Creates an empty document if there are no terms
+    if(query.empty()) {
+        query.push_back(Entry(0, 0, 0));
+    }
+
+    return KNN(inverted_index, query, K, distance, dev_vars);
 }
 
 cuNearestNeighbors::~cuNearestNeighbors(){
@@ -34,10 +58,14 @@ cuNearestNeighbors::~cuNearestNeighbors(){
 	entries.clear();
 
 	// ver como liberar memoria da placa
-	freeInvertedIndex(inverted_index);
+	for (int i = 0; i < n_gpus; ++i)
+	{
+		freeInvertedIndex(inverted_indices[i]);
+	}
+	delete [] inverted_indices;
 }
 
-cuNearestNeighbors::cuNearestNeighbors(Dataset &data){
+cuNearestNeighbors::cuNearestNeighbors(Dataset &data, int n_gpus): n_gpus(n_gpus){
 	convertDataset(data);
 
 	buildInvertedIndex();
@@ -79,13 +107,88 @@ cuSimilarity * cuNearestNeighbors::getKNearestNeighbors(const std::map<unsigned 
 
     DeviceVariables dev_vars;
 	
-	initDeviceVariables(&dev_vars, K, inverted_index.num_docs);
+	initDeviceVariables(&dev_vars, K, inverted_indices[0].num_docs);
 
-	cuSimilarity* k_nearest = KNN(inverted_index, query, K, CosineDistance, &dev_vars);
-
+	cuSimilarity* k_nearest = KNN(inverted_indices[0], query, K, CosineDistance, &dev_vars);
+	//printf("aqui\n");
 	freeDeviceVariables(&dev_vars);
 
 	return k_nearest;
+}
+
+std::vector<cuSimilarity*> cuNearestNeighbors::getKNearestNeighbors(Dataset &test, int K){
+
+	std::string distance = "cosine"; 
+
+	int gpuNum;
+	cudaGetDeviceCount(&gpuNum);
+
+	if (gpuNum > n_gpus){
+		gpuNum = n_gpus;
+		if (gpuNum < 1)
+			gpuNum = 1;
+	}
+	n_gpus = gpuNum;
+
+	std::vector<sample> &samples = test.getSamples();
+	std::vector<std::pair<int, int> > intervals;
+	std::vector<cuSimilarity*> idxs(samples.size());
+	InvertedIndex* inverted_indices = this->inverted_indices;
+	
+	int biggestQuerySize = test.biggestQuerySize;
+
+	printf("biggestQuerySize : %d\n", biggestQuerySize);
+
+
+	std::cerr << "Using " << gpuNum << "GPUs" << std::endl;
+
+	omp_set_num_threads(gpuNum);
+	
+	#pragma omp parallel shared(samples) shared(inverted_indices) shared(idxs)
+	{
+		int num_test_local = 0, i;
+		int cpuid = omp_get_thread_num();
+
+    	cudaSetDevice(cpuid);
+
+		printf("thread : %d\n", cpuid);
+
+    	DeviceVariables dev_vars;
+	
+		initDeviceVariables(&dev_vars, K, inverted_indices[cpuid].num_docs, biggestQuerySize);
+
+		double start = gettime();
+
+    	#pragma omp for
+		for (i = 0; i < samples.size(); ++i)
+		{
+			num_test_local++;
+			
+			if(distance == "cosine" || distance == "both") {
+				idxs[i] = makeQuery(inverted_indices[cpuid], samples[i].features, K, CosineDistance, &dev_vars);
+        	}
+
+	        if(distance == "l2" || distance == "both") {
+        		idxs[i] = makeQuery(inverted_indices[cpuid], samples[i].features, K, EuclideanDistance, &dev_vars);
+			}
+
+			if(distance == "l1" || distance == "both") {
+				idxs[i] = makeQuery(inverted_indices[cpuid], samples[i].features, K, ManhattanDistance, &dev_vars);
+			}
+		}
+		
+		printf("num tests in thread %d: %d\n", omp_get_thread_num(), num_test_local);
+
+		#pragma omp barrier
+		double end = gettime();
+
+		#pragma omp master
+		printf("Time to process: %lf seconds\n", end - start);
+	
+		freeDeviceVariables(&dev_vars);
+	}
+
+	return idxs;
 }
 
 void cuNearestNeighbors::convertDataset(Dataset &data){
@@ -116,8 +219,8 @@ void cuNearestNeighbors::convertDataset(Dataset &data){
 int cuNearestNeighbors::getMajorityVote(cuSimilarity *k_nearest, int K){
 	std::map<int, double> vote_count;
 
-	cuSimilarity &closest = k_nearest[0];
-	cuSimilarity &further = k_nearest[K-1];
+	//cuSimilarity &closest = k_nearest[0];
+	//cuSimilarity &further = k_nearest[K-1];
 
     for(int i = 0; i < K; ++i) {
         cuSimilarity &sim = k_nearest[i];
@@ -141,7 +244,40 @@ int cuNearestNeighbors::getMajorityVote(cuSimilarity *k_nearest, int K){
 }
 
 void cuNearestNeighbors::buildInvertedIndex(){
-	inverted_index = make_inverted_index(num_docs, num_terms, entries);
+	int gpuNum;
+	cudaGetDeviceCount(&gpuNum);
+
+	if (gpuNum > n_gpus){
+		gpuNum = n_gpus;
+		if (gpuNum < 1)
+			gpuNum = 1;
+	}
+
+	n_gpus = gpuNum;
+
+	std::cerr << "Using " << gpuNum << "GPUs" << std::endl;
+
+    omp_set_num_threads(gpuNum);
+
+	this->inverted_indices = new InvertedIndex[gpuNum];
+
+
+	std::vector<Entry> &entries = this->entries;
+	InvertedIndex* inverted_indices = this->inverted_indices;
+	#pragma omp parallel shared(entries) shared(inverted_indices)
+	{
+		int cpuid = omp_get_thread_num();
+		cudaSetDevice(cpuid);
+		printf("thread_idx : %d\n", cpuid);
+		double start, end;
+
+		start = gettime();
+		inverted_indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);
+		end = gettime();
+
+		//#pragma omp single nowait
+		printf("Total time taken for insertion: %lf seconds\n", end - start);	
+	}
 
 	entries.clear();
 }
