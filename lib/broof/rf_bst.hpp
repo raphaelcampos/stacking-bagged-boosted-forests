@@ -58,7 +58,7 @@ void RF_BOOST::reset_model(){
 bool RF_BOOST::parse_train_line(const std::string& line) {
 
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
   std::string doc_id = tokens[0];
@@ -110,7 +110,7 @@ Scores<double> RF_BOOST::classify(const DTDocument* doc, std::map<const DTDocume
 
 void RF_BOOST::parse_test_line(const std::string& line){
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
 
   double test_size = 0.0;
   std::map<const DTDocument*, double> doc_similarities;
