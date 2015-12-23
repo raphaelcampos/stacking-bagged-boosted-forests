@@ -78,14 +78,14 @@ void write_output(ofstream &fileout, int trueclass, int guessedclass, int docid)
 int get_class(std::string token);
 
 
-void teste_lazynn(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true){
+void teste_lazynn(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true, int n_gpus = 1){
 
     Dataset training_set, test_set;
     int correct_cosine = 0, wrong_cosine = 0;
     
     training_set.loadGtKnnFormat(trainingFileName.c_str());
 
-    cuLazyNN_RF cLazy(training_set);
+    cuLazyNN_RF cLazy(training_set, n_gpus);
     test_set.loadGtKnnFormat(testFileName.c_str());
     double start, end, total = 0;
 
@@ -316,6 +316,10 @@ int main(int argc, char **argv) {
 
         cmd.add( kArg );
 
+        TCLAP::ValueArg<int> gpusArg("g","gpus","Number of GPUs.(default : 1)", false, 1, "int");
+
+        cmd.add( gpusArg );
+
         TCLAP::ValueArg<int> numTreesArg("n","number-trees","Maximum number of trees in the ensemble.(default : 100)", false, 100, "int");
 
         cmd.add( numTreesArg );
@@ -329,7 +333,7 @@ int main(int argc, char **argv) {
 
         std::string model = modelArg.getValue();
         if(model == "knn_rf"){
-            teste_lazynn(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue());               
+            teste_lazynn(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue(), gpusArg.getValue());               
         }else{
             teste_cuNN(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue());
         }

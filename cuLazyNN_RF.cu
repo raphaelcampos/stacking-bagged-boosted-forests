@@ -34,7 +34,7 @@ cuLazyNN_RF::cuLazyNN_RF(){
 cuLazyNN_RF::~cuLazyNN_RF(){
 }
 
-cuLazyNN_RF::cuLazyNN_RF(Dataset &data) : cuKNN(data){
+cuLazyNN_RF::cuLazyNN_RF(Dataset &data, int n_gpus) : cuKNN(data, n_gpus){
 	training = data;
 }
 

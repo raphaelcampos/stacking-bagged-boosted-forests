@@ -26,7 +26,7 @@ class cuLazyNN_RF : LazyNN_RF{
 		 * Constructor. Trains the model based on the given training set.
 		 * \param data - Training set
 		 */
-		cuLazyNN_RF(Dataset &data);
+		cuLazyNN_RF(Dataset &data, int n_gpus = 1);
 
 		/**
 		 * Destructor.
