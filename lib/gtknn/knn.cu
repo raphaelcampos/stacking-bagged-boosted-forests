@@ -240,7 +240,7 @@ __global__ void get_term_count_and_tf_idf(InvertedIndex inverted_index, Entry *q
         Entry entry = query[i];
 
         int idf = inverted_index.d_count[entry.term_id];
-        query[i].tf_idf = entry.tf * log(inverted_index.num_docs / float(max(1, idf)));
+        query[i].tf_idf = (1 + log(float(entry.tf))) * log(inverted_index.num_docs / float(max(1, idf)));//entry.tf * log(inverted_index.num_docs / float(max(1, idf)));
         count[i] = idf;
         atomicAdd(d_qnorm, query[i].tf_idf * query[i].tf_idf);
         atomicAdd(d_qnorml1, query[i].tf_idf );
