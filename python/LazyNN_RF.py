@@ -138,7 +138,7 @@ class InvertedIndex(Structure):
 
 class cuKNeighborsSparseClassifier(object):
 
-    def __init__(self, n_neighbors=30, metric='cosine', gpu=0):
+    def __init__(self, n_neighbors=30, metric='cosine', n_gpus=1, gpu=0):
         
         super(cuKNeighborsSparseClassifier, self).__init__()
 
@@ -146,13 +146,14 @@ class cuKNeighborsSparseClassifier(object):
 
         self._init_methods()
 
-        self.n_gpus = 1
-
+        self.n_gpus = n_gpus
+        
         #self._init_gtknn(gpu)
 
     def __del__(self):
-        #if hasattr(self, 'inverted_idx'):
-        #    self._free_inverted_index(self.inverted_idx)
+        if hasattr(self, 'inverted_idx'):
+            for i in range(self.n_gpus):
+                self._free_inverted_index(self.inverted_idx[i])
         pass
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
@@ -197,10 +198,10 @@ class cuKNeighborsSparseClassifier(object):
 
         #self._init_gtknn = func
 
-        #func = dll.freeInvertedIndex
-        #func.argtypes = [InvertedIndex]
+        func = dll.freeInvertedIndex
+        func.argtypes = [InvertedIndex]
 
-        #self._free_inverted_index = func
+        self._free_inverted_index = func
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
@@ -218,6 +219,8 @@ class cuKNeighborsSparseClassifier(object):
     def fit(self, X, y):
 
         #entries = self._get_entries(X)
+
+        X = check_array(X, accept_sparse='csr')
      
         num_docs = X.shape[0]
         num_terms = X.shape[1]
@@ -344,11 +347,11 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                  verbose=0,
                  warm_start=False,
                  class_weight=None,
-                 cuda=False):
-        
+                 cuda=False,
+                 n_gpus=1):
         
         if cuda:
-            self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors)
+            self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors, n_gpus=n_gpus)
         else:
             self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, algorithm='brute', metric='cosine')
 
@@ -358,6 +361,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         # kNN params
         self.n_neighbors = n_neighbors
         self.cuda = cuda
+        self.n_gpus = n_gpus
         
         # ForestBase params
         self.n_estimators = n_estimators

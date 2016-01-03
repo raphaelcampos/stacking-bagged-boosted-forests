@@ -24,7 +24,7 @@ endif
 endif
 
 ifeq ($(SHARED),T)
-	SHARED := -fPIC -shared
+	SHARED=-Xcompiler -fPIC -shared
 endif
 
 Release: main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o

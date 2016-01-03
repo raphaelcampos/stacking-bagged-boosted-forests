@@ -215,6 +215,15 @@ void initDeviceVariables(DeviceVariables *dev_vars, int K, int num_docs){
 	
 }
 
+void freeDeviceVariables(DeviceVariables *dev_vars){
+	gpuAssert(cudaFree(dev_vars->d_dist));
+	gpuAssert(cudaFree(dev_vars->d_nearestK));
+	gpuAssert(cudaFree(dev_vars->d_query));
+	gpuAssert(cudaFree(dev_vars->d_index));
+	gpuAssert(cudaFree(dev_vars->d_count));
+	gpuAssert(cudaFree(dev_vars->d_qnorms));	
+}
+
 void freeDeviceVariables(DeviceVariables *dev_vars, InvertedIndex &index){
 	gpuAssert(cudaFree(dev_vars->d_dist));
 	gpuAssert(cudaFree(dev_vars->d_nearestK));
@@ -301,6 +310,8 @@ int* kneighbors(InvertedIndex* index, int K, float* data, int* indices, int* ind
 
 		#pragma omp master
 		printf("Time to process: %lf seconds\n", end - start);
+	
+		freeDeviceVariables(&dev_vars);
 	}
 
 	return idxs;
