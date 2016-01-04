@@ -65,7 +65,10 @@ __global__ void count_occurrences(Entry *entries, int *count, int n);
 
 __global__ void mount_inverted_index_and_compute_tf_idf(Entry *entries, Entry *inverted_index, int *count, int *index, float *d_norms, float *d_normsl1, int n, int num_docs);
 
-extern "C"
 __host__ void freeInvertedIndex(InvertedIndex &index);
+
+extern "C"
+__host__ void freeInvertedIndex(InvertedIndex* index);
+
 
 #endif /* INVERTED_INDEX_CUH_ */

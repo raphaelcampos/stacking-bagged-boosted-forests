@@ -152,6 +152,7 @@ class cuKNeighborsSparseClassifier(object):
 
     def __del__(self):
         if hasattr(self, 'inverted_idx'):
+            print range(self.n_gpus)
             for i in range(self.n_gpus):
                 self._free_inverted_index(self.inverted_idx[i])
         pass
@@ -288,7 +289,7 @@ class cuKNeighborsSparseClassifier(object):
         n_samples, _ = X.shape
         sample_range = np.arange(n_samples)[:, None]
 
-        idxs = self._kneighbors(self.inverted_idx, n_neighbors, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), 1)
+        idxs = self._kneighbors(self.inverted_idx, n_neighbors, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
         
         return np.ctypeslib.as_array(idxs, shape=(len(X.indptr)-1,n_neighbors))
         
