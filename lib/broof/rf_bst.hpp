@@ -38,6 +38,9 @@ class RF_BOOST : public SupervisedClassifier {
     void parse_test_line(const std::string&);
     void reset_model();
     Scores<double> classify(const DTDocument*, std::map<const DTDocument*, double>&);
+    void add_document(const DTDocument*);
+    void build();
+
   private:
     double m_;
     unsigned int max_trees_;
@@ -79,11 +82,25 @@ bool RF_BOOST::parse_train_line(const std::string& line) {
 
 }
 
+void RF_BOOST::add_document(const DTDocument* doc){
+  for (unsigned int i = 0; i < max_trees_; i++) {
+    ensemble_[i]->add_document(doc);
+  } 
+}
+
 void RF_BOOST::train(const std::string& train_fn) {
   SupervisedClassifier::train(train_fn);
   WeightSet w;
   for (unsigned int i = 0; i < max_trees_; i++) {
     std::cerr << "BoostIter " << i << std::endl;
+    ensemble_[i]->build(&w);
+  }
+}
+
+void RF_BOOST::build() {
+  WeightSet w;
+  for (unsigned int i = 0; i < max_trees_; i++) {
+    //std::cerr << "BoostIter " << i << std::endl;
     ensemble_[i]->build(&w);
   }
 }
@@ -132,9 +149,9 @@ void RF_BOOST::parse_test_line(const std::string& line){
 
   Scores<double> similarities = classify(doc, doc_similarities);
   docs_processed_++;
-//  std::cerr.precision(4);
-//  std::cerr.setf(std::ios::fixed);
-//  std::cerr << "\r" << docs_processed_ << ".";
+  std::cerr.precision(4);
+  std::cerr.setf(std::ios::fixed);
+  std::cerr << "\r" << docs_processed_ << ".";
   
   get_outputer()->output(similarities);
   delete doc;

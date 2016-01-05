@@ -171,17 +171,17 @@ WeightSet *RF::build(WeightSet *w) {
     {
       if (w != NULL) { 
         {
-          std::cerr << "  WeightUpdate RF " << i << ": " << miss << "/" << total << "=" << oob_err << " alpha=" << alpha << std::endl;
+          //std::cerr << "  WeightUpdate RF " << i << ": " << miss << "/" << total << "=" << oob_err << " alpha=" << alpha << std::endl;
           for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
             if (oob_[i][oobidx] != NULL) {
               if (is_miss[oobidx]) {
-                std::cerr << oob_[i][oobidx]->get_id() << "    IS_MISS w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(alpha) << std::endl;
+                //std::cerr << oob_[i][oobidx]->get_id() << "    IS_MISS w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(alpha) << std::endl;
                 w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp(alpha));
               } else {
-                std::cerr << oob_[i][oobidx]->get_id() << "    IS_HIT w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(-alpha) << std::endl;
+                //std::cerr << oob_[i][oobidx]->get_id() << "    IS_HIT w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(-alpha) << std::endl;
                 w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp(-alpha));
               }
-              std::cerr << "    OOB " << oobidx << " w=" << w->get(oob_[i][oobidx]->get_id()) << " is_miss=" << (is_miss[oobidx] ? "yes" : "no") << " oob_err=" << oob_err << " alpha=" << alpha << std::endl;
+              //std::cerr << "    OOB " << oobidx << " w=" << w->get(oob_[i][oobidx]->get_id()) << " is_miss=" << (is_miss[oobidx] ? "yes" : "no") << " oob_err=" << oob_err << " alpha=" << alpha << std::endl;
             }
           }
         }
@@ -202,10 +202,10 @@ Scores<double> RF::classify(const DTDocument* doc){
     std::map<std::string, double> partial_scores = trees_[i]->get_partial_scores(doc);
       double weight = oob_err_[i];
       double adjust = exp(1.0 - weight); //(weight == 0.0 ? 1.0 : weight == 1.0 ? 0.0 : log((1.0-weight)/weight));
-      #pragma omp critical (print_oob)
+      /*#pragma omp critical (print_oob)
       {
         std::cerr << "TEST " << i << " oob=" << weight << " w=" << adjust << std::endl;
-      }
+      }*/
 
     std::map<std::string, double>::const_iterator cIt = partial_scores.begin();
     while(cIt != partial_scores.end()) {

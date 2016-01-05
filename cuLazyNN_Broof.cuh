@@ -1,6 +1,6 @@
 
-#ifndef _cuLazyNN_RF__
-#define _cuLazyNN_RF__
+#ifndef _cuLazyNN_BROOF__
+#define _cuLazyNN_BROOF__
 
 // Gt-kNN
 #include "structs.cuh"
@@ -14,29 +14,29 @@
 
 #include <map>
 
-class cuLazyNN_RF : LazyNN_RF{
+class cuLazyNN_Boost : LazyNN_RF{
 	
 	public:
 		/**
 		 * Default constructor.
 		 */
-		cuLazyNN_RF();
+		cuLazyNN_Boost();
 
 		/**
 		 * Constructor. Trains the model based on the given training set.
 		 * \param data - Training set
 		 */
-		cuLazyNN_RF(Dataset &data, int n_gpus = 1);
+		cuLazyNN_Boost(Dataset &data, int n_gpus = 1);
 
 		/**
 		 * Destructor.
 		 */
-		~cuLazyNN_RF();
+		~cuLazyNN_Boost();
 
 		/**
 		 * Trains the model based on the given training set.
 		 * \param data - Training set
-		 */
+		*/
 		void train(Dataset &data);
 		
 		/**
@@ -53,10 +53,10 @@ class cuLazyNN_RF : LazyNN_RF{
 		 */
 		std::vector<int> classify(Dataset &test, int K);
 
-	protected:
+	private:
 		Dataset training;
 
-		cuNearestNeighbors cuKNN;
+		cuNearestNeighbors cuKNN;	
 
 		// Dataset statistics
 		unsigned int num_docs;

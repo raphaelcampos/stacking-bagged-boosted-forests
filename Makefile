@@ -30,11 +30,17 @@ endif
 Release: main.o cuLazyNN_RF.o cuNearestNeighbors.o Dataset.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
 	nvcc $(GENCODE_FLAGS) -O3 -lgomp -I"include/" main.o cuLazyNN_RF.o cuNearestNeighbors.o Dataset.o knn.o partial_bitonic_sort.o inverted_index.o cuda_distances.o  utils.o -o lazynn_rf
 
-Shared: main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
-	nvcc -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) $(OMP) -O3 -I"include/" main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o "gtknn.so"
+Boost: main_broof.o cuLazyNN_Broof.o cuNearestNeighbors.o Dataset.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
+	nvcc $(GENCODE_FLAGS) -O3 -lgomp -I"include/" main_broof.o cuLazyNN_Broof.o cuNearestNeighbors.o Dataset.o knn.o partial_bitonic_sort.o inverted_index.o cuda_distances.o  utils.o -o lazy_boost
 
 main.o: main.cu cuLazyNN_RF.cuh cuNearestNeighbors.cuh Dataset.h lib/gtknn/cuda_distances.cuh  lib/gtknn/knn.cuh  lib/gtknn/inverted_index.cuh lib/gtknn/utils.cuh lib/gtknn/structs.cuh
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -I"lib/gtknn/" -I"include/" -c main.cu
+
+main_broof.o: main_broof.cu cuLazyNN_Broof.cuh cuNearestNeighbors.cuh Dataset.h lib/gtknn/cuda_distances.cuh  lib/gtknn/knn.cuh  lib/gtknn/inverted_index.cuh lib/gtknn/utils.cuh lib/gtknn/structs.cuh
+	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -I"lib/gtknn/" -I"include/" -c main_broof.cu
+
+cuLazyNN_Broof.o: cuLazyNN_Broof.cu cuLazyNN_Broof.cuh cuNearestNeighbors.cuh Dataset.h lib/gtknn/cuda_distances.cuh  lib/gtknn/knn.cuh  lib/gtknn/inverted_index.cuh lib/gtknn/utils.cuh lib/gtknn/structs.cuh
+	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -I"lib/gtknn/" -c cuLazyNN_Broof.cu
 
 cuLazyNN_RF.o: cuLazyNN_RF.cu cuLazyNN_RF.cuh cuNearestNeighbors.cuh Dataset.h lib/gtknn/cuda_distances.cuh  lib/gtknn/knn.cuh  lib/gtknn/inverted_index.cuh lib/gtknn/utils.cuh lib/gtknn/structs.cuh
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -I"lib/gtknn/" -c cuLazyNN_RF.cu

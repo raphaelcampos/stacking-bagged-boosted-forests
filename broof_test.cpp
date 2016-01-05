@@ -7,7 +7,7 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-	RF_BOOST * broof = new RF_BOOST(0, 0.33, atoi(argv[4]));
+	RF_BOOST * broof = new RF_BOOST(0, 0.00038, atoi(argv[4]));
 	  
 	broof->train(argv[1]);
 
