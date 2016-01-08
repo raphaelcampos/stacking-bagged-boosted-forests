@@ -198,6 +198,9 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
         oob_score = 0.0
         predictions = []
         oob_err = []
+        oob_ = []
+
+        sample_weight_tmp = sample_weight
 
         for k in range(self.n_outputs_):
             predictions.append(np.zeros((n_samples, n_classes_[k])))
@@ -216,11 +219,16 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
                 predictions[k][unsampled_indices, :] += p_estimator[k]
                 #np.mean(
                 #    np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
+                incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
+                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
                 
-                estimator_error = np.average(y[unsampled_indices, k] !=
-                                     np.argmax(p_estimator[k], axis=1), weights=sample_weight[unsampled_indices], axis=0)
-                
+                estimator_weight = (
+                    np.log((1. - estimator_error) / estimator_error))
+
                 oob_err[k][i] = estimator_error
+                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+            
+            oob_.append(unsampled_indices)
 
         for k in range(self.n_outputs_):
             if (predictions[k].sum(axis=1) == 0).any():
@@ -241,6 +249,9 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             self.oob_decision_function_ = oob_decision_function
             self.oob_err_ = oob_err
 
+        sample_weight = sample_weight_tmp 
+
+        self.oob_samples_ = oob_
         self.oob_score_ = oob_score / self.n_outputs_
 
     def predict_proba(self, X):
@@ -327,7 +338,7 @@ class Broof(AdaBoostClassifier):
 
     def _boost_broof(self, iboost, X, y, sample_weight):
         estimator = self._make_estimator()
-
+        print "sample_weight : ",sample_weight
         try:
             estimator.set_params(random_state=self.random_state)
         except ValueError:
@@ -352,7 +363,7 @@ class Broof(AdaBoostClassifier):
         estimator_error = np.mean(
             np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
 
-        print iboost, estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
+        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -373,12 +384,16 @@ class Broof(AdaBoostClassifier):
         estimator_weight = self.learning_rate * (
             np.log((1. - estimator_error) / estimator_error)) # + np.log(n_classes - 1))
 
+        print self.learning_rate * (
+            np.log((1. - estimator.oob_err_) / estimator.oob_err_)), estimator.oob_err_
+
         # Only boost the weights if I will fit again
-        if not iboost == self.n_estimators - 1:
+        #if not iboost == self.n_estimators - 1:
             # Only boost positive weights
-            sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+        #    sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
         del estimator.oob_decision_function_
+        del estimator.oob_samples_
 
         return sample_weight, estimator_weight, estimator_error 
 
@@ -460,15 +475,15 @@ class Broof(AdaBoostClassifier):
         return self
 
 
-    def decision_function(self, X):	
-	
+    def decision_function(self, X): 
+    
         #check_is_fitted(self, "n_classes_")
         X = self._validate_X_predict(X)
 
         n_classes = self.n_classes_
         classes = self.classes_[:, np.newaxis]
         pred = None
-	
+    
         pred = sum((estimator.predict(X) == classes).T
                     for estimator, w in zip(self.estimators_,
                                             self.estimator_weights_))
@@ -558,6 +573,3 @@ class Broof(AdaBoostClassifier):
                     setattr(self, key, value)
 
         return self
-
-
-
