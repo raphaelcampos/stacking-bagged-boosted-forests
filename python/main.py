@@ -2,6 +2,8 @@ from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
 
+from sklearn.cluster import  KMeans as kmeans
+
 from sklearn.neighbors import NearestNeighbors as kNN
 
 from sklearn.grid_search import GridSearchCV
@@ -22,7 +24,7 @@ parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'broof', 'lazy_xt'], default='rf')
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'broof', 'lazy_xt', 'xt'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -62,9 +64,9 @@ else:
 print X.nnz, (X.nnz*4*4)/(2.0**20)
 
 
-tf_transformer = TfidfTransformer(use_idf=True)
+tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
 
-#X = tf_transformer.fit_transform(X)
+X = tf_transformer.fit_transform(X)
 
 end = time.time()
 
@@ -73,7 +75,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features=0.15, criterion='gini', cuda=False, n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
@@ -86,8 +88,11 @@ elif args.method == 'adarf':
 elif args.method == 'broof':
 	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate)
 	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
+elif args.method == 'xt':
+	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='auto', verbose=10)
+	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 else:
-	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini')
+	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=0.15, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
@@ -110,13 +115,11 @@ for train_index, test_index in kf:
 	
 
 	if(args.cv > 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_micro')
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_macro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
 	
-	
-
 	#e = cuKNeighborsSparseClassifier(n_neighbors=30)
 
 	#e.fit(X_train, y_train)	
