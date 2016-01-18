@@ -1,0 +1,131 @@
+---
+title: "Effectivess comparison report"
+author: "Raphael Rodrigues Campos"
+date: "January 17, 2016"
+output:
+  pdf_document:
+    keep_tex: yes
+  html_document: default
+header-includes: \usepackage{multirow}
+---
+
+# File name standart
+O formato dos arquivo devem ser blabla
+
+# Comparison
+
+dajshdkajhdajksd]
+aljdhakdhasjkhda
+
+hasjdhajk
+
+asdhahdkash
+
+```{r, message=FALSE, results='hide', warning=FALSE, echo=FALSE}
+library(hash)
+library(caret)
+
+createConfusionMatrix <- function(act, pred) {
+  # You've mentioned that neither actual nor predicted may give a complete
+  # picture of the available classes, hence:
+  numClasses <- max(act,pred)
+  #  max(length(unique(act)), length(unique(pred)))
+  # Sort predicted and actual as it simplifies what's next. You can make this
+  # faster by storing `order(act)` in a temporary variable.
+  pred <- pred[order(act)]
+  act  <- act[order(act)]
+  sapply(split(pred, act), tabulate, nbins=numClasses)
+}
+
+parser_class_column <- function(column){
+  return(sub(":[0-9]*","", sub("CLASS=", "", column)))
+}
+
+
+dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results"
+
+files = list.files(path=dir_path, pattern = "^[results_:alnum:_:alnum:]")
+ma = matrix(unlist(strsplit(files, "_")),3)
+
+models_labels = unique(ma[2,])
+datasets_labels = unique(ma[3,])
+
+models = hash(models_labels, 1:length(models_labels))
+datasets = hash(datasets_labels, 1:length(datasets_labels))
+
+trials = 5
+
+mdim = c(length(models)*2, length(datasets), trials)
+f1 = array(0, mdim, dimnames = list(1:mdim[1],datasets_labels,1:trials))
+#mac_f1 = array(0, mdim, dimnames = list(models_labels,datasets_labels,1:trials))
+
+for(i in 1:length(files)){
+  file = paste(dir_path, files[i], sep = "/")
+  print(file)
+  table = read.table(file)
+  
+  m = models[[ma[2,i]]]
+  d = datasets[[ma[3,i]]]
+  print(c(m,d))
+  
+  y = as.numeric(parser_class_column(table$V2))
+  pred = as.numeric(parser_class_column(table$V3))
+  
+  y = matrix(y, ncol = trials)
+  pred = matrix(pred, ncol = trials)
+  
+  for(j in 1:trials){
+    # Compute confusion Matrix
+    test = y[,j] + 1
+    predi = pred[,j] + 1
+    cm = as.matrix(confusionMatrix(table(factor(predi,levels=min(test):max(test)),factor(test,levels=min(test):max(test)))))
+    #cm = createConfusionMatrix(test, predi)
+    
+    tp = diag(cm)
+    fp = apply(cm, 2, sum) - tp
+    fn = apply(cm, 1, sum) - tp
+    
+    fp[fp==0] = 1
+    fn[fn==0] = 1
+    
+    pres = tp/(tp+fp) 
+    recall = tp/(tp+fn) 
+  
+    # computing macro f1  
+    mac_p = mean(tp/(tp+fp))  
+    mac_r = mean(tp/(tp+fn))  
+    f1[(m-1)*2 + 1, d, j] = 2*(mac_p*mac_r)/(mac_p+mac_r)
+    
+    # computing micro f1
+    mic_p = sum(tp)/(sum(tp)+sum(fp))
+    mic_r = sum(tp)/(sum(tp)+sum(fn))
+    f1[(m-1)*2 + 2, d, j] = 2*(mic_p*mic_r)/(mic_p+mic_r)  
+  }
+}
+
+
+f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
+f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
+
+```
+
+```{r, results="asis", echo=FALSE}
+library(xtable)
+
+df = matrix(paste(f1_avg, f1_sd, sep = " $\\pm$  "), nrow = length(models_labels)*2, ncol = length(datasets_labels), dimnames = list(1:mdim[1], datasets_labels))
+
+
+even = as.logical(1:mdim[1]%%2)
+
+df <- cbind(matrix("",nrow = 8, ncol = 1), df)
+df[even, 1] = "micF1"
+df[!even,1] = "macF1"
+
+df <- cbind(matrix("",nrow = 8, ncol = 1), df)
+df[even,1] = paste("\\multirow{2}{*}{", models_labels, "}", df[even,1], sep="")
+
+
+tab <- xtable(df, caption = "MicroF1")
+print(tab, sanitize.text.function = identity, include.rownames = FALSE)
+
+```

@@ -1,0 +1,125 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={Raphael Rodrigues Campos},
+            pdftitle={Effectivess comparison report},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+  \title{Effectivess comparison report}
+  \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+  \author{Raphael Rodrigues Campos}
+  \preauthor{\centering\large\emph}
+  \postauthor{\par}
+  \predate{\centering\large\emph}
+  \postdate{\par}
+  \date{January 17, 2016}
+
+\usepackage{multirow}
+
+
+\begin{document}
+
+\maketitle
+
+
+\section{File name standart}\label{file-name-standart}
+
+O formato dos arquivo devem ser blabla
+
+\section{Comparison}\label{comparison}
+
+dajshdkajhdajksd{]} aljdhakdhasjkhda
+
+hasjdhajk
+
+asdhahdkash
+
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Sun Jan
+17 21:38:21 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{lllll}
+  \hline
+V1 & V2 & 20ng & 4uni & acm \\ 
+  \hline
+\multirow{2}{*}{culazy} & micF1 & 88.88 $\pm$  0.47 & 71.08 $\pm$  1.52 & 62.87 $\pm$  1.16 \\ 
+   & macF1 & 89.03 $\pm$  0.43 & 80.04 $\pm$  1.05 & 73.11 $\pm$  0.24 \\ 
+  \multirow{2}{*}{knn} & micF1 & 79.73 $\pm$  0.36 & 54.65 $\pm$  1.73 & 56 $\pm$  0.69 \\ 
+   & macF1 & 79.78 $\pm$  0.32 & 67.73 $\pm$  1.54 & 68.76 $\pm$  0.56 \\ 
+  \multirow{2}{*}{lazy} & micF1 & 87.69 $\pm$  0.66 & 71.8 $\pm$  2.18 & 64.15 $\pm$  1.77 \\ 
+   & macF1 & 87.84 $\pm$  0.62 & 80.42 $\pm$  1.71 & 72.82 $\pm$  0.58 \\ 
+  \multirow{2}{*}{rf} & micF1 & 57.36 $\pm$  1.15 & 41.86 $\pm$  0.53 & 28.65 $\pm$  6.75 \\ 
+   & macF1 & 58.28 $\pm$  0.92 & 58.42 $\pm$  0.17 & 40.61 $\pm$  6.55 \\ 
+   \hline
+\end{tabular}
+\caption{MicroF1} 
+\end{table}
+
+\end{document}
