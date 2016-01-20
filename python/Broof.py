@@ -161,7 +161,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
         self.oob_score = True
 
-        super(BoostedRandomForestClassifier, self).fit(X, y, sample_weight)
+        super(BoostedRandomForestClassifier, self).fit(X, y)
 
         if self.oob_score:
 
@@ -198,10 +198,9 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
         oob_score = 0.0
         predictions = []
         oob_err = []
-        oob_ = []
 
-        sample_weight_tmp = sample_weight
-
+        sample_weight_tmp = sample_weight.copy()
+        
         for k in range(self.n_outputs_):
             predictions.append(np.zeros((n_samples, n_classes_[k])))
             oob_err.append(np.ones(len(self.estimators_)))
@@ -217,8 +216,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
             for k in range(self.n_outputs_):
                 predictions[k][unsampled_indices, :] += p_estimator[k]
-                #np.mean(
-                #    np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
+                
                 incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
                 estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
                 
@@ -227,8 +225,6 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
                 oob_err[k][i] = estimator_error
                 sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
-            
-            oob_.append(unsampled_indices)
 
         for k in range(self.n_outputs_):
             if (predictions[k].sum(axis=1) == 0).any():
@@ -249,9 +245,8 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             self.oob_decision_function_ = oob_decision_function
             self.oob_err_ = oob_err
 
-        sample_weight = sample_weight_tmp 
+        print sample_weight_tmp.copy() 
 
-        self.oob_samples_ = oob_
         self.oob_score_ = oob_score / self.n_outputs_
 
     def predict_proba(self, X):
@@ -317,6 +312,7 @@ class Broof(AdaBoostClassifier):
                  random_state=None,
                  weighting_algorithm='broof',
                  n_trees=30,
+                 max_features='auto',
                  n_jobs=1):
         
         self.weighting_algorithm = weighting_algorithm
@@ -324,13 +320,94 @@ class Broof(AdaBoostClassifier):
         self.n_trees = n_trees
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
+        self.max_features = max_features
 
         super(Broof, self).__init__(
-            base_estimator=BoostedRandomForestClassifier(criterion='gini', max_features='sqrt', n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
+            base_estimator=BoostedRandomForestClassifier(criterion='gini', max_features=max_features, n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
             random_state=random_state)
+
+    def _set_oob_score(self, rf, X, y, sample_weight=None):
+
+        if sample_weight == None:
+            return
+
+        y = np.atleast_1d(y)
+        if y.ndim == 2 and y.shape[1] == 1:
+            warn("A column-vector y was passed when a 1d array was"
+                 " expected. Please change the shape of y to "
+                 "(n_samples,), for example using ravel().",
+                 DataConversionWarning, stacklevel=2)
+
+        if y.ndim == 1:
+            # reshape is necessary to preserve the data contiguity against vs
+            # [:, np.newaxis] that does not.
+            y = np.reshape(y, (-1, 1))
+
+        """Compute out-of-bag score"""
+        X = check_array(X, dtype=DTYPE, accept_sparse='csr')
+
+        n_classes_ = rf.n_classes_
+
+        n_samples = y.shape[0]
+
+        oob_decision_function = []
+        oob_score = 0.0
+        predictions = []
+        oob_err = []
+
+        sample_weight_tmp = sample_weight.copy()
+        
+        for k in range(rf.n_outputs_):
+            predictions.append(np.zeros((n_samples, n_classes_[k])))
+            oob_err.append(np.ones(len(rf.estimators_)))
+
+        for i, estimator in enumerate(rf.estimators_):
+            unsampled_indices = _generate_unsampled_indices(
+                estimator.random_state, n_samples)
+            p_estimator = estimator.predict_proba(X[unsampled_indices, :],
+                                                  check_input=False)
+
+            if rf.n_outputs_ == 1:
+                p_estimator = [p_estimator]
+
+            for k in range(rf.n_outputs_):
+                predictions[k][unsampled_indices, :] += p_estimator[k]
+                
+                incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
+                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
+                
+                estimator_weight = (
+                    ((1. - estimator_error) / estimator_error))
+
+                oob_err[k][i] = estimator_error
+                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+
+        for k in range(rf.n_outputs_):
+            if (predictions[k].sum(axis=1) == 0).any():
+                warn("Some inputs do not have OOB scores. "
+                     "This probably means too few trees were used "
+                     "to compute any reliable oob estimates.")
+
+            decision = (predictions[k] /
+                        predictions[k].sum(axis=1)[:, np.newaxis])
+            oob_decision_function.append(decision)
+            oob_score += np.mean(y[:, k] ==
+                                 np.argmax(predictions[k], axis=1), axis=0)
+
+        if rf.n_outputs_ == 1:
+            rf.oob_decision_function_ = oob_decision_function[0]
+            rf.oob_err_ = oob_err[0]
+        else:
+            rf.oob_decision_function_ = oob_decision_function
+            rf.oob_err_ = oob_err
+
+        rf.oob_score_ = oob_score / rf.n_outputs_
+
+        return sample_weight_tmp
+
 
     def _boost(self, iboost, X, y, sample_weight):
         return self._boost_broof(iboost, X, y, sample_weight)
@@ -338,14 +415,15 @@ class Broof(AdaBoostClassifier):
 
     def _boost_broof(self, iboost, X, y, sample_weight):
         estimator = self._make_estimator()
-        print "sample_weight : ",sample_weight
+        
         try:
             estimator.set_params(random_state=self.random_state)
         except ValueError:
             pass
 
         estimator.fit(X, y, sample_weight=sample_weight)
-
+        sample_weight = self._set_oob_score(estimator, X, y, sample_weight)
+        
         if iboost == 0:
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
             self.n_classes_ = len(self.classes_)
@@ -372,28 +450,26 @@ class Broof(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        if estimator_error >= 1. - (1. / n_classes):
-            self.estimators_.pop(-1)
-            if len(self.estimators_) == 0:
-                raise ValueError('BaseClassifier in AdaBoostClassifier '
-                                 'ensemble is worse than random, ensemble '
-                                 'can not be fit.')
-            return None, None, None
+        #if estimator_error >= 1. - (1. / n_classes):
+        #    self.estimators_.pop(-1)
+        #    if len(self.estimators_) == 0:
+        #        raise ValueError('BaseClassifier in AdaBoostClassifier '
+        #                         'ensemble is worse than random, ensemble '
+        #                         'can not be fit.')
+        #    return None, None, None
 
-        # Boost weight using multi-class AdaBoost SAMME alg
+        # Boost weight
         estimator_weight = self.learning_rate * (
             np.log((1. - estimator_error) / estimator_error)) # + np.log(n_classes - 1))
 
-        print self.learning_rate * (
-            np.log((1. - estimator.oob_err_) / estimator.oob_err_)), estimator.oob_err_
-
+       
         # Only boost the weights if I will fit again
         #if not iboost == self.n_estimators - 1:
             # Only boost positive weights
         #    sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
+        # save some data
         del estimator.oob_decision_function_
-        del estimator.oob_samples_
 
         return sample_weight, estimator_weight, estimator_error 
 
@@ -425,7 +501,7 @@ class Broof(AdaBoostClassifier):
         if sample_weight is None:
             # Initialize weights to 1 / n_samples
             sample_weight = np.empty(X.shape[0], dtype=np.float)
-            sample_weight[:] = 1. / X.shape[0]
+            sample_weight[:] = 1.# / X.shape[0]
         else:
             # Normalize existing weights
             sample_weight = sample_weight / sample_weight.sum() 
@@ -472,6 +548,8 @@ class Broof(AdaBoostClassifier):
             #    # Normalize
             #    sample_weight /= sample_weight_sum
 
+            print "sample_weight : ",sample_weight
+
         return self
 
 
@@ -482,6 +560,7 @@ class Broof(AdaBoostClassifier):
 
         n_classes = self.n_classes_
         classes = self.classes_[:, np.newaxis]
+        """
         pred = None
     
         pred = sum((estimator.predict(X) == classes).T
@@ -501,13 +580,13 @@ class Broof(AdaBoostClassifier):
                                                 self.estimator_weights_))
 
         #proba /= self.estimator_weights_.sum()
-        proba = np.exp((1. / (n_classes - 1)) * proba)
-        normalizer = proba.sum(axis=1)[:, np.newaxis]
-        normalizer[normalizer == 0.0] = 1.0
-        proba /= normalizer
+        #proba = np.exp((1. / (n_classes - 1)) * proba)
+        #normalizer = proba.sum(axis=1)[:, np.newaxis]
+        #normalizer[normalizer == 0.0] = 1.0
+        #proba /= normalizer
 
         print proba
-        return proba"""
+        return proba
 
     def predict(self, X):
         """Predict classes for X.

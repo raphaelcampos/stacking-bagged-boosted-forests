@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'broof', 'lazy_xt', 'xt'], default='rf')
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'lazy_xt', 'xt'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -36,7 +36,10 @@ parser.add_argument("-i", "--ibroof", type=int, help='Number of iteration for br
 
 parser.add_argument("-t", "--trees", type=int, help='Number of trees (Default:100).', default=100)
 
-parser.add_argument("-k", "--kneighbors", type=int, help='Number of nearrest neirghbors (Default:30).', default=30)
+parser.add_argument("-k", "--kneighbors", type=int, help='Number of nearest neirghbors (Default:30).', default=30)
+
+parser.add_argument("-f", "--max_features", help='Number of nearrest neirghbors (Default:sqrt).', default='sqrt')
+
 
 parser.add_argument("--learning_rate", type=float, help='Algorithm learning rate. It controls algorithm\'s convergence.', default=1.0)
 
@@ -52,6 +55,11 @@ args = parser.parse_args()
 
 start = time.time()
 
+try:
+	args.max_features = float(args.max_features)
+except Exception, e:
+	pass
+	
 if args.dataset == 'toy':
 	twenty_train = fetch_20newsgroups(subset='train', shuffle=True, random_state=42)
 	count_vect = CountVectorizer(min_df=6, stop_words='english')
@@ -66,7 +74,7 @@ print X.nnz, (X.nnz*4*4)/(2.0**20)
 
 tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
 
-X = tf_transformer.fit_transform(X)
+#X = tf_transformer.fit_transform(X)
 
 end = time.time()
 
@@ -83,16 +91,16 @@ elif args.method == 'lazy_xt':
 		max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'adarf':
-	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs),n_estimators=args.ibroof, n_jobs=args.jobs)
+	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, max_features=args.max_features),n_estimators=args.ibroof)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
 elif args.method == 'broof':
-	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate)
+	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
 	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
 elif args.method == 'xt':
 	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='auto', verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 else:
-	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=0.15, verbose=10)
+	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
