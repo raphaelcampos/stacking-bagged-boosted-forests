@@ -24,6 +24,29 @@
 \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
 \usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{{#1}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{{#1}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\ErrorTok}[1]{\textbf{{#1}}}
+\newcommand{\NormalTok}[1]{{#1}}
 \usepackage{graphicx}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -100,26 +123,39 @@ hasjdhajk
 
 asdhahdkash
 
-\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Sun Jan
-17 21:38:21 2016
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f1_avg =}\StringTok{ }\KeywordTok{round}\NormalTok{(}\KeywordTok{apply}\NormalTok{(f1, }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), mean)*}\DecValTok{100}\NormalTok{, }\DataTypeTok{digits=}\DecValTok{2}\NormalTok{)}
+\NormalTok{f1_sd =}\StringTok{ }\KeywordTok{round}\NormalTok{(}\KeywordTok{apply}\NormalTok{(f1, }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), sd)*}\DecValTok{100}\NormalTok{, }\DataTypeTok{digits=}\DecValTok{2}\NormalTok{)}
+
+\NormalTok{winner_table <-}\StringTok{ }\KeywordTok{stats.sigficant.winner.table}\NormalTok{(f1, f1_avg, models_labels, datasets_labels)}
+
+\KeywordTok{print_meas}\NormalTok{(f1_avg, f1_sd, models_labels, datasets_labels,}
+           \KeywordTok{c}\NormalTok{(}\StringTok{"microF1"}\NormalTok{, }\StringTok{"macroF1"}\NormalTok{), winner_table, }
+           \DataTypeTok{caption =} \StringTok{"Expetimental Evaluation - Obtained Results for Topic Categorization"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Mon Jan
+18 22:52:53 2016
 
 \begin{table}[ht]
 \centering
 \begin{tabular}{lllll}
   \hline
-V1 & V2 & 20ng & 4uni & acm \\ 
+V1 & V2 & 20NG & 4UNI & ACM \\ 
   \hline
-\multirow{2}{*}{culazy} & micF1 & 88.88 $\pm$  0.47 & 71.08 $\pm$  1.52 & 62.87 $\pm$  1.16 \\ 
-   & macF1 & 89.03 $\pm$  0.43 & 80.04 $\pm$  1.05 & 73.11 $\pm$  0.24 \\ 
-  \multirow{2}{*}{knn} & micF1 & 79.73 $\pm$  0.36 & 54.65 $\pm$  1.73 & 56 $\pm$  0.69 \\ 
-   & macF1 & 79.78 $\pm$  0.32 & 67.73 $\pm$  1.54 & 68.76 $\pm$  0.56 \\ 
-  \multirow{2}{*}{lazy} & micF1 & 87.69 $\pm$  0.66 & 71.8 $\pm$  2.18 & 64.15 $\pm$  1.77 \\ 
-   & macF1 & 87.84 $\pm$  0.62 & 80.42 $\pm$  1.71 & 72.82 $\pm$  0.58 \\ 
-  \multirow{2}{*}{rf} & micF1 & 57.36 $\pm$  1.15 & 41.86 $\pm$  0.53 & 28.65 $\pm$  6.75 \\ 
-   & macF1 & 58.28 $\pm$  0.92 & 58.42 $\pm$  0.17 & 40.61 $\pm$  6.55 \\ 
+\multirow{2}{*}{CULAZY} & microF1 & \bf{89.03 $\pm$  0.43} & \bf{80.04 $\pm$  1.05} & \bf{73.11 $\pm$  0.24} \\ 
+   & macroF1 & \bf{88.88 $\pm$  0.47} & \bf{71.08 $\pm$  1.52} & \bf{62.87 $\pm$  1.16} \\ 
+  \multirow{2}{*}{KNN} & microF1 & 79.78 $\pm$  0.32 & 67.73 $\pm$  1.54 & 68.76 $\pm$  0.56 \\ 
+   & macroF1 & 79.73 $\pm$  0.36 & 54.65 $\pm$  1.73 & 56 $\pm$  0.69 \\ 
+  \multirow{2}{*}{LAZY} & microF1 & \bf{87.84 $\pm$  0.62} & \bf{80.42 $\pm$  1.71} & \bf{72.82 $\pm$  0.58} \\ 
+   & macroF1 & \bf{87.69 $\pm$  0.66} & \bf{71.8 $\pm$  2.18} & \bf{64.15 $\pm$  1.77} \\ 
+  \multirow{2}{*}{RF} & microF1 & 58.28 $\pm$  0.92 & 58.42 $\pm$  0.17 & 40.61 $\pm$  6.55 \\ 
+   & macroF1 & 57.36 $\pm$  1.15 & 41.86 $\pm$  0.53 & 28.65 $\pm$  6.75 \\ 
    \hline
 \end{tabular}
-\caption{MicroF1} 
+\caption{Expetimental Evaluation - Obtained Results for Topic Categorization} 
 \end{table}
 
 \end{document}
