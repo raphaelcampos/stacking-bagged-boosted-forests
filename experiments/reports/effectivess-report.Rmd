@@ -9,25 +9,14 @@ output:
 header-includes: \usepackage{multirow}
 ---
 
-# File name standart
-O formato dos arquivo devem ser blabla
+# Replicando resultados
 
-# Comparison
 
-dajshdkajhdajksd]
-aljdhakdhasjkhda
-
-hasjdhajk
-
-asdhahdkash
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-library(hash)
-library(caret)
+source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
 
-source("utils.R")
-
-dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results"
+dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results\ 03-02-15/results/"
 
 # load results from directory
 # and extract information such as

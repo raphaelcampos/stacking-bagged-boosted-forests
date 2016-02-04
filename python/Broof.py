@@ -179,75 +179,8 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
             #y, expanded_class_weight = self._validate_y_class_weight(y)
             self.n_classes_ = [self.n_classes_]
-            self._set_oob_score(X, y, sample_weight)
+            self._set_oob_score(X, y)
 
-
-    def _set_oob_score(self, X, y, sample_weight=None):
-
-        if sample_weight == None:
-            return
-
-        """Compute out-of-bag score"""
-        X = check_array(X, dtype=DTYPE, accept_sparse='csr')
-
-        n_classes_ = self.n_classes_
-
-        n_samples = y.shape[0]
-
-        oob_decision_function = []
-        oob_score = 0.0
-        predictions = []
-        oob_err = []
-
-        sample_weight_tmp = sample_weight.copy()
-        
-        for k in range(self.n_outputs_):
-            predictions.append(np.zeros((n_samples, n_classes_[k])))
-            oob_err.append(np.ones(len(self.estimators_)))
-
-        for i, estimator in enumerate(self.estimators_):
-            unsampled_indices = _generate_unsampled_indices(
-                estimator.random_state, n_samples)
-            p_estimator = estimator.predict_proba(X[unsampled_indices, :],
-                                                  check_input=False)
-
-            if self.n_outputs_ == 1:
-                p_estimator = [p_estimator]
-
-            for k in range(self.n_outputs_):
-                predictions[k][unsampled_indices, :] += p_estimator[k]
-                
-                incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
-                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
-                
-                estimator_weight = (
-                    np.log((1. - estimator_error) / estimator_error))
-
-                oob_err[k][i] = estimator_error
-                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
-
-        for k in range(self.n_outputs_):
-            if (predictions[k].sum(axis=1) == 0).any():
-                warn("Some inputs do not have OOB scores. "
-                     "This probably means too few trees were used "
-                     "to compute any reliable oob estimates.")
-
-            decision = (predictions[k] /
-                        predictions[k].sum(axis=1)[:, np.newaxis])
-            oob_decision_function.append(decision)
-            oob_score += np.mean(y[:, k] ==
-                                 np.argmax(predictions[k], axis=1), axis=0)
-
-        if self.n_outputs_ == 1:
-            self.oob_decision_function_ = oob_decision_function[0]
-            self.oob_err_ = oob_err[0]
-        else:
-            self.oob_decision_function_ = oob_decision_function
-            self.oob_err_ = oob_err
-
-        print sample_weight_tmp.copy() 
-
-        self.oob_score_ = oob_score / self.n_outputs_
 
     def predict_proba(self, X):
         """Predict class probabilities for X.
@@ -284,8 +217,8 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  = np.exp(1 - self.oob_err_)
-        
+        adjust  =  np.exp(1 - self.oob_err_)
+
         # Reduce
         proba = all_proba[0]*adjust[0]
         
@@ -323,7 +256,9 @@ class Broof(AdaBoostClassifier):
         self.max_features = max_features
 
         super(Broof, self).__init__(
-            base_estimator=BoostedRandomForestClassifier(criterion='gini', max_features=max_features, n_estimators=n_trees, n_jobs=n_jobs, bootstrap=True, oob_score=True),
+            base_estimator=BoostedRandomForestClassifier(criterion='gini'
+                , max_features=max_features, n_estimators=n_trees,
+                 n_jobs=n_jobs, bootstrap=True, oob_score=True),
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
@@ -379,11 +314,11 @@ class Broof(AdaBoostClassifier):
                 incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
                 estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
                 
-                estimator_weight = (
-                    ((1. - estimator_error) / estimator_error))
+                estimator_weight = np.log(
+                    (1. - estimator_error) / estimator_error)
 
                 oob_err[k][i] = estimator_error
-                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (incorrect))
 
         for k in range(rf.n_outputs_):
             if (predictions[k].sum(axis=1) == 0).any():
@@ -422,7 +357,7 @@ class Broof(AdaBoostClassifier):
             pass
 
         estimator.fit(X, y, sample_weight=sample_weight)
-        sample_weight = self._set_oob_score(estimator, X, y, sample_weight)
+        sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
         
         if iboost == 0:
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
@@ -450,25 +385,25 @@ class Broof(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        #if estimator_error >= 1. - (1. / n_classes):
-        #    self.estimators_.pop(-1)
-        #    if len(self.estimators_) == 0:
-        #        raise ValueError('BaseClassifier in AdaBoostClassifier '
-        #                         'ensemble is worse than random, ensemble '
-        #                         'can not be fit.')
-        #    return None, None, None
+        if estimator_error >= 1. - (1. / n_classes) or np.isnan(estimator_error):
+            self.estimators_.pop(-1)
+            if len(self.estimators_) == 0:
+                raise ValueError('BaseClassifier in AdaBoostClassifier '
+                                 'ensemble is worse than random, ensemble '
+                                 'can not be fit.')
+            return None, None, None
 
         # Boost weight
         estimator_weight = self.learning_rate * (
-            np.log((1. - estimator_error) / estimator_error)) # + np.log(n_classes - 1))
+            np.log((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
 
        
         # Only boost the weights if I will fit again
-        #if not iboost == self.n_estimators - 1:
+        if not iboost == self.n_estimators - 1:
             # Only boost positive weights
-        #    sample_weight[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+            sample_weight = sample_weight_aux
 
-        # save some data
+        # trying to save some data
         del estimator.oob_decision_function_
 
         return sample_weight, estimator_weight, estimator_error 
@@ -501,7 +436,7 @@ class Broof(AdaBoostClassifier):
         if sample_weight is None:
             # Initialize weights to 1 / n_samples
             sample_weight = np.empty(X.shape[0], dtype=np.float)
-            sample_weight[:] = 1.# / X.shape[0]
+            sample_weight[:] = 1. / X.shape[0]
         else:
             # Normalize existing weights
             sample_weight = sample_weight / sample_weight.sum() 
@@ -544,11 +479,9 @@ class Broof(AdaBoostClassifier):
             if sample_weight_sum <= 0:
                 break
 
-            #if iboost < self.n_estimators - 1:
-            #    # Normalize
-            #    sample_weight /= sample_weight_sum
-
-            print "sample_weight : ",sample_weight
+            if iboost < self.n_estimators - 1:
+                # Normalize
+                sample_weight /= sample_weight_sum
 
         return self
 
@@ -575,17 +508,17 @@ class Broof(AdaBoostClassifier):
         print pred
         return pred
         """
-        proba = sum(estimator.predict_proba(X)
+        print self.estimator_weights_
+        proba = sum(estimator.predict_proba(X) * w
                         for estimator, w in zip(self.estimators_,
                                                 self.estimator_weights_))
 
-        #proba /= self.estimator_weights_.sum()
+        proba /= self.estimator_weights_.sum()
         #proba = np.exp((1. / (n_classes - 1)) * proba)
-        #normalizer = proba.sum(axis=1)[:, np.newaxis]
-        #normalizer[normalizer == 0.0] = 1.0
-        #proba /= normalizer
+        normalizer = proba.sum(axis=1)[:, np.newaxis]
+        normalizer[normalizer == 0.0] = 1.0
+        proba /= normalizer
 
-        print proba
         return proba
 
     def predict(self, X):

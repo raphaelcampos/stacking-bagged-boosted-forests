@@ -5,8 +5,31 @@
 // broof
 //#include "lib/broof/tree.hpp"
 #include "lib/broof/rf_bst.hpp"
+#include "lib/broof/rf.hpp"
 
 inline void prepareTrainSamples(RF_BOOST *rf, Dataset &training, cuSimilarity *k_nearest, unsigned int K)
+{
+	for(int i = 0; i < K; i++) {
+		DTDocument *doc = new DTDocument();
+        cuSimilarity &sim = k_nearest[i];
+
+		unsigned int idx = sim.doc_id;
+	    doc->set_id(Utils::toString(idx));
+	    doc->set_class(Utils::toString(training.getSamples()[idx].y));
+
+        std::map<unsigned int, float>::iterator it;
+		for(it = training.getSamples()[idx].features.begin(); it != training.getSamples()[idx].features.end(); ++it){
+			unsigned int term_id = it->first;
+			float term_count = it->second;
+			
+			doc->insert_term(term_id, term_count); //* log((double)training.size() / float(max(1, training.getIdf(term_id))));
+		}
+    	
+    	rf->add_document(doc);
+    }
+}
+
+inline void prepareTrainSamples(RF *rf, Dataset &training, cuSimilarity *k_nearest, unsigned int K)
 {
 	for(int i = 0; i < K; i++) {
 		DTDocument *doc = new DTDocument();
@@ -33,7 +56,7 @@ cuLazyNN_Boost::~cuLazyNN_Boost(){
 
 }
 
-cuLazyNN_Boost::cuLazyNN_Boost(Dataset &data, int n_gpus) : cuKNN(data, n_gpus){
+cuLazyNN_Boost::cuLazyNN_Boost(Dataset &data, float max_features, int n_boost_iter, int n_gpus) : cuKNN(data, n_gpus), max_features(max_features), n_boost_iter(n_boost_iter){
 	training = data;
 }
 
@@ -58,7 +81,7 @@ int cuLazyNN_Boost::classify(const std::map<unsigned int, float> &test_features,
 
 	cuSimilarity *k_nearest = cuKNN.getKNearestNeighbors(test_features, K);
 
-	RF_BOOST * rf = new RF_BOOST(0, 0.0005, 100);
+	RF_BOOST * rf = new RF_BOOST(0, max_features, n_boost_iter);
 	
 	prepareTrainSamples(rf, training, k_nearest, K);
 	
@@ -96,7 +119,8 @@ std::vector<int> cuLazyNN_Boost::classify(Dataset &test, int K){
 			doc->insert_term(term_id, term_count);
 		}
 
-		RF_BOOST * rf = new RF_BOOST(0, 0.03, 100);
+
+		RF_BOOST * rf = new RF_BOOST(0, max_features, n_boost_iter);
 	
 		prepareTrainSamples(rf, training, idxs[i], K);
 		

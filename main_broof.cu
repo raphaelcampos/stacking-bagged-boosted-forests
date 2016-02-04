@@ -79,14 +79,14 @@ int get_class(std::string token);
 
 
 
-void teste_lazy_boost(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true, int n_gpus = 1){
+void teste_lazy_boost(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true, float max_features = 0.15, int n_boost_iter = 10, int n_gpus = 1){
 
     Dataset training_set, test_set;
     //int correct_cosine = 0, wrong_cosine = 0;
     
     training_set.loadGtKnnFormat(trainingFileName.c_str());
 
-    cuLazyNN_Boost cLazy(training_set, n_gpus);
+    cuLazyNN_Boost cLazy(training_set, max_features, n_boost_iter, n_gpus);
     test_set.loadGtKnnFormat(testFileName.c_str());
     //double start, end, total = 0;
 
@@ -281,7 +281,7 @@ int main(int argc, char **argv) {
         allowed.push_back("knn_rf");
         TCLAP::ValuesConstraint<string> allowedVals( allowed );
 
-        TCLAP::ValueArg<std::string> modelArg("m", "model", "Classifier model (default : knn).", false, allowed[0], &allowedVals);
+        TCLAP::ValueArg<std::string> modelArg("c", "classifier", "Classifier model (default : knn).", false, allowed[0], &allowedVals);
 
         cmd.add( modelArg );
 
@@ -321,6 +321,14 @@ int main(int argc, char **argv) {
 
         cmd.add( gpusArg );
 
+        TCLAP::ValueArg<int> iboost("i","iboost","Number of boosting iteration.(default : 10)", false, 10, "int");
+
+        cmd.add( iboost );
+
+        TCLAP::ValueArg<float> max_features("m","max_features","Number of boosting iteration.(default : 0.15)", false, 0.15, "float");
+
+        cmd.add( max_features );
+
         TCLAP::ValueArg<int> numTreesArg("n","number-trees","Maximum number of trees in the ensemble.(default : 100)", false, 100, "int");
 
         cmd.add( numTreesArg );
@@ -334,7 +342,7 @@ int main(int argc, char **argv) {
 
         std::string model = modelArg.getValue();
         if(model == "knn_rf"){
-            teste_lazy_boost(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue(), gpusArg.getValue());               
+            teste_lazy_boost(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue(), max_features.getValue(), iboost.getValue(), gpusArg.getValue());               
         }else{
             teste_cuNN(trainArg.getValue(), testArg.getValue(), resultsArg.getValue(), kArg.getValue(), trialArg.getValue(), appendSwitch.getValue());
         }

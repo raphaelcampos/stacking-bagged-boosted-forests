@@ -74,7 +74,7 @@ bool RF_BOOST::parse_train_line(const std::string& line) {
     double tf_idf = (raw) ? tf : 1.0 + log(tf);
     doc->insert_term(term_id, tf_idf);
   }
-  for (unsigned int i = 0; i < max_trees_; i++) {
+  for (unsigned int i = 0; i < max_trees_; ++i) {
     ensemble_[i]->add_document(doc);
   }
 
@@ -83,7 +83,7 @@ bool RF_BOOST::parse_train_line(const std::string& line) {
 }
 
 void RF_BOOST::add_document(const DTDocument* doc){
-  for (unsigned int i = 0; i < max_trees_; i++) {
+  for (unsigned int i = 0; i < max_trees_; ++i) {
     ensemble_[i]->add_document(doc);
   } 
 }

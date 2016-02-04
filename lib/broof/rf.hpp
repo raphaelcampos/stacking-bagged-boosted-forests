@@ -77,7 +77,7 @@ void RF::reset_model(){
 
 bool RF::parse_train_line(const std::string& line){
   std::vector<std::string> tokens;
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
   std::string doc_id = tokens[0];
@@ -171,7 +171,8 @@ WeightSet *RF::build(WeightSet *w) {
     {
       if (w != NULL) { 
         {
-          //std::cerr << "  WeightUpdate RF " << i << ": " << miss << "/" << total << "=" << oob_err << " alpha=" << alpha << std::endl;
+          //if(isnan(oob_err))
+          //  std::cerr << "  WeightUpdate RF " << i << ": " << miss << "/" << total << "=" << oob_err << " alpha=" << alpha << std::endl;
           for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
             if (oob_[i][oobidx] != NULL) {
               if (is_miss[oobidx]) {
@@ -201,6 +202,8 @@ Scores<double> RF::classify(const DTDocument* doc){
   for(int i = 0; i < num_trees_; i++) {
     std::map<std::string, double> partial_scores = trees_[i]->get_partial_scores(doc);
       double weight = oob_err_[i];
+      if(isnan(weight))
+        continue;
       double adjust = exp(1.0 - weight); //(weight == 0.0 ? 1.0 : weight == 1.0 ? 0.0 : log((1.0-weight)/weight));
       /*#pragma omp critical (print_oob)
       {
@@ -243,7 +246,7 @@ Scores<double> RF::classify(const DTDocument* doc){
 
 void RF::parse_test_line(const std::string& line){
   std::vector<std::string> tokens;
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
 
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return;
 

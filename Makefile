@@ -1,4 +1,4 @@
-OMP= -Xcompiler -fopenmp
+OMP= -Xcompiler -fopenmp -Xcompiler --fast-math
 
 # Gencode arguments
 ifeq ($(OS_ARCH),armv7l)
@@ -11,6 +11,8 @@ ifeq ($(SMS),)
 $(info >>> WARNING - no SM architectures have been specified - waiving sample <<<)
 SAMPLE_ENABLED := 0
 endif
+
+SMS=20
 
 ifeq ($(GENCODE_FLAGS),)
 # Generate SASS code for each SM architecture listed in $(SMS)

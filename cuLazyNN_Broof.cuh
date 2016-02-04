@@ -26,7 +26,7 @@ class cuLazyNN_Boost : LazyNN_RF{
 		 * Constructor. Trains the model based on the given training set.
 		 * \param data - Training set
 		 */
-		cuLazyNN_Boost(Dataset &data, int n_gpus = 1);
+		cuLazyNN_Boost(Dataset &data, float max_features = 0.15, int n_boost_iter = 10, int n_gpus = 1);
 
 		/**
 		 * Destructor.
@@ -57,6 +57,9 @@ class cuLazyNN_Boost : LazyNN_RF{
 		Dataset training;
 
 		cuNearestNeighbors cuKNN;	
+
+		float max_features;
+		int n_boost_iter;
 
 		// Dataset statistics
 		unsigned int num_docs;

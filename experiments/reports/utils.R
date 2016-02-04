@@ -1,9 +1,9 @@
 library(xtable)
 
-source("f1-measure.R")
+source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/f1-measure.R")
 
 parser_class_column <- function(column){
-  return(as.numeric(sub(":[0-9]*","", sub("CLASS=", "", column))))
+  return(as.numeric(sub(":[0-9]+.*[0-9]*","", sub("CLASS=", "", column))))
 }
 
 result.load <- function(file, trials, metric = "f1"){
@@ -24,7 +24,7 @@ result.load <- function(file, trials, metric = "f1"){
   
   y = parser_class_column(table$V2)
   pred = parser_class_column(table$V3)
-  
+
   y = matrix(y, ncol = trials)
   pred = matrix(pred, ncol = trials)
   
@@ -62,6 +62,7 @@ result.load.dir <- function(dir, trials, metric = "f1"){
   }
   
   files = list.files(path=dir, pattern = "^[results_:alnum:_:alnum:]")
+
   ma = matrix(unlist(strsplit(files, "_")),3)
   
   models_labels = unique(ma[2,])
@@ -93,6 +94,10 @@ stats.sigficant.winner <- function(measures, model_labels, means,
                                    p.adjust="bonf", conf.level = 0.95){
   if(conf.level > 1 || conf.level <= 0)
     stop("conf.level must be in (0,1]")
+  
+  if(length(model_labels) <= 1){
+    return(array(F, 1))
+  }
   
   library(Matrix)
   
