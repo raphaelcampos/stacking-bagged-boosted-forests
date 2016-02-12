@@ -62,7 +62,7 @@ result.load.dir <- function(dir, trials, metric = "f1"){
   }
   
   files = list.files(path=dir, pattern = "^[results_:alnum:_:alnum:]")
-
+  
   ma = matrix(unlist(strsplit(files, "_")),3)
   
   models_labels = unique(ma[2,])
@@ -76,7 +76,7 @@ result.load.dir <- function(dir, trials, metric = "f1"){
   
   for (i in 1:length(files)) {
     file = paste(dir, files[i], sep = "/")
-    
+
     results = result.load(file, trials)
     
     m = models[[ma[2,i]]]
@@ -103,7 +103,7 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   
   trials = length(measures)/length(model_labels)
   
-  pv = pairwise.t.test(measures, rep(model_labels, each=trials), 
+  pv = pairwise.wilcox.test(measures, rep(model_labels, each=trials), 
                        paired = T, p.adjust=p.adjust)$p.value
   
   pv = pv > (1 - conf.level)
@@ -113,7 +113,9 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   pv = forceSymmetric(t(pv))
   diag(pv) = T
   
-  return(pv[,which.max(means)])
+  sorted <- order(model_labels)
+  rownames(pv) <- colnames(pv) <- model_labels[sorted]
+  return(pv[model_labels, model_labels[which.max(means)]])
 }
 
 stats.sigficant.winner.table <- function(measures, means, rownames, colnames,

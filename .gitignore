@@ -7,3 +7,4 @@ release/results/
 venn-diagrams/
 *.pyc
 python/*.so
+*_cache

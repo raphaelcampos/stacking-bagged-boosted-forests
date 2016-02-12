@@ -24,29 +24,6 @@
 \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
 \usepackage[margin=1in]{geometry}
-\usepackage{color}
-\usepackage{fancyvrb}
-\newcommand{\VerbBar}{|}
-\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
-\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
-% Add ',fontsize=\small' for more characters per line
-\usepackage{framed}
-\definecolor{shadecolor}{RGB}{248,248,248}
-\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
-\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{{#1}}}}
-\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{{#1}}}
-\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
-\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
-\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
-\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
-\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
-\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{{#1}}}}
-\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{{#1}}}
-\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{{#1}}}
-\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
-\newcommand{\RegionMarkerTok}[1]{{#1}}
-\newcommand{\ErrorTok}[1]{\textbf{{#1}}}
-\newcommand{\NormalTok}[1]{{#1}}
 \usepackage{graphicx}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -111,43 +88,77 @@
 \maketitle
 
 
-\section{Replicando resultados}\label{replicando-resultados}
+\section{Experimento}\label{experimento}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{f1_avg =}\StringTok{ }\KeywordTok{round}\NormalTok{(}\KeywordTok{apply}\NormalTok{(f1, }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), mean)*}\DecValTok{100}\NormalTok{, }\DataTypeTok{digits=}\DecValTok{2}\NormalTok{)}
-\NormalTok{f1_sd =}\StringTok{ }\KeywordTok{round}\NormalTok{(}\KeywordTok{apply}\NormalTok{(f1, }\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{), sd)*}\DecValTok{100}\NormalTok{, }\DataTypeTok{digits=}\DecValTok{2}\NormalTok{)}
+Utilizei o executável \textbf{\emph{tcpp}} compilado pelo Thiago Salles
+que estava no pacote que ele enviou no último email.
 
-\NormalTok{winner_table <-}\StringTok{ }\KeywordTok{stats.sigficant.winner.table}\NormalTok{(f1, f1_avg, models_labels, datasets_labels)}
+Para cada um dos \emph{dataset} eu rodei \emph{cross-validation
+10-folds}. Para comparaćão dos métodos foi utilizado test t com correćão
+de bonferroni. Os valores em negritos representam os vencedores e são
+estatisticamente significantes.
 
-\KeywordTok{print_meas}\NormalTok{(f1_avg, f1_sd, models_labels, datasets_labels,}
-           \KeywordTok{c}\NormalTok{(}\StringTok{"microF1"}\NormalTok{, }\StringTok{"macroF1"}\NormalTok{), winner_table, }
-           \DataTypeTok{caption =} \StringTok{"Expetimental Evaluation - Obtained Results for Topic Categorization"}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
+\section{Resultados}\label{resultados}
 
-\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Thu Feb 4
-11:17:33 2016
+Fiz a comparaćão entre 5 métodos, são eles: Random Forest(RF), Random
+Forest com 2000 árvores (RF2000), Lazy (KNN + RF), KNN e BROOF.
+
+Os paramêtros usados para RF, RF2000 e BROOF foram os mesmo para cada
+dataset (exceto o número de árvores). Para os métodos baseados no KNN
+foi usado k = 30.
+
+A tabela a seguir compara todos o métodos. Como pode-se notar o método
+Lazy ganhou ou empatou com todos os métodos em todos os 4
+\emph{datasets}.
+
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Thu Feb
+11 17:55:49 2016
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{lllll}
+\begin{tabular}{llllll}
   \hline
-V1 & V2 & REUTERS90 & 20NG1 & 4UNI \\ 
+V1 & V2 & REUTERS90 & 20NG1 & 4UNI & ACM \\ 
   \hline
-\multirow{2}{*}{RF2000} & microF1 & 63.08 $\pm$  2.46 & \bf{0 $\pm$  0} & \bf{81.17 $\pm$  1.16} \\ 
-   & macroF1 & \bf{24.72 $\pm$  1.09} & \bf{0 $\pm$  0} & \bf{73.19 $\pm$  0.93} \\ 
-  \multirow{2}{*}{BROOF} & microF1 & \bf{63.12 $\pm$  2.39} & 87.82 $\pm$  1.03 & 81.12 $\pm$  1.06 \\ 
-   & macroF1 & \bf{24.63 $\pm$  1.22} & 87.76 $\pm$  0.79 & 73 $\pm$  0.82 \\ 
-  \multirow{2}{*}{KNN} & microF1 & \bf{65.93 $\pm$  2.66} & 55.63 $\pm$  4.38 & \bf{48.38 $\pm$  1.29} \\ 
-   & macroF1 & \bf{24.03 $\pm$  2.08} & 66.36 $\pm$  2.87 & \bf{26.06 $\pm$  1.36} \\ 
-  \multirow{2}{*}{LAZY} & microF1 & 65.12 $\pm$  2.94 & \bf{88.95 $\pm$  0.62} & \bf{80.72 $\pm$  0.77} \\ 
-   & macroF1 & \bf{26.01 $\pm$  1.98} & \bf{88.78 $\pm$  0.54} & \bf{72.01 $\pm$  0.9} \\ 
-  \multirow{2}{*}{RF} & microF1 & \bf{63.11 $\pm$  2.41} & 86.84 $\pm$  1.06 & \bf{80.87 $\pm$  1.5} \\ 
-   & macroF1 & \bf{24.79 $\pm$  1.7} & 86.77 $\pm$  0.74 & \bf{72.78 $\pm$  1.73} \\ 
+\multirow{2}{*}{RF2000} & microF1 & \bf{63.08 $\pm$  2.46} & \bf{88.07 $\pm$  1.02} & \bf{81.17 $\pm$  1.16} & 71.01 $\pm$  0.88 \\ 
+   & macroF1 & \bf{24.72 $\pm$  1.09} & \bf{88.14 $\pm$  0.72} & \bf{73.19 $\pm$  0.93} & \bf{60.25 $\pm$  2.18} \\ 
+  \multirow{2}{*}{BROOF} & microF1 & 63.12 $\pm$  2.39 & \bf{87.82 $\pm$  1.03} & \bf{81.12 $\pm$  1.06} & 70.99 $\pm$  0.8 \\ 
+   & macroF1 & \bf{24.63 $\pm$  1.22} & \bf{87.76 $\pm$  0.79} & \bf{73 $\pm$  0.82} & \bf{60.34 $\pm$  2.11} \\ 
+  \multirow{2}{*}{KNN} & microF1 & \bf{65.93 $\pm$  2.66} & 55.63 $\pm$  4.38 & 48.38 $\pm$  1.29 & 66.94 $\pm$  0.56 \\ 
+   & macroF1 & \bf{24.03 $\pm$  2.08} & 66.36 $\pm$  2.87 & 26.06 $\pm$  1.36 & 57.34 $\pm$  1.59 \\ 
+  \multirow{2}{*}{LAZY} & microF1 & \bf{65.12 $\pm$  2.94} & \bf{88.95 $\pm$  0.62} & \bf{80.72 $\pm$  0.77} & \bf{73.69 $\pm$  0.44} \\ 
+   & macroF1 & \bf{26.01 $\pm$  1.98} & \bf{88.78 $\pm$  0.54} & \bf{72.01 $\pm$  0.9} & \bf{63.63 $\pm$  1.19} \\ 
+  \multirow{2}{*}{RF} & microF1 & 63.11 $\pm$  2.41 & 86.84 $\pm$  1.06 & \bf{80.87 $\pm$  1.5} & 70.61 $\pm$  0.77 \\ 
+   & macroF1 & \bf{24.79 $\pm$  1.7} & 86.77 $\pm$  0.74 & \bf{72.78 $\pm$  1.73} & \bf{60.39 $\pm$  1.45} \\ 
    \hline
 \end{tabular}
-\caption{Expetimental Evaluation - Obtained Results for Topic Categorization} 
+\caption{Comparaćão entre todos os métodos} 
+\end{table}
+
+A tabela a seguir compara somente RF, RF2000 e BROOF, pois eu estava
+achando que o BROOF da implementaćão que o Thiago me passou não era nada
+mais que uma RF com muitas árvores (por isso a comparacão com uma RF de
+2000 árvores). E como pode-se notar na tabela abaixo, os métodos tiveram
+empate estatístico em todos os datasets.
+
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Wed Feb
+10 22:07:58 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & REUTERS90 & 20NG1 & 4UNI & ACM \\ 
+  \hline
+\multirow{2}{*}{RF2000} & microF1 & \bf{63.08 $\pm$  2.46} & \bf{88.07 $\pm$  1.02} & \bf{81.17 $\pm$  1.16} & \bf{71.01 $\pm$  0.88} \\ 
+   & macroF1 & \bf{24.72 $\pm$  1.09} & \bf{88.14 $\pm$  0.72} & \bf{73.19 $\pm$  0.93} & \bf{60.25 $\pm$  2.18} \\ 
+  \multirow{2}{*}{BROOF} & microF1 & \bf{63.12 $\pm$  2.39} & \bf{87.82 $\pm$  1.03} & \bf{81.12 $\pm$  1.06} & \bf{70.99 $\pm$  0.8} \\ 
+   & macroF1 & \bf{24.63 $\pm$  1.22} & \bf{87.76 $\pm$  0.79} & \bf{73 $\pm$  0.82} & \bf{60.34 $\pm$  2.11} \\ 
+  \multirow{2}{*}{RF} & microF1 & \bf{63.11 $\pm$  2.41} & \bf{86.84 $\pm$  1.06} & \bf{80.87 $\pm$  1.5} & 70.61 $\pm$  0.77 \\ 
+   & macroF1 & \bf{24.79 $\pm$  1.7} & \bf{86.77 $\pm$  0.74} & \bf{72.78 $\pm$  1.73} & \bf{60.39 $\pm$  1.45} \\ 
+   \hline
+\end{tabular}
+\caption{Comparacão entre BROOF, RF e RF2000} 
 \end{table}
 
 \end{document}

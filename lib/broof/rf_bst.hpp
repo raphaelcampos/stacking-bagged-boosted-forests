@@ -26,7 +26,7 @@ class RF_BOOST : public SupervisedClassifier {
       : SupervisedClassifier(r), m_(m), max_trees_(max_trees) {
        docs_processed_ = 0;
       for (unsigned int i = 0; i < max_trees_; i++) {
-        RF * rf = new RF(round, m_, 25/*25 i*/, maxh, trn_err);
+        RF * rf = new RF(round, m_, 5/*25 i*/, maxh, trn_err);
         if (raw) rf->use_raw_weights();
         rf->set_doc_delete(false);
         ensemble_[i] = rf;
