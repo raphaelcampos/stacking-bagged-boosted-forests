@@ -16,10 +16,10 @@ Utilizei o executável ***tcpp*** compilado pelo Thiago Salles que estava no pac
 
 Para cada um dos *dataset* eu rodei *cross-validation 10-folds*. Para comparaćão dos métodos foi utilizado test t com correćão de bonferroni. Os valores em negritos representam os vencedores e são estatisticamente significantes.
 
-```{r, message=FALSE, warning=FALSE, echo=FALSE, cache=TRUE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
 
-dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results\ 03-02-15/results/"
+dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_test_exp/"
 
 # load results from directory
 # and extract information such as
@@ -35,13 +35,8 @@ datasets_labels = toupper(results[[3]])
 ```
 
 # Resultados
-Fiz a comparaćão entre 5 métodos, são eles: Random Forest(RF), Random Forest com 2000 árvores (RF2000), Lazy (KNN + RF), KNN e BROOF.
 
-Os paramêtros usados para RF, RF2000 e BROOF foram os mesmo para cada dataset (exceto o número de árvores). Para os métodos baseados no KNN foi usado k = 30.
-
-A tabela a seguir compara todos o métodos. Como pode-se notar o método Lazy ganhou ou empatou com todos os métodos em todos os 4 *datasets*.
-
-```{r, results="asis", echo=F, cache=TRUE}
+```{r, results="asis", echo=F}
 f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
 f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
 
@@ -53,19 +48,4 @@ print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
            caption = "Comparaćão entre todos os métodos")
 ```
 
-A tabela a seguir compara somente RF, RF2000 e BROOF, pois eu estava achando que o BROOF da implementaćão que o Thiago me passou não era nada mais que uma RF com muitas árvores (por isso a comparacão com uma RF de 2000 árvores). E como pode-se notar na tabela abaixo, os métodos tiveram empate estatístico em todos os datasets.
 
-```{r, results="asis", echo=F, cache=TRUE}
-
-models_labelsa <- models_labels[c(1,2,5)]
-
-winner_table <- stats.sigficant.winner.table(f1[c(1,2,3,4,9,10),,],
-                                            f1_avg[c(1,2,3,4,9,10),], models_labelsa, 
-                                            datasets_labels, p.adjust = "bonf")
-
-print_meas(f1_avg[c(1,2,3,4,9,10),], f1_sd[c(1,2,3,4,9,10),], models_labels[c(1,2,5)],
-           datasets_labels,
-           c("microF1", "macroF1"), winner_table, 
-           caption = "Comparacão entre BROOF, RF e RF2000")
-
-```

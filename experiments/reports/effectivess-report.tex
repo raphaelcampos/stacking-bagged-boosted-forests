@@ -100,65 +100,28 @@ estatisticamente significantes.
 
 \section{Resultados}\label{resultados}
 
-Fiz a comparaćão entre 5 métodos, são eles: Random Forest(RF), Random
-Forest com 2000 árvores (RF2000), Lazy (KNN + RF), KNN e BROOF.
-
-Os paramêtros usados para RF, RF2000 e BROOF foram os mesmo para cada
-dataset (exceto o número de árvores). Para os métodos baseados no KNN
-foi usado k = 30.
-
-A tabela a seguir compara todos o métodos. Como pode-se notar o método
-Lazy ganhou ou empatou com todos os métodos em todos os 4
-\emph{datasets}.
-
-\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Thu Feb
-11 17:55:49 2016
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Mon Feb
+22 14:34:42 2016
 
 \begin{table}[ht]
 \centering
 \begin{tabular}{llllll}
   \hline
-V1 & V2 & REUTERS90 & 20NG1 & 4UNI & ACM \\ 
+V1 & V2 & REUTERS90 & 20NG & 4UNI & ACM \\ 
   \hline
-\multirow{2}{*}{RF2000} & microF1 & \bf{63.08 $\pm$  2.46} & \bf{88.07 $\pm$  1.02} & \bf{81.17 $\pm$  1.16} & 71.01 $\pm$  0.88 \\ 
-   & macroF1 & \bf{24.72 $\pm$  1.09} & \bf{88.14 $\pm$  0.72} & \bf{73.19 $\pm$  0.93} & \bf{60.25 $\pm$  2.18} \\ 
-  \multirow{2}{*}{BROOF} & microF1 & 63.12 $\pm$  2.39 & \bf{87.82 $\pm$  1.03} & \bf{81.12 $\pm$  1.06} & 70.99 $\pm$  0.8 \\ 
-   & macroF1 & \bf{24.63 $\pm$  1.22} & \bf{87.76 $\pm$  0.79} & \bf{73 $\pm$  0.82} & \bf{60.34 $\pm$  2.11} \\ 
-  \multirow{2}{*}{KNN} & microF1 & \bf{65.93 $\pm$  2.66} & 55.63 $\pm$  4.38 & 48.38 $\pm$  1.29 & 66.94 $\pm$  0.56 \\ 
-   & macroF1 & \bf{24.03 $\pm$  2.08} & 66.36 $\pm$  2.87 & 26.06 $\pm$  1.36 & 57.34 $\pm$  1.59 \\ 
-  \multirow{2}{*}{LAZY} & microF1 & \bf{65.12 $\pm$  2.94} & \bf{88.95 $\pm$  0.62} & \bf{80.72 $\pm$  0.77} & \bf{73.69 $\pm$  0.44} \\ 
-   & macroF1 & \bf{26.01 $\pm$  1.98} & \bf{88.78 $\pm$  0.54} & \bf{72.01 $\pm$  0.9} & \bf{63.63 $\pm$  1.19} \\ 
-  \multirow{2}{*}{RF} & microF1 & 63.11 $\pm$  2.41 & 86.84 $\pm$  1.06 & \bf{80.87 $\pm$  1.5} & 70.61 $\pm$  0.77 \\ 
-   & macroF1 & \bf{24.79 $\pm$  1.7} & 86.77 $\pm$  0.74 & \bf{72.78 $\pm$  1.73} & \bf{60.39 $\pm$  1.45} \\ 
+\multirow{2}{*}{RF2000} & microF1 & 63.02 $\pm$  0.79 & 0 $\pm$  0 & 81.16 $\pm$  0.88 & 71.01 $\pm$  0.36 \\ 
+   & macroF1 & 24.79 $\pm$  1.38 & 0 $\pm$  0 & \bf{73.03 $\pm$  2.25} & \bf{60.55 $\pm$  1.48} \\ 
+  \multirow{2}{*}{BROOF} & microF1 & \bf{66.82 $\pm$  0.7} & \bf{89.82 $\pm$  0} & \bf{83.19 $\pm$  0.57} & \bf{73.24 $\pm$  0.73} \\ 
+   & macroF1 & \bf{28.53 $\pm$  0.37} & \bf{89.55 $\pm$  0} & \bf{75.22 $\pm$  1.85} & \bf{62.58 $\pm$  1.73} \\ 
+  \multirow{2}{*}{KNN} & microF1 & \bf{67.31 $\pm$  0.87} & 84.47 $\pm$  0 & 73.09 $\pm$  1.04 & 69.55 $\pm$  0.6 \\ 
+   & macroF1 & 25.71 $\pm$  1.2 & 83.88 $\pm$  0 & 60.44 $\pm$  1.17 & 57.63 $\pm$  1.67 \\ 
+  \multirow{2}{*}{LAZY} & microF1 & 64.73 $\pm$  0.61 & 89.05 $\pm$  0 & 79.64 $\pm$  0.79 & \bf{73.22 $\pm$  0.62} \\ 
+   & macroF1 & 25.3 $\pm$  0.7 & 88.74 $\pm$  0 & 69.11 $\pm$  2.63 & \bf{61.9 $\pm$  2.38} \\ 
+  \multirow{2}{*}{RF} & microF1 & 63.02 $\pm$  1.06 & 87.59 $\pm$  0 & 80.16 $\pm$  0.95 & 70.67 $\pm$  0.46 \\ 
+   & macroF1 & 24.63 $\pm$  1.75 & 87.26 $\pm$  0 & 70.74 $\pm$  2.67 & \bf{60.46 $\pm$  1.46} \\ 
    \hline
 \end{tabular}
 \caption{Comparaćão entre todos os métodos} 
-\end{table}
-
-A tabela a seguir compara somente RF, RF2000 e BROOF, pois eu estava
-achando que o BROOF da implementaćão que o Thiago me passou não era nada
-mais que uma RF com muitas árvores (por isso a comparacão com uma RF de
-2000 árvores). E como pode-se notar na tabela abaixo, os métodos tiveram
-empate estatístico em todos os datasets.
-
-\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Wed Feb
-10 22:07:58 2016
-
-\begin{table}[ht]
-\centering
-\begin{tabular}{llllll}
-  \hline
-V1 & V2 & REUTERS90 & 20NG1 & 4UNI & ACM \\ 
-  \hline
-\multirow{2}{*}{RF2000} & microF1 & \bf{63.08 $\pm$  2.46} & \bf{88.07 $\pm$  1.02} & \bf{81.17 $\pm$  1.16} & \bf{71.01 $\pm$  0.88} \\ 
-   & macroF1 & \bf{24.72 $\pm$  1.09} & \bf{88.14 $\pm$  0.72} & \bf{73.19 $\pm$  0.93} & \bf{60.25 $\pm$  2.18} \\ 
-  \multirow{2}{*}{BROOF} & microF1 & \bf{63.12 $\pm$  2.39} & \bf{87.82 $\pm$  1.03} & \bf{81.12 $\pm$  1.06} & \bf{70.99 $\pm$  0.8} \\ 
-   & macroF1 & \bf{24.63 $\pm$  1.22} & \bf{87.76 $\pm$  0.79} & \bf{73 $\pm$  0.82} & \bf{60.34 $\pm$  2.11} \\ 
-  \multirow{2}{*}{RF} & microF1 & \bf{63.11 $\pm$  2.41} & \bf{86.84 $\pm$  1.06} & \bf{80.87 $\pm$  1.5} & 70.61 $\pm$  0.77 \\ 
-   & macroF1 & \bf{24.79 $\pm$  1.7} & \bf{86.77 $\pm$  0.74} & \bf{72.78 $\pm$  1.73} & \bf{60.39 $\pm$  1.45} \\ 
-   \hline
-\end{tabular}
-\caption{Comparacão entre BROOF, RF e RF2000} 
 \end{table}
 
 \end{document}

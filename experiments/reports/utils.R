@@ -20,20 +20,31 @@ result.load <- function(file, trials, metric = "f1"){
   if (metric == "f1") {
     n_metric = 2 
   }
-  table = read.table(file)
   
+  n_cols = seq_len(max(count.fields(file, sep = ' ')))
+  
+  lines <- readLines(file)
+  splits<- grep("#", lines)
+  
+  table = read.table(text = lines, header = F, fill = T, col.names = paste0("V", n_cols))
+    
   y = parser_class_column(table$V2)
   pred = parser_class_column(table$V3)
-
-  y = matrix(y, ncol = trials)
-  pred = matrix(pred, ncol = trials)
   
-  results = array(0, c(trials,n_metric))
+  y <- split(y, splits)
+  pred <- split(pred, splits)
+  
+  trials <- length(pred)
+  
+  #y = matrix(y, ncol = trials)
+  #pred = matrix(pred, ncol = trials)
+  
+  results = array(0, c(trials, n_metric))
   
   for (j in 1:trials) {
     # Compute metric
     if (metric == "f1") {
-      f1_meas = f1_measure(y[,j] + 1, pred[,j] + 1)
+      f1_meas = f1_measure(y[[j]] + 1, pred[[j]] + 1)
       results[j,1] = f1_meas[[1]]
       results[j,2] = f1_meas[[2]]
     } else {
@@ -103,9 +114,9 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   
   trials = length(measures)/length(model_labels)
   
-  pv = pairwise.wilcox.test(measures, rep(model_labels, each=trials), 
-                       paired = T, p.adjust=p.adjust)$p.value
-  
+  pv = pairwise.t.test(measures, rep(model_labels, each=trials), 
+                       paired = F, p.adjust=p.adjust)$p.value
+ 
   pv = pv > (1 - conf.level)
   pv_dim = dim(pv)[1]
   pv = rbind(matrix(F, nrow=1, ncol=pv_dim), pv)
