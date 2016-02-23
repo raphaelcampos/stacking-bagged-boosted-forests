@@ -10,22 +10,23 @@ from sklearn.externals import six
 from sklearn.ensemble.base import _partition_estimators
 from sklearn.tree._tree import DTYPE, DOUBLE
 import numpy as np
+from scipy.sparse import issparse
 
 from sklearn.externals.joblib import Parallel, delayed
 
 from sklearn.utils import check_random_state, check_array, compute_sample_weight
 from sklearn.utils.fixes import bincount
 
-def _generate_sample_indices(random_state, n_samples):
+def _generate_sample_indices(random_state, sample_weight, n_samples):
     """Private function used to _parallel_build_trees function."""
     random_instance = check_random_state(random_state)
-    sample_indices = random_instance.randint(0, n_samples, n_samples)
-
+    sample_indices = random_instance.choice(np.arange(0,n_samples), n_samples, p = sample_weight)
+   
     return sample_indices
 
-def _generate_unsampled_indices(random_state, n_samples):
+def _generate_unsampled_indices(random_state, samples_weight,n_samples):
     """Private function used to forest._set_oob_score fuction."""
-    sample_indices = _generate_sample_indices(random_state, n_samples)
+    sample_indices = _generate_sample_indices(random_state, samples_weight, n_samples)
     sample_counts = bincount(sample_indices, minlength=n_samples)
     unsampled_mask = sample_counts == 0
     indices_range = np.arange(n_samples)
@@ -33,10 +34,41 @@ def _generate_unsampled_indices(random_state, n_samples):
 
     return unsampled_indices
 
+def _parallel_build_trees(tree, forest, X, y, sample_weight, tree_idx, n_trees,
+                          verbose=0, class_weight=None):
+    """Private function used to fit a single tree in parallel."""
+    if verbose > 1:
+        print("building tree %d of %d" % (tree_idx + 1, n_trees))
+
+    if forest.bootstrap:
+        n_samples = X.shape[0]
+        if sample_weight is None:
+            curr_sample_weight = np.ones((n_samples,), dtype=np.float64)
+        else:
+            curr_sample_weight = np.ones((n_samples,), dtype=np.float64) #sample_weight.copy() #
+
+        indices = _generate_sample_indices(tree.random_state, sample_weight, n_samples)
+        sample_counts = bincount(indices, minlength=n_samples)
+        curr_sample_weight *= sample_counts
+
+        if class_weight == 'subsample':
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', DeprecationWarning)
+                curr_sample_weight *= compute_sample_weight('auto', y, indices)
+        elif class_weight == 'balanced_subsample':
+            curr_sample_weight *= compute_sample_weight('balanced', y, indices)
+
+        tree.fit(X, y, sample_weight=curr_sample_weight, check_input=False)
+    else:
+        tree.fit(X, y, sample_weight=sample_weight, check_input=False)
+
+    return tree
+
 def _parallel_helper(obj, methodname, *args, **kwargs):
     """Private helper to workaround Python 2 pickle limitations"""
     return getattr(obj, methodname)(*args, **kwargs)
 
+MAX_INT = np.iinfo(np.int32).max
 
 class BoostedRandomForestClassifier(RandomForestClassifier):
     """A random forest classifier.
@@ -156,30 +188,121 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
     DecisionTreeClassifier, ExtraTreesClassifier
     """
 
-
     def fit(self, X, y, sample_weight=None):
+        """Build a forest of trees from the training set (X, y).
+        Parameters
+        ----------
+        X : array-like or sparse matrix of shape = [n_samples, n_features]
+            The training input samples. Internally, it will be converted to
+            ``dtype=np.float32`` and if a sparse matrix is provided
+            to a sparse ``csc_matrix``.
+        y : array-like, shape = [n_samples] or [n_samples, n_outputs]
+            The target values (class labels in classification, real numbers in
+            regression).
+        sample_weight : array-like, shape = [n_samples] or None
+            Sample weights. If None, then samples are equally weighted. Splits
+            that would create child nodes with net zero or negative weight are
+            ignored while searching for a split in each node. In the case of
+            classification, splits are also ignored if they would result in any
+            single class carrying a negative weight in either child node.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        # Validate or convert input data
+        X = check_array(X, dtype=DTYPE, accept_sparse="csc")
+        if issparse(X):
+            # Pre-sort indices to avoid that each individual tree of the
+            # ensemble sorts the indices.
+            X.sort_indices()
 
-        self.oob_score = True
+        # Remap output
+        n_samples, self.n_features_ = X.shape
 
-        super(BoostedRandomForestClassifier, self).fit(X, y)
+        y = np.atleast_1d(y)
+        if y.ndim == 2 and y.shape[1] == 1:
+            warn("A column-vector y was passed when a 1d array was"
+                 " expected. Please change the shape of y to "
+                 "(n_samples,), for example using ravel().",
+                 DataConversionWarning, stacklevel=2)
+
+        if y.ndim == 1:
+            # reshape is necessary to preserve the data contiguity against vs
+            # [:, np.newaxis] that does not.
+            y = np.reshape(y, (-1, 1))
+
+        self.n_outputs_ = y.shape[1]
+
+        y, expanded_class_weight = self._validate_y_class_weight(y)
+
+        if getattr(y, "dtype", None) != DOUBLE or not y.flags.contiguous:
+            y = np.ascontiguousarray(y, dtype=DOUBLE)
+
+        if expanded_class_weight is not None:
+            if sample_weight is not None:
+                sample_weight = sample_weight * expanded_class_weight
+            else:
+                sample_weight = expanded_class_weight
+
+        # Check parameters
+        self._validate_estimator()
+
+        if not self.bootstrap and self.oob_score:
+            raise ValueError("Out of bag estimation only available"
+                             " if bootstrap=True")
+
+        random_state = check_random_state(self.random_state)
+
+        if not self.warm_start:
+            # Free allocated memory, if any
+            self.estimators_ = []
+
+        n_more_estimators = self.n_estimators - len(self.estimators_)
+
+        if n_more_estimators < 0:
+            raise ValueError('n_estimators=%d must be larger or equal to '
+                             'len(estimators_)=%d when warm_start==True'
+                             % (self.n_estimators, len(self.estimators_)))
+
+        elif n_more_estimators == 0:
+            warn("Warm-start fitting without increasing n_estimators does not "
+                 "fit new trees.")
+        else:
+            if self.warm_start and len(self.estimators_) > 0:
+                # We draw from the random state to get the random state we
+                # would have got if we hadn't used a warm_start.
+                random_state.randint(MAX_INT, size=len(self.estimators_))
+
+            trees = []
+            for i in range(n_more_estimators):
+                tree = self._make_estimator(append=False)
+                tree.set_params(random_state=random_state.randint(MAX_INT))
+                trees.append(tree)
+
+            # Parallel loop: we use the threading backend as the Cython code
+            # for fitting the trees is internally releasing the Python GIL
+            # making threading always more efficient than multiprocessing in
+            # that case.
+            trees = Parallel(n_jobs=self.n_jobs, verbose=self.verbose,
+                             backend="threading")(
+                delayed(_parallel_build_trees)(
+                    t, self, X, y, sample_weight, i, len(trees),
+                    verbose=self.verbose, class_weight=self.class_weight)
+                for i, t in enumerate(trees))
+
+            # Collect newly grown trees
+            self.estimators_.extend(trees)
 
         if self.oob_score:
-
-            y = np.atleast_1d(y)
-            if y.ndim == 2 and y.shape[1] == 1:
-                warn("A column-vector y was passed when a 1d array was"
-                     " expected. Please change the shape of y to "
-                     "(n_samples,), for example using ravel().",
-                     DataConversionWarning, stacklevel=2)
-
-            if y.ndim == 1:
-                # reshape is necessary to preserve the data contiguity against vs
-                # [:, np.newaxis] that does not.
-                y = np.reshape(y, (-1, 1))
-
-            #y, expanded_class_weight = self._validate_y_class_weight(y)
-            self.n_classes_ = [self.n_classes_]
             self._set_oob_score(X, y)
+
+        # Decapsulate classes_ attributes
+        if hasattr(self, "classes_") and self.n_outputs_ == 1:
+            self.n_classes_ = self.n_classes_[0]
+            self.classes_ = self.classes_[0]
+
+        return self
 
 
     def predict_proba(self, X):
@@ -217,8 +340,8 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  =  np.exp(1 - self.oob_err_)
-
+        adjust  =  np.exp(1. - self.oob_err_)
+        
         # Reduce
         proba = all_proba[0]*adjust[0]
         
@@ -226,7 +349,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             for j in range(1, len(all_proba)):
                 proba += all_proba[j]*adjust[j]
 
-            proba /= len(self.estimators_)
+            #proba /= len(self.estimators_)
 
         else:
             for j in range(1, len(all_proba)):
@@ -235,7 +358,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
             for k in range(self.n_outputs_):
                 proba[k] /= self.n_estimators
-
+        
         return proba
 
 class Broof(AdaBoostClassifier):         
@@ -258,7 +381,7 @@ class Broof(AdaBoostClassifier):
         super(Broof, self).__init__(
             base_estimator=BoostedRandomForestClassifier(criterion='gini'
                 , max_features=max_features, n_estimators=n_trees,
-                 n_jobs=n_jobs, bootstrap=True, oob_score=True),
+                 n_jobs=n_jobs, bootstrap=True, oob_score=False),
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
@@ -266,7 +389,7 @@ class Broof(AdaBoostClassifier):
 
     def _set_oob_score(self, rf, X, y, sample_weight=None):
 
-        if sample_weight == None:
+        if sample_weight is None:
             return
 
         y = np.atleast_1d(y)
@@ -284,7 +407,7 @@ class Broof(AdaBoostClassifier):
         """Compute out-of-bag score"""
         X = check_array(X, dtype=DTYPE, accept_sparse='csr')
 
-        n_classes_ = rf.n_classes_
+        n_classes_ = [rf.n_classes_]
 
         n_samples = y.shape[0]
 
@@ -294,14 +417,13 @@ class Broof(AdaBoostClassifier):
         oob_err = []
 
         sample_weight_tmp = sample_weight.copy()
-        
         for k in range(rf.n_outputs_):
             predictions.append(np.zeros((n_samples, n_classes_[k])))
             oob_err.append(np.ones(len(rf.estimators_)))
 
         for i, estimator in enumerate(rf.estimators_):
             unsampled_indices = _generate_unsampled_indices(
-                estimator.random_state, n_samples)
+                estimator.random_state, sample_weight, n_samples)
             p_estimator = estimator.predict_proba(X[unsampled_indices, :],
                                                   check_input=False)
 
@@ -312,13 +434,14 @@ class Broof(AdaBoostClassifier):
                 predictions[k][unsampled_indices, :] += p_estimator[k]
                 
                 incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
-                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
                 
-                estimator_weight = np.log(
+                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
+
+                estimator_weight = (
                     (1. - estimator_error) / estimator_error)
 
                 oob_err[k][i] = estimator_error
-                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (incorrect))
+                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
         for k in range(rf.n_outputs_):
             if (predictions[k].sum(axis=1) == 0).any():
@@ -356,27 +479,27 @@ class Broof(AdaBoostClassifier):
         except ValueError:
             pass
 
-        estimator.fit(X, y, sample_weight=sample_weight)
+        estimator.fit(X, y, sample_weight = sample_weight)
         sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
         
         if iboost == 0:
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
             self.n_classes_ = len(self.classes_)
 
-        unsampled_indices = np.where((estimator.oob_decision_function_ > 0.0).any(1))[0]
+        #unsampled_indices = np.where((estimator.oob_decision_function_ > 0.0).any(1))[0]
 
-        y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
+        #y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
         
-        y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),axis=0)
+        #y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),axis=0)
 
         # Instances incorrectly classified
-        incorrect = y_predict != y[unsampled_indices]
+        #incorrect = y_predict != y[unsampled_indices]
 
         # Error fraction
-        estimator_error = np.mean(
-            np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
+        estimator_error = 1 - estimator.oob_score_#np.mean(
+        #    np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
 
-        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_, len(unsampled_indices)
+        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -395,7 +518,7 @@ class Broof(AdaBoostClassifier):
 
         # Boost weight
         estimator_weight = self.learning_rate * (
-            np.log((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
+            ((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
 
        
         # Only boost the weights if I will fit again
@@ -403,7 +526,7 @@ class Broof(AdaBoostClassifier):
             # Only boost positive weights
             sample_weight = sample_weight_aux
 
-        # trying to save some data
+        # trying to save some memory
         del estimator.oob_decision_function_
 
         return sample_weight, estimator_weight, estimator_error 
@@ -433,6 +556,7 @@ class Broof(AdaBoostClassifier):
         if self.learning_rate <= 0:
             raise ValueError("learning_rate must be greater than zero")
 
+        self.init_proba = 1. / X.shape[0]
         if sample_weight is None:
             # Initialize weights to 1 / n_samples
             sample_weight = np.empty(X.shape[0], dtype=np.float)
@@ -507,13 +631,14 @@ class Broof(AdaBoostClassifier):
 
         print pred
         return pred
-        """
-        print self.estimator_weights_
-        proba = sum(estimator.predict_proba(X) * w
+        """ 
+        proba = sum(estimator.predict_proba(X)
                         for estimator, w in zip(self.estimators_,
                                                 self.estimator_weights_))
 
-        proba /= self.estimator_weights_.sum()
+        #print(proba)
+
+        #proba /= self.estimator_weights_.sum()
         #proba = np.exp((1. / (n_classes - 1)) * proba)
         normalizer = proba.sum(axis=1)[:, np.newaxis]
         normalizer[normalizer == 0.0] = 1.0

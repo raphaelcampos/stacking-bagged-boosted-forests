@@ -83,12 +83,12 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'lazy':
 	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features=0.15, criterion='gini', cuda=False, n_gpus=args.gpus)
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
+		max_features=args.max_features, criterion='gini', cuda=True, n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'adarf':
 	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, max_features=args.max_features),n_estimators=args.ibroof)
@@ -97,10 +97,10 @@ elif args.method == 'broof':
 	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
 	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
 elif args.method == 'xt':
-	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='auto', verbose=10)
+	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 else:
-	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10)
+	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
