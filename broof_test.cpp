@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "lib/broof/rf_bst.hpp"
-#include "lib/broof/rf_ada.hpp"
 
 using namespace std;
 

@@ -54,7 +54,7 @@ unsigned chooseDoc(std::vector<pair_> &v){
 
 class RF : public SupervisedClassifier{
   public:
-    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err) { trees_.reserve(num_trees); total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); }
+    RF(unsigned int r, double m=1.0, unsigned int num_trees=10, unsigned int maxh=0, bool trn_err=false) : SupervisedClassifier(r), num_trees_(num_trees), m_(m), doc_delete_(true), maxh_(maxh), trn_err_(trn_err), trees_(num_trees, NULL){ total_oob_ = 0.0; srand(time(NULL)); oob_.resize(num_trees); }
     ~RF();
     bool parse_train_line(const std::string&);
     void train(const std::string&);
@@ -66,7 +66,9 @@ class RF : public SupervisedClassifier{
     void set_doc_delete(const bool&);
     Scores<double> classify(const DTDocument*);
     double avg_oob_err() { return (oob_err_.size() > 0) ? total_oob_/oob_err_.size() : 0.0; }
+    int n_classes(){ return classes_.size(); }
   private:
+    std::set<std::string> classes_;
     std::vector<DT*> trees_;
     std::vector<const DTDocument*> docs_;
     std::vector<std::vector<const DTDocument*> > oob_;
@@ -89,7 +91,7 @@ void RF::set_doc_delete(const bool& dd){
 
 void RF::reset_model(){
   for(int i = 0; i < num_trees_; i++){
-    delete trees_[i];
+    if(trees_[i] != NULL) delete trees_[i];
   }
   trees_.clear();
   if(doc_delete_){
@@ -134,6 +136,7 @@ void RF::train(const std::string& train_fn){
 
 void RF::add_document(const DTDocument* doc){
   docs_.push_back(doc);
+  classes_.insert(doc->get_class());
   for (unsigned int i = 0; i < num_trees_; i++) {
     oob_[i].push_back(doc);
   } 
@@ -151,15 +154,22 @@ void RF::add_document_bag(std::set<const DTDocument*>& bag){
 // 1) Map: out-of-bag sample ID -> bool misclassified ?
 WeightSet *RF::build(WeightSet *w) {
   const unsigned int docs_size = docs_.size();
+  std::vector<pair_> probAcumulatedVector;
+  WeightSet w_copy;
 
-  std::vector<pair_> probAcumulatedVector = getProbAcumulatedVector(docs_.begin(), docs_.end(), w);
+  if(w != NULL){
+    w->normalize();
+    probAcumulatedVector = getProbAcumulatedVector(docs_.begin(), docs_.end(), w);
+    w_copy = *w;
+  }
+
   #pragma omp parallel for num_threads(24)
-  for(int i = 0; i < num_trees_; i++) {
+  for(int i = 0; i < num_trees_; ++i) {
     std::set<const DTDocument*> bag;
-    for(int j = 0; j < docs_size; j++) {
+    for(int j = 0; j < docs_size; ++j) {
       #pragma omp critical (oob_update)
       {
-        unsigned int rndIdx = chooseDoc(probAcumulatedVector);
+        unsigned int rndIdx = (w != NULL)? chooseDoc(probAcumulatedVector) : rand() % docs_size;
         bag.insert(docs_[rndIdx]);
         if (!trn_err_) {
           oob_[i][rndIdx] = NULL; // it isn't an oob sample
@@ -169,6 +179,8 @@ WeightSet *RF::build(WeightSet *w) {
     trees_[i] = new DT(round, maxh_);
     trees_[i]->add_document_bag(bag);
     trees_[i]->build(m_);
+    //std::cerr << "trr_oob[" << i << "] = " << miss << "/" << total << "=" << oob_err << std::endl;
+
     // evaluate OOB error
     double miss = 0.0, total = 0.0;
     std::map<unsigned int, bool> is_miss;
@@ -186,7 +198,7 @@ WeightSet *RF::build(WeightSet *w) {
           }
           ++cIt;
         }
-        double weight = (w != NULL) ? w->get(oob_[i][oobidx]->get_id()) : 1.0;
+        double weight =  (w != NULL)? w->get(oob_[i][oobidx]->get_id()) : 1.0;
         if (maxCl != oob_[i][oobidx]->get_class()) {
           is_miss[oobidx] = true;
           miss += weight;
@@ -203,16 +215,17 @@ WeightSet *RF::build(WeightSet *w) {
     {
       if (w != NULL) { 
         {
+          //printf("%lf - %d - %d\n", total, docs_.size(), w_copy.size());
           //if(isnan(oob_err))
           //  std::cerr << "  WeightUpdate RF " << i << ": " << miss << "/" << total << "=" << oob_err << " alpha=" << alpha << std::endl;
           for (unsigned int oobidx = 0; oobidx < oob_[i].size(); oobidx++) {
             if (oob_[i][oobidx] != NULL) {
               if (is_miss[oobidx]) {
                 //std::cerr << oob_[i][oobidx]->get_id() << "    IS_MISS w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(alpha) << std::endl;
-                w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp(alpha));
+                w_copy.set(oob_[i][oobidx]->get_id(),  w_copy.get(oob_[i][oobidx]->get_id()) * exp(alpha));
               } else {
                 //std::cerr << oob_[i][oobidx]->get_id() << "    IS_HIT w=" << w->get(oob_[i][oobidx]->get_id()) << " dw=" << exp(-alpha) << std::endl;
-                w->set(oob_[i][oobidx]->get_id(),  w->get(oob_[i][oobidx]->get_id()) * exp(-alpha));
+                w_copy.set(oob_[i][oobidx]->get_id(),  w_copy.get(oob_[i][oobidx]->get_id()) * exp(-alpha));
               }
               //std::cerr << "    OOB " << oobidx << " w=" << w->get(oob_[i][oobidx]->get_id()) << " is_miss=" << (is_miss[oobidx] ? "yes" : "no") << " oob_err=" << oob_err << " alpha=" << alpha << std::endl;
             }
@@ -222,9 +235,10 @@ WeightSet *RF::build(WeightSet *w) {
       oob_err_.push_back(oob_err);
       total_oob_ += oob_err;
     }
-
-    //std::cerr << "trr_oob[" << i << "] = " << miss << "/" << total << "=" << oob_err << std::endl;
   }
+  if(w != NULL)
+    (*w) = w_copy;
+  
 }
 
 Scores<double> RF::classify(const DTDocument* doc){
@@ -235,7 +249,7 @@ Scores<double> RF::classify(const DTDocument* doc){
     std::map<std::string, double> partial_scores = trees_[i]->get_partial_scores(doc);
       double weight = oob_err_[i];
       if(isnan(weight)){
-        printf("%lf\n", weight);
+        //printf("%lf\n", weight);
         continue;
       }
       double adjust = exp(1.0 - weight); //(weight == 0.0 ? 1.0 : weight == 1.0 ? 0.0 : log((1.0-weight)/weight));

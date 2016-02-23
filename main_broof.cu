@@ -79,7 +79,7 @@ int get_class(std::string token);
 
 
 
-void teste_lazy_boost(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true, float max_features = 0.15, int n_boost_iter = 10, int n_gpus = 1){
+void teste_lazy_boost(std::string trainingFileName, std::string testFileName, std::string resultsFileName, int k, int trial, bool append = true, float max_features = 0.03, int n_boost_iter = 10, int n_gpus = 1){
 
     Dataset training_set, test_set;
     //int correct_cosine = 0, wrong_cosine = 0;
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
         TCLAP::ValueArg<int> numTreesArg("n","number-trees","Maximum number of trees in the ensemble.(default : 100)", false, 100, "int");
 
         cmd.add( numTreesArg );
-
+        
         TCLAP::ValueArg<int> heightTreesArg("H","height","Maximum height of trees in the ensemble(default : 0). H=0 means unpruned otherwise prune with H top.", false, 100, "int");
 
         cmd.add( heightTreesArg );

@@ -119,7 +119,6 @@ std::vector<int> cuLazyNN_Boost::classify(Dataset &test, int K){
 			doc->insert_term(term_id, term_count);
 		}
 
-
 		RF_BOOST * rf = new RF_BOOST(0, max_features, n_boost_iter);
 	
 		prepareTrainSamples(rf, training, idxs[i], K);

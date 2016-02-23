@@ -55,6 +55,7 @@ class RF_KNN : public SupervisedClassifier{
     void parse_test_line(const std::string&);
     void reset_model();
     Scores<double> classify(const DTDocument*, std::map<const DTDocument*, double>&);
+    Scores<double> classify(const std::string& line);
   private:
     std::vector<const DTDocument*> docs_;
     double m_;
@@ -125,7 +126,7 @@ void RF_KNN::reset_model(){
 
 bool RF_KNN::parse_train_line(const std::string& line){
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
   if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return false;
   DTDocument * doc = new DTDocument();
   double maxTF = 0;
@@ -209,7 +210,7 @@ Scores<double> RF_KNN::classify(const DTDocument* doc, std::map<const DTDocument
 
 void RF_KNN::parse_test_line(const std::string& line){
   std::vector<std::string> tokens; tokens.reserve(100);
-  Utils::string_tokenize(line, tokens, ";");
+  Utils::string_tokenize(line, tokens, " ");
 
   double test_size = 0.0;
   std::map<const DTDocument*, double> doc_similarities;
@@ -271,6 +272,68 @@ void RF_KNN::parse_test_line(const std::string& line){
   
   get_outputer()->output(similarities);
   delete doc;
+}
+
+Scores<double> RF_KNN::classify(const std::string& line){
+  std::vector<std::string> tokens; tokens.reserve(100);
+  Utils::string_tokenize(line, tokens, " ");
+
+  double test_size = 0.0;
+  std::map<const DTDocument*, double> doc_similarities;
+
+  if ((tokens.size() < 4) || (tokens.size() % 2 != 0)) return Scores<double>("0", "0");
+
+  DTDocument * doc = new DTDocument();
+  std::string doc_id = tokens[0];
+  doc->set_id(doc_id);
+  std::string doc_class = tokens[1];
+  doc->set_class(doc_class);
+  for (size_t i = 2; i < tokens.size()-1; i+=2) {
+    double tf = atof(tokens[i+1].data());
+    int term_id = atoi(tokens[i].data());
+    KNN_Term_IDF knn_t(term_id, 0.0);
+
+    double tf_idf = (raw) ? tf : 1.0 + log(tf);
+    std::map<KNN_Term_IDF, std::set<KNN_Doc_TF> >::iterator it = knn_term_list_.find(knn_t);
+    if(it != knn_term_list_.end()){
+      if (!raw) tf_idf *= (it->first).idf / maxIDF;
+      test_size += tf_idf * tf_idf;
+    }
+
+    doc->insert_term(term_id, tf);
+  }
+
+  std::map<TermID, double>::const_iterator cit_t = doc->terms_begin();
+  while(cit_t != doc->terms_end()){
+    KNN_Term_IDF knn_t(cit_t->first, 0.0);
+    std::map<KNN_Term_IDF, std::set<KNN_Doc_TF> >::iterator it_d = knn_term_list_.find(knn_t);
+    if(it_d != knn_term_list_.end()){
+      std::set<KNN_Doc_TF>::iterator it_s = (it_d->second).begin();
+      while(it_s != (it_d->second).end()){
+        double tf_idf = (raw) ? cit_t->second : 1.0 + log(cit_t->second);
+        if (!raw) tf_idf *= (it_d->first).idf / maxIDF;
+        switch(dist_type) {
+          case L2:
+            doc_similarities[it_s->doc] += pow((it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) - (tf_idf/sqrt(test_size)), 2.0);
+            break;
+          case L1:
+            doc_similarities[it_s->doc] += abs((it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) - (tf_idf/sqrt(test_size)));
+            break;
+          case COSINE:
+          default:
+            doc_similarities[it_s->doc] += (it_s->tf_idf/sqrt(knn_doc_sizes_[it_s->doc])) * (tf_idf/sqrt(test_size));
+            break;
+        }
+        ++it_s;
+      }
+    }
+    ++cit_t;
+  }
+
+  Scores<double> similarities = classify(doc, doc_similarities);
+  
+  delete doc;
+  return similarities;
 }
 
 #endif

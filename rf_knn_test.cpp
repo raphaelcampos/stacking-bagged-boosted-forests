@@ -11,7 +11,7 @@ using namespace std;
 
 int main(int argc, char const *argv[])
 {
-	RF_KNN * knn_rf = new RF_KNN(0, 0.03, 30, 200);
+	RF_KNN * knn_rf = new RF_KNN(0, 0.03, atof(argv[5]), atoi(argv[4]));
 	  
 	knn_rf->train(argv[1]);
 

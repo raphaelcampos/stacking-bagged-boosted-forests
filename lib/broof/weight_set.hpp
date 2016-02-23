@@ -16,7 +16,7 @@ class WeightSet {
     return w_[i] = w;
   }
 
-  bool empty() { return w_.size(); }
+  int size() { return w_.size(); }
 
   std::map<std::string, double>::const_iterator begin() const
   {
@@ -26,6 +26,19 @@ class WeightSet {
   std::map<std::string, double>::const_iterator end() const
   {
     w_.end();
+  }
+
+  void normalize(){
+    double norm = 0;
+    for (std::map<std::string, double>::const_iterator it = w_.begin(); it != w_.end(); ++it)
+    {
+      norm += it->second;
+    }
+    for (std::map<std::string, double>::iterator it = w_.begin(); it != w_.end(); ++it)
+    {
+      it->second /= norm;
+    }
+    //init_prob /= norm;
   }
 
  private:
