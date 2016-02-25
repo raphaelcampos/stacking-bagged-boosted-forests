@@ -1,4 +1,4 @@
-/*********************************************************************
+/****************************************************************
 	
 	Copyright (C) 2016 by Raphael Campos
 
@@ -16,7 +16,7 @@
 	along with this program; if not, write to the Free Software
 	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 	
-********************************************************************/
+****************************************************************/
 
 #ifndef EXTERN_FUNC_CUH_
 #define EXTERN_FUNC_CUH_
@@ -58,5 +58,8 @@ InvertedIndex* csr_make_inverted_indices(int num_docs, int num_terms, float* dat
 
 extern "C"
 InvertedIndex* make_inverted_indices(int num_docs, int num_terms, Entry * entries, int n_entries, int n_gpu);
+
+extern "C"
+__host__ void freeInvertedIndexes(InvertedIndex* indexes, unsigned int n_indexes);
 
 #endif

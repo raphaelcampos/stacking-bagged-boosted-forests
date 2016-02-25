@@ -215,3 +215,11 @@ InvertedIndex* make_inverted_indices(int num_docs, int num_terms, Entry * entrie
 
 	return indices;
 }
+
+__host__ void freeInvertedIndexes(InvertedIndex* indexes, unsigned int n_indexes){
+    for (int i = 0; i < n_indexes; ++i)
+    {
+        freeInvertedIndex(indexes[i]);
+    }
+    delete [] indexes;
+}

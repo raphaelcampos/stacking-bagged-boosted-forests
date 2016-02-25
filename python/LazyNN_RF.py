@@ -152,9 +152,7 @@ class cuKNeighborsSparseClassifier(object):
 
     def __del__(self):
         if hasattr(self, 'inverted_idx'):
-            print range(self.n_gpus)
-            for i in range(self.n_gpus):
-                self._free_inverted_index(self.inverted_idx[i])
+            self._free_inverted_indexes(self.inverted_idx, self.n_gpus)
         pass
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
@@ -199,10 +197,10 @@ class cuKNeighborsSparseClassifier(object):
 
         #self._init_gtknn = func
 
-        func = dll.freeInvertedIndex
-        func.argtypes = [InvertedIndex]
+        func = dll.freeInvertedIndexes
+        func.argtypes = [POINTER(InvertedIndex), c_int]
 
-        self._free_inverted_index = func
+        self._free_inverted_indexes = func
 
     def _get_entries(self, X):
         cx = scipy.sparse.coo_matrix(X)
