@@ -27,7 +27,7 @@ result.load <- function(file, trials, metric = "f1"){
   splits<- grep("#", lines)
   
   table = read.table(text = lines, header = F, fill = T, col.names = paste0("V", n_cols))
-    
+  
   y = parser_class_column(table$V2)
   pred = parser_class_column(table$V3)
   

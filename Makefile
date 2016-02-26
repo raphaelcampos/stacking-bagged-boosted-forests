@@ -68,5 +68,8 @@ cuda_distances.o: lib/gtknn/cuda_distances.cu lib/gtknn/cuda_distances.cuh
 utils.o: lib/gtknn/utils.cu lib/gtknn/utils.cuh 
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP)  -c lib/gtknn/utils.cu
 
+clean-boost:
+	rm *.o lazy_boost
+
 clean:
 	rm *.o lazynn_rf

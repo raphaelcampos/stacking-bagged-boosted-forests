@@ -100,25 +100,29 @@ estatisticamente significantes.
 
 \section{Resultados}\label{resultados}
 
-\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Mon Feb
-22 14:34:42 2016
+\% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Fri Feb
+26 08:59:07 2016
 
 \begin{table}[ht]
 \centering
 \begin{tabular}{llllll}
   \hline
-V1 & V2 & REUTERS90 & 20NG & 4UNI & ACM \\ 
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
   \hline
-\multirow{2}{*}{RF2000} & microF1 & 63.02 $\pm$  0.79 & 0 $\pm$  0 & 81.16 $\pm$  0.88 & 71.01 $\pm$  0.36 \\ 
-   & macroF1 & 24.79 $\pm$  1.38 & 0 $\pm$  0 & \bf{73.03 $\pm$  2.25} & \bf{60.55 $\pm$  1.48} \\ 
-  \multirow{2}{*}{BROOF} & microF1 & \bf{66.82 $\pm$  0.7} & \bf{89.82 $\pm$  0} & \bf{83.19 $\pm$  0.57} & \bf{73.24 $\pm$  0.73} \\ 
-   & macroF1 & \bf{28.53 $\pm$  0.37} & \bf{89.55 $\pm$  0} & \bf{75.22 $\pm$  1.85} & \bf{62.58 $\pm$  1.73} \\ 
-  \multirow{2}{*}{KNN} & microF1 & \bf{67.31 $\pm$  0.87} & 84.47 $\pm$  0 & 73.09 $\pm$  1.04 & 69.55 $\pm$  0.6 \\ 
-   & macroF1 & 25.71 $\pm$  1.2 & 83.88 $\pm$  0 & 60.44 $\pm$  1.17 & 57.63 $\pm$  1.67 \\ 
-  \multirow{2}{*}{LAZY} & microF1 & 64.73 $\pm$  0.61 & 89.05 $\pm$  0 & 79.64 $\pm$  0.79 & \bf{73.22 $\pm$  0.62} \\ 
-   & macroF1 & 25.3 $\pm$  0.7 & 88.74 $\pm$  0 & 69.11 $\pm$  2.63 & \bf{61.9 $\pm$  2.38} \\ 
-  \multirow{2}{*}{RF} & microF1 & 63.02 $\pm$  1.06 & 87.59 $\pm$  0 & 80.16 $\pm$  0.95 & 70.67 $\pm$  0.46 \\ 
-   & macroF1 & 24.63 $\pm$  1.75 & 87.26 $\pm$  0 & 70.74 $\pm$  2.67 & \bf{60.46 $\pm$  1.46} \\ 
+\multirow{2}{*}{BROOF} & microF1 & \bf{87.56 $\pm$  0.5} & \bf{84.16 $\pm$  0.38} & \bf{73.25 $\pm$  0.48} & \bf{66.09 $\pm$  0.49} \\ 
+   & macroF1 & \bf{87.55 $\pm$  0.54} & \bf{75.14 $\pm$  1.27} & \bf{62.13 $\pm$  1.49} & \bf{26.4 $\pm$  0.99} \\ 
+  \multirow{2}{*}{LAZY} & microF1 & \bf{88.22 $\pm$  0.6} & 81.57 $\pm$  0.68 & \bf{73.41 $\pm$  0.29} & \bf{65.79 $\pm$  0.53} \\ 
+   & macroF1 & \bf{88.02 $\pm$  0.65} & 70.39 $\pm$  3.04 & \bf{64.09 $\pm$  1.27} & \bf{25.68 $\pm$  1.18} \\ 
+  \multirow{2}{*}{LXT} & microF1 & \bf{88.49 $\pm$  0.7} & 82.13 $\pm$  0.39 & 71.71 $\pm$  0.25 & \bf{65.37 $\pm$  0.64} \\ 
+   & macroF1 & \bf{88.35 $\pm$  0.74} & \bf{71.62 $\pm$  2.24} & \bf{62.66 $\pm$  1.42} & \bf{25.83 $\pm$  1.72} \\ 
+  \multirow{2}{*}{RF1000} & microF1 & 86.49 $\pm$  0.63 & 81.36 $\pm$  0.51 & 71.4 $\pm$  0.26 & 63.49 $\pm$  0.59 \\ 
+   & macroF1 & 86.64 $\pm$  0.65 & \bf{71.04 $\pm$  1.21} & 59.06 $\pm$  0.82 & 22.7 $\pm$  0.55 \\ 
+  \multirow{2}{*}{RF} & microF1 & 84.03 $\pm$  0.52 & 80.99 $\pm$  0.29 & 71.06 $\pm$  0.3 & 63.43 $\pm$  0.64 \\ 
+   & macroF1 & 84.24 $\pm$  0.6 & 70.55 $\pm$  1.32 & 58.67 $\pm$  0.88 & 22.63 $\pm$  0.81 \\ 
+  \multirow{2}{*}{XT1000} & microF1 & \bf{88.71 $\pm$  0.65} & 82.58 $\pm$  0.75 & \bf{73.53 $\pm$  0.27} & 64.44 $\pm$  0.68 \\ 
+   & macroF1 & \bf{88.71 $\pm$  0.7} & 70.32 $\pm$  2.47 & 60.87 $\pm$  1.03 & 23.41 $\pm$  1.31 \\ 
+  \multirow{2}{*}{XT} & microF1 & 86.83 $\pm$  0.41 & 82.46 $\pm$  0.69 & \bf{73.15 $\pm$  0.25} & 64.47 $\pm$  0.56 \\ 
+   & macroF1 & 86.9 $\pm$  0.44 & 70.41 $\pm$  2.43 & 60.59 $\pm$  1 & 23.34 $\pm$  1.19 \\ 
    \hline
 \end{tabular}
 \caption{Comparaćão entre todos os métodos} 

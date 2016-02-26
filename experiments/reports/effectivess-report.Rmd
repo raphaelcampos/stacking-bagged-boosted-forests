@@ -19,7 +19,7 @@ Para cada um dos *dataset* eu rodei *cross-validation 10-folds*. Para comparaÄ‡Ã
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
 
-dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_test_exp/"
+dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_python/"
 
 # load results from directory
 # and extract information such as
