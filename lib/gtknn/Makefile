@@ -31,13 +31,13 @@ Release: main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o 
 	nvcc $(GENCODE_FLAGS) -O3 -lgomp   main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o gtknn
 
 Shared: extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
-	nvcc -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) $(OMP) -O3 extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o "gtknn.so"
+	nvcc -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) $(OMP) -O3 -lnvidia-ml extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o "gtknn.so"
 
 main.o: main.cu cuda_distances.cuh  knn.cuh  inverted_index.cuh utils.cuh structs.cuh
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP)  -c main.cu
 
 extern_func.o: extern_func.cu extern_func.cuh cuda_distances.cuh  knn.cuh inverted_index.cuh utils.cuh structs.cuh
-	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP)  -c extern_func.cu
+	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -lnvidia-ml -c extern_func.cu
 
 knn.o: knn.cu cuda_distances.cuh  knn.cuh  inverted_index.cuh utils.cuh structs.cuh partial_bitonic_sort.cuh 
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3  $(OMP) -c knn.cu

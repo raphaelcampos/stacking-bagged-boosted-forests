@@ -192,10 +192,10 @@ class cuKNeighborsSparseClassifier(object):
 
         self._kneighbors = func
 
-        #func = dll.initGtknn
-        #func.argtypes = [c_int]
+        func = dll.device_infos
+        func.restype = c_int
 
-        #self._init_gtknn = func
+        self._device_infos = func
 
         func = dll.freeInvertedIndexes
         func.argtypes = [POINTER(InvertedIndex), c_int]
@@ -225,8 +225,11 @@ class cuKNeighborsSparseClassifier(object):
         num_terms = X.shape[1]
 
         self.y = y
+        self._device_infos()
 
         self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
+        
+        self._device_infos()
         #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):

@@ -40,6 +40,8 @@
 #include "inverted_index.cuh"
 #include "knn.cuh"
 #include "cuda_distances.cuh"
+
+#include "nvml.h"
 #include <cuda.h>
 
 void initDeviceVariables(DeviceVariables *dev_vars, int K, int num_docs);
@@ -61,5 +63,8 @@ InvertedIndex* make_inverted_indices(int num_docs, int num_terms, Entry * entrie
 
 extern "C"
 __host__ void freeInvertedIndexes(InvertedIndex* indexes, unsigned int n_indexes);
+
+extern "C"
+__host__ int device_infos();
 
 #endif
