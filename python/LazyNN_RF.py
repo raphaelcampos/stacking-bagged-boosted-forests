@@ -134,7 +134,8 @@ class InvertedIndex(Structure):
        ("d_normsl1", POINTER(c_float)),
        ("num_docs", c_int),
        ("num_entries", c_int),
-       ("num_terms", c_int)]
+       ("num_terms", c_int),
+       ("device_id", c_int)]
 
 class cuKNeighborsSparseClassifier(object):
 

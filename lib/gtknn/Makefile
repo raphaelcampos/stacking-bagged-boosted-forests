@@ -30,14 +30,14 @@ endif
 Release: main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
 	nvcc $(GENCODE_FLAGS) -O3 -lgomp   main.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o gtknn
 
-Shared: extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o
-	nvcc -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) $(OMP) -O3 -lnvidia-ml extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o -o "gtknn.so"
+Shared: extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o utils.o device_allocation.o
+	nvcc -link -Xcompiler -fPIC -shared $(GENCODE_FLAGS) $(OMP) -O3 -lnvidia-ml extern_func.o knn.o partial_bitonic_sort.o inverted_index.o  cuda_distances.o  utils.o device_allocation.o -o "gtknn.so"
 
 main.o: main.cu cuda_distances.cuh  knn.cuh  inverted_index.cuh utils.cuh structs.cuh
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP)  -c main.cu
 
-extern_func.o: extern_func.cu extern_func.cuh cuda_distances.cuh  knn.cuh inverted_index.cuh utils.cuh structs.cuh
-	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -lnvidia-ml -c extern_func.cu
+extern_func.o: extern_func.cu extern_func.cuh cuda_distances.cuh  knn.cuh inverted_index.cuh utils.cuh device_allocation.cuh structs.cuh
+	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP) -c extern_func.cu
 
 knn.o: knn.cu cuda_distances.cuh  knn.cuh  inverted_index.cuh utils.cuh structs.cuh partial_bitonic_sort.cuh 
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3  $(OMP) -c knn.cu
@@ -50,6 +50,9 @@ inverted_index.o: inverted_index.cu inverted_index.cuh utils.cuh
 
 cuda_distances.o: cuda_distances.cu cuda_distances.cuh 
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3  $(OMP) -c cuda_distances.cu
+
+device_allocation.o: device_allocation.cu device_allocation.cuh 
+	nvcc $(GENCODE_FLAGS) $(SHARED) -lnvidia-ml -O3 $(OMP)  -c device_allocation.cu
 
 utils.o: utils.cu utils.cuh 
 	nvcc $(GENCODE_FLAGS) $(SHARED) -O3 $(OMP)  -c utils.cu

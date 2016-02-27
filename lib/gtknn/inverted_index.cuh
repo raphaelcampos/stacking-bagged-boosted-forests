@@ -44,6 +44,8 @@ struct InvertedIndex {
     int num_entries;		//Number of entries
     int num_terms;			//Number of terms
 
+    int device_id;
+
     __host__ __device__ InvertedIndex(Entry *d_inverted_index = NULL, int *d_index = NULL, int *d_count = NULL, float *d_norms = NULL, float *d_normsl1 = NULL, int num_docs = 0, int num_entries = 0, int num_terms = 0) :
         d_inverted_index(d_inverted_index),
         d_index(d_index),
@@ -52,7 +54,8 @@ struct InvertedIndex {
         d_normsl1(d_normsl1),
         num_docs(num_docs),
         num_entries(num_entries),
-        num_terms(num_terms)
+        num_terms(num_terms),
+        device_id(0)
     {}
 };
 

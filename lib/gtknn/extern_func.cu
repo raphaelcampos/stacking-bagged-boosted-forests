@@ -90,9 +90,9 @@ int* kneighbors(InvertedIndex* index, int K, float* data, int* indices, int* ind
 		int num_test_local = 0, i;
 		int cpuid = omp_get_thread_num();
     	
-    	cudaSetDevice(cpuid);
+    	cudaSetDevice(index[cpuid].device_id);
 		
-		//printf("thread : %d\n", cpuid);
+		printf("thread : %d - %d\n", cpuid, index[cpuid].device_id);
 
     	DeviceVariables dev_vars;
 	
@@ -117,14 +117,6 @@ int* kneighbors(InvertedIndex* index, int K, float* data, int* indices, int* ind
 				makeQuery(index[cpuid], data, indices, intervals[i].first, intervals[i].second, K, ManhattanDistance, &idxs[i*K], &dev_vars);
 			}
 		}
-		
-		//printf("num tests in thread %d: %d\n", omp_get_thread_num(), num_test_local);
-
-		//#pragma omp barrier
-		//double end = gettime();
-
-		//#pragma omp master
-		//printf("Time to process: %lf seconds\n", end - start);
 	
 		freeDeviceVariables(&dev_vars);
 	}
@@ -147,7 +139,7 @@ std::vector<Entry> csr2entries(float* data, int* indices, int* indptr, int nnz, 
 	return entries;
 }
 
-InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<Entry> entries, int n_gpu){
+InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<Entry> &entries, int n_gpu){
 	
 	int gpuNum;
 	cudaGetDeviceCount(&gpuNum);
@@ -162,13 +154,17 @@ InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<En
 
 	InvertedIndex* indices = new InvertedIndex[gpuNum];
 
-	#pragma omp parallel shared(entries) shared(indices)
+	int* order = new int[gpuNum];
+	device_priority_order(order, gpuNum, 1.5);
+	#pragma omp parallel shared(entries) shared(indices) shared(order)
     {
     	int cpuid = omp_get_thread_num();
-    	cudaSetDevice(cpuid);
+    	cudaSetDevice(order[cpuid]);
 		
-		indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);	
+		indices[cpuid] = make_inverted_index(num_docs, num_terms, entries);
+		indices[cpuid].device_id = order[cpuid];	
 	}
+	delete [] order;
 
 	return indices;
 }
@@ -216,78 +212,29 @@ InvertedIndex* make_inverted_indices(int num_docs, int num_terms, Entry * entrie
 	return indices;
 }
 
-__host__ void freeInvertedIndexes(InvertedIndex* indexes, unsigned int n_indexes){
-    for (int i = 0; i < n_indexes; ++i)
+__host__ void freeInvertedIndexes(InvertedIndex* indices, int n_gpu){
+
+	int gpuNum;
+	cudaGetDeviceCount(&gpuNum);
+
+	if (gpuNum > n_gpu){
+		gpuNum = n_gpu;
+		if (gpuNum < 1)
+			gpuNum = 1;
+	}
+
+    omp_set_num_threads(gpuNum);
+
+	#pragma omp parallel shared(indices)
     {
-        freeInvertedIndex(indexes[i]);
+    	int cpuid = omp_get_thread_num();
+
+    	cudaSetDevice(indices[cpuid].device_id);
+
+    	cudaDeviceSynchronize();
+
+        freeInvertedIndex(indices[cpuid]);
     }
-    delete [] indexes;
-}
 
-
-
-#define CUDA_CALL(function, ...)  { \
-    cudaError_t status = function(__VA_ARGS__); \
-    anyCheck(status == cudaSuccess, cudaGetErrorString(status), #function, __FILE__, __LINE__); \
-}
-
-#define NVML_CALL(function, ...)  { \
-    nvmlReturn_t status = function(__VA_ARGS__); \
-    anyCheck(status == NVML_SUCCESS, nvmlErrorString(status), #function, __FILE__, __LINE__); \
-}
-
-void anyCheck(bool is_ok, const char *description, const char *function, const char *file, int line) {
-    if (!is_ok) {
-        fprintf(stderr,"Error: %s in %s at %s:%d\n", description, function, file, line);
-        exit(EXIT_FAILURE);
-    }
-}
-
-int device_infos() {
-    int cudaDeviceCount;
-    unsigned int nvmlDeviceCount = 0;
-    struct cudaDeviceProp deviceProp;
-    nvmlPciInfo_t nvmlPciInfo;
-    nvmlMemory_t nvmlMemory;
-    nvmlProcessInfo_t *infos;
-    nvmlDevice_t nvmlDevice;
-    size_t memUsed, memTotal;
-    unsigned int nProcess;
-
-    CUDA_CALL(cudaGetDeviceCount, &cudaDeviceCount);
-    NVML_CALL(nvmlInit);
-    NVML_CALL(nvmlDeviceGetCount, &nvmlDeviceCount);
-
-    for (int deviceId = 0; deviceId < cudaDeviceCount; ++deviceId) {
-        CUDA_CALL(cudaGetDeviceProperties, &deviceProp, deviceId);
-        int nvmlDeviceId = -1;
-        for (int nvmlId = 0; nvmlId < nvmlDeviceCount; ++nvmlId) {
-            NVML_CALL(nvmlDeviceGetHandleByIndex, nvmlId, &nvmlDevice);
-            NVML_CALL(nvmlDeviceGetPciInfo, nvmlDevice, &nvmlPciInfo);
-            if (deviceProp.pciDomainID == nvmlPciInfo.domain &&
-                deviceProp.pciBusID    == nvmlPciInfo.bus    &&
-                deviceProp.pciDeviceID == nvmlPciInfo.device) {
-
-                nvmlDeviceId = nvmlId;
-                break;
-            }
-        }
-        printf("Device %2d [nvidia-smi %2d]", deviceId, nvmlDeviceId);
-        printf(" [PCIe %04x:%02x:%02x.0]", deviceProp.pciDomainID, deviceProp.pciBusID, deviceProp.pciDeviceID);
-        printf(": %20s (CC %d.%d)", deviceProp.name, deviceProp.major, deviceProp.minor);
-        if (nvmlDeviceId != -1) {
-            NVML_CALL(nvmlDeviceGetMemoryInfo, nvmlDevice, &nvmlMemory);
-            //NVML_CALL(nvmlDeviceGetComputeRunningProcesses, nvmlDevice, &nProcess, infos);
-            memUsed = nvmlMemory.used / 1024 / 1024;
-            memTotal = nvmlMemory.total / 1024 / 1024;
-        } else {
-            memUsed = memTotal = 0;
-            nProcess = 0;
-        }
-        printf(": %5zu of %5zu MiB Used", memUsed, memTotal);
-        printf(": Processes %d ", nProcess);
-        printf("\n");
-    }
-    NVML_CALL(nvmlShutdown);
-    return 0;
+    delete [] indices;
 }

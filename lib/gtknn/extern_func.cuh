@@ -41,7 +41,8 @@
 #include "knn.cuh"
 #include "cuda_distances.cuh"
 
-#include "nvml.h"
+#include "device_allocation.cuh"
+
 #include <cuda.h>
 
 void initDeviceVariables(DeviceVariables *dev_vars, int K, int num_docs);
@@ -53,7 +54,7 @@ int* kneighbors(InvertedIndex* index, int K, float* data, int* indices, int* ind
 
 std::vector<Entry> csr2entries(float* data, int* indices, int* indptr, int nnz, int n);
 
-InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<Entry> entries, int n_gpu);
+InvertedIndex* make_inverted_indices(int num_docs, int num_terms, std::vector<Entry> &entries, int n_gpu);
 
 extern "C"
 InvertedIndex* csr_make_inverted_indices(int num_docs, int num_terms, float* data, int* indices, int* indptr, int nnz, int n, int n_gpu);
@@ -62,9 +63,6 @@ extern "C"
 InvertedIndex* make_inverted_indices(int num_docs, int num_terms, Entry * entries, int n_entries, int n_gpu);
 
 extern "C"
-__host__ void freeInvertedIndexes(InvertedIndex* indexes, unsigned int n_indexes);
-
-extern "C"
-__host__ int device_infos();
+__host__ void freeInvertedIndexes(InvertedIndex* indexes, int n_indexes);
 
 #endif
