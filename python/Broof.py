@@ -341,6 +341,297 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             for e in self.estimators_)
 
         adjust  =  np.exp(1. - self.oob_err_)
+
+        # Reduce
+        proba = all_proba[0]*adjust[0]
+        
+        if self.n_outputs_ == 1:
+            for j in range(1, len(all_proba)):
+                proba += all_proba[j]*adjust[j]
+
+            #proba /= len(self.estimators_)
+
+        else:
+            for j in range(1, len(all_proba)):
+                for k in range(self.n_outputs_):
+                    proba[k] += all_proba[j][k]
+
+            for k in range(self.n_outputs_):
+                proba[k] /= self.n_estimators
+        
+        return proba
+
+class BoostedExtraTreesClassifier(ExtraTreesClassifier):
+    """A random forest classifier.
+    A random forest is a meta estimator that fits a number of decision tree
+    classifiers on various sub-samples of the dataset and use averaging to
+    improve the predictive accuracy and control over-fitting.
+    The sub-sample size is always the same as the original
+    input sample size but the samples are drawn with replacement if
+    `bootstrap=True` (default).
+    Read more in the :ref:`User Guide <forest>`.
+    Parameters
+    ----------
+    n_estimators : integer, optional (default=10)
+        The number of trees in the forest.
+    criterion : string, optional (default="gini")
+        The function to measure the quality of a split. Supported criteria are
+        "gini" for the Gini impurity and "entropy" for the information gain.
+        Note: this parameter is tree-specific.
+    max_features : int, float, string or None, optional (default="auto")
+        The number of features to consider when looking for the best split:
+        - If int, then consider `max_features` features at each split.
+        - If float, then `max_features` is a percentage and
+          `int(max_features * n_features)` features are considered at each
+          split.
+        - If "auto", then `max_features=sqrt(n_features)`.
+        - If "sqrt", then `max_features=sqrt(n_features)` (same as "auto").
+        - If "log2", then `max_features=log2(n_features)`.
+        - If None, then `max_features=n_features`.
+        Note: the search for a split does not stop until at least one
+        valid partition of the node samples is found, even if it requires to
+        effectively inspect more than ``max_features`` features.
+        Note: this parameter is tree-specific.
+    max_depth : integer or None, optional (default=None)
+        The maximum depth of the tree. If None, then nodes are expanded until
+        all leaves are pure or until all leaves contain less than
+        min_samples_split samples.
+        Ignored if ``max_leaf_nodes`` is not None.
+        Note: this parameter is tree-specific.
+    min_samples_split : integer, optional (default=2)
+        The minimum number of samples required to split an internal node.
+        Note: this parameter is tree-specific.
+    min_samples_leaf : integer, optional (default=1)
+        The minimum number of samples in newly created leaves.  A split is
+        discarded if after the split, one of the leaves would contain less then
+        ``min_samples_leaf`` samples.
+        Note: this parameter is tree-specific.
+    min_weight_fraction_leaf : float, optional (default=0.)
+        The minimum weighted fraction of the input samples required to be at a
+        leaf node.
+        Note: this parameter is tree-specific.
+    max_leaf_nodes : int or None, optional (default=None)
+        Grow trees with ``max_leaf_nodes`` in best-first fashion.
+        Best nodes are defined as relative reduction in impurity.
+        If None then unlimited number of leaf nodes.
+        If not None then ``max_depth`` will be ignored.
+        Note: this parameter is tree-specific.
+    bootstrap : boolean, optional (default=True)
+        Whether bootstrap samples are used when building trees.
+    oob_score : bool
+        Whether to use out-of-bag samples to estimate
+        the generalization error.
+    n_jobs : integer, optional (default=1)
+        The number of jobs to run in parallel for both `fit` and `predict`.
+        If -1, then the number of jobs is set to the number of cores.
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+    verbose : int, optional (default=0)
+        Controls the verbosity of the tree building process.
+    warm_start : bool, optional (default=False)
+        When set to ``True``, reuse the solution of the previous call to fit
+        and add more estimators to the ensemble, otherwise, just fit a whole
+        new forest.
+    class_weight : dict, list of dicts, "balanced", "balanced_subsample" or None, optional
+        Weights associated with classes in the form ``{class_label: weight}``.
+        If not given, all classes are supposed to have weight one. For
+        multi-output problems, a list of dicts can be provided in the same
+        order as the columns of y.
+        The "balanced" mode uses the values of y to automatically adjust
+        weights inversely proportional to class frequencies in the input data
+        as ``n_samples / (n_classes * np.bincount(y))``
+        The "balanced_subsample" mode is the same as "balanced" except that weights are
+        computed based on the bootstrap sample for every tree grown.
+        For multi-output, the weights of each column of y will be multiplied.
+        Note that these weights will be multiplied with sample_weight (passed
+        through the fit method) if sample_weight is specified.
+    Attributes
+    ----------
+    estimators_ : list of DecisionTreeClassifier
+        The collection of fitted sub-estimators.
+    classes_ : array of shape = [n_classes] or a list of such arrays
+        The classes labels (single output problem), or a list of arrays of
+        class labels (multi-output problem).
+    n_classes_ : int or list
+        The number of classes (single output problem), or a list containing the
+        number of classes for each output (multi-output problem).
+    n_features_ : int
+        The number of features when ``fit`` is performed.
+    n_outputs_ : int
+        The number of outputs when ``fit`` is performed.
+    feature_importances_ : array of shape = [n_features]
+        The feature importances (the higher, the more important the feature).
+    oob_score_ : float
+        Score of the training dataset obtained using an out-of-bag estimate.
+    oob_decision_function_ : array of shape = [n_samples, n_classes]
+        Decision function computed with out-of-bag estimate on the training
+        set. If n_estimators is small it might be possible that a data point
+        was never left out during the bootstrap. In this case,
+        `oob_decision_function_` might contain NaN.
+    References
+    ----------
+    .. [1] L. Breiman, "Random Forests", Machine Learning, 45(1), 5-32, 2001.
+    See also
+    --------
+    DecisionTreeClassifier, ExtraTreesClassifier
+    """
+
+    def fit(self, X, y, sample_weight=None):
+        """Build a forest of trees from the training set (X, y).
+        Parameters
+        ----------
+        X : array-like or sparse matrix of shape = [n_samples, n_features]
+            The training input samples. Internally, it will be converted to
+            ``dtype=np.float32`` and if a sparse matrix is provided
+            to a sparse ``csc_matrix``.
+        y : array-like, shape = [n_samples] or [n_samples, n_outputs]
+            The target values (class labels in classification, real numbers in
+            regression).
+        sample_weight : array-like, shape = [n_samples] or None
+            Sample weights. If None, then samples are equally weighted. Splits
+            that would create child nodes with net zero or negative weight are
+            ignored while searching for a split in each node. In the case of
+            classification, splits are also ignored if they would result in any
+            single class carrying a negative weight in either child node.
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        # Validate or convert input data
+        X = check_array(X, dtype=DTYPE, accept_sparse="csc")
+        if issparse(X):
+            # Pre-sort indices to avoid that each individual tree of the
+            # ensemble sorts the indices.
+            X.sort_indices()
+
+        # Remap output
+        n_samples, self.n_features_ = X.shape
+
+        y = np.atleast_1d(y)
+        if y.ndim == 2 and y.shape[1] == 1:
+            warn("A column-vector y was passed when a 1d array was"
+                 " expected. Please change the shape of y to "
+                 "(n_samples,), for example using ravel().",
+                 DataConversionWarning, stacklevel=2)
+
+        if y.ndim == 1:
+            # reshape is necessary to preserve the data contiguity against vs
+            # [:, np.newaxis] that does not.
+            y = np.reshape(y, (-1, 1))
+
+        self.n_outputs_ = y.shape[1]
+
+        y, expanded_class_weight = self._validate_y_class_weight(y)
+
+        if getattr(y, "dtype", None) != DOUBLE or not y.flags.contiguous:
+            y = np.ascontiguousarray(y, dtype=DOUBLE)
+
+        if expanded_class_weight is not None:
+            if sample_weight is not None:
+                sample_weight = sample_weight * expanded_class_weight
+            else:
+                sample_weight = expanded_class_weight
+
+        # Check parameters
+        self._validate_estimator()
+
+        if not self.bootstrap and self.oob_score:
+            raise ValueError("Out of bag estimation only available"
+                             " if bootstrap=True")
+
+        random_state = check_random_state(self.random_state)
+
+        if not self.warm_start:
+            # Free allocated memory, if any
+            self.estimators_ = []
+
+        n_more_estimators = self.n_estimators - len(self.estimators_)
+
+        if n_more_estimators < 0:
+            raise ValueError('n_estimators=%d must be larger or equal to '
+                             'len(estimators_)=%d when warm_start==True'
+                             % (self.n_estimators, len(self.estimators_)))
+
+        elif n_more_estimators == 0:
+            warn("Warm-start fitting without increasing n_estimators does not "
+                 "fit new trees.")
+        else:
+            if self.warm_start and len(self.estimators_) > 0:
+                # We draw from the random state to get the random state we
+                # would have got if we hadn't used a warm_start.
+                random_state.randint(MAX_INT, size=len(self.estimators_))
+
+            trees = []
+            for i in range(n_more_estimators):
+                tree = self._make_estimator(append=False)
+                tree.set_params(random_state=random_state.randint(MAX_INT))
+                trees.append(tree)
+
+            # Parallel loop: we use the threading backend as the Cython code
+            # for fitting the trees is internally releasing the Python GIL
+            # making threading always more efficient than multiprocessing in
+            # that case.
+            trees = Parallel(n_jobs=self.n_jobs, verbose=self.verbose,
+                             backend="threading")(
+                delayed(_parallel_build_trees)(
+                    t, self, X, y, sample_weight, i, len(trees),
+                    verbose=self.verbose, class_weight=self.class_weight)
+                for i, t in enumerate(trees))
+
+            # Collect newly grown trees
+            self.estimators_.extend(trees)
+
+        if self.oob_score:
+            self._set_oob_score(X, y)
+
+        # Decapsulate classes_ attributes
+        if hasattr(self, "classes_") and self.n_outputs_ == 1:
+            self.n_classes_ = self.n_classes_[0]
+            self.classes_ = self.classes_[0]
+
+        return self
+
+
+    def predict_proba(self, X):
+        """Predict class probabilities for X.
+
+        The predicted class probabilities of an input sample is computed as
+        the mean predicted class probabilities of the trees in the forest. The
+        class probability of a single tree is the fraction of samples of the same
+        class in a leaf.
+
+        Parameters
+        ----------
+        X : array-like or sparse matrix of shape = [n_samples, n_features]
+            The input samples. Internally, it will be converted to
+            ``dtype=np.float32`` and if a sparse matrix is provided
+            to a sparse ``csr_matrix``.
+
+        Returns
+        -------
+        p : array of shape = [n_samples, n_classes], or a list of n_outputs
+            such arrays if n_outputs > 1.
+            The class probabilities of the input samples. The order of the
+            classes corresponds to that in the attribute `classes_`.
+        """
+        # Check data
+        X = self._validate_X_predict(X)
+
+        # Assign chunk of trees to jobs
+        n_jobs, _, _ = _partition_estimators(self.n_estimators, self.n_jobs)
+
+        # Parallel loop
+        all_proba = Parallel(n_jobs=n_jobs, verbose=self.verbose,
+                             backend="threading")(
+            delayed(_parallel_helper)(e, 'predict_proba', X,
+                                      check_input=False)
+            for e in self.estimators_)
+
+        adjust  =  np.exp(1. - self.oob_err_)
         
         # Reduce
         proba = all_proba[0]*adjust[0]
@@ -361,27 +652,25 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
         
         return proba
 
-class Broof(AdaBoostClassifier):         
+
+class BoostedForestClassifier(AdaBoostClassifier):         
     def __init__(self,
+                 base_estimator=None,
                  n_estimators=50,
                  learning_rate=1,
                  random_state=None,
-                 weighting_algorithm='broof',
-                 n_trees=30,
-                 max_features='auto',
-                 n_jobs=1):
+                 weighting_algorithm='broof'):
         
         self.weighting_algorithm = weighting_algorithm
-        self.n_jobs = n_jobs
-        self.n_trees = n_trees
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
-        self.max_features = max_features
+        
+        self.base_estimator = base_estimator
+        if base_estimator is None:
+            self.base_estimator = BoostedRandomForestClassifier()
 
-        super(Broof, self).__init__(
-            base_estimator=BoostedRandomForestClassifier(criterion='gini'
-                , max_features=max_features, n_estimators=n_trees,
-                 n_jobs=n_jobs, bootstrap=True, oob_score=False),
+        super(BoostedForestClassifier, self).__init__(
+            base_estimator=self.base_estimator,
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
@@ -499,7 +788,7 @@ class Broof(AdaBoostClassifier):
         estimator_error = 1 - estimator.oob_score_#np.mean(
         #    np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
 
-        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
+        #print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -670,6 +959,7 @@ class Broof(AdaBoostClassifier):
 
         return self.classes_.take(np.argmax(pred, axis=1), axis=0)
 
+        
     def set_params(self, **params):
         """Set the parameters of this estimator.
         The method works on simple estimators as well as on nested objects
@@ -704,9 +994,110 @@ class Broof(AdaBoostClassifier):
                                      'Check the list of available parameters '
                                      'with `estimator.get_params().keys()`.' %
                                      (key, self.__class__.__name__))
-                if key == 'n_trees':
-                    setattr(self.base_estimator, 'n_estimators', value)
+                if key == 'n_iterations':
+                    setattr(self, 'n_estimators', value)
+                elif key == 'n_estimators':
+                    setattr(self.base_estimator, 'n_estimators', value) 
                 else:
                     setattr(self, key, value)
 
         return self
+    
+
+class Broof(BoostedForestClassifier):
+    def __init__(self,
+                 n_iterations=200,
+                 learning_rate=1,
+                 n_trees=5,
+                 criterion="gini",
+                 max_depth=None,
+                 min_samples_split=2,
+                 min_samples_leaf=1,
+                 min_weight_fraction_leaf=0.,
+                 max_features="auto",
+                 max_leaf_nodes=None,
+                 n_jobs=1,
+                 random_state=None,
+                 verbose=0,
+                 warm_start=False,
+                 class_weight=None):    
+
+        super(Broof, self).__init__(
+            base_estimator=BoostedRandomForestClassifier(n_estimators=n_trees,
+                                 criterion=criterion,
+                                 max_depth=max_depth,
+                                 min_samples_split=min_samples_split,
+                                 min_samples_leaf=min_samples_leaf,
+                                 min_weight_fraction_leaf=min_weight_fraction_leaf,
+                                 max_features=max_features,
+                                 max_leaf_nodes=max_leaf_nodes,
+                                 n_jobs=n_jobs,
+                                 bootstrap=True),
+            n_estimators = n_iterations,
+            learning_rate = learning_rate,
+            random_state = random_state
+            )
+
+        self.n_jobs = n_jobs
+        self.n_iterations = n_iterations
+        self.n_trees = n_trees
+        self.criterion = criterion
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.min_weight_fraction_leaf = min_weight_fraction_leaf
+        self.max_features = max_features
+        self.max_leaf_nodes = max_leaf_nodes
+        self.random_state = random_state
+        self.verbose = verbose
+        self.warm_start = warm_start
+        self.class_weight = class_weight
+
+class Bert(BoostedForestClassifier):
+    def __init__(self,
+                 n_iterations=200,
+                 learning_rate=1,
+                 n_trees=5,
+                 criterion="gini",
+                 max_depth=None,
+                 min_samples_split=2,
+                 min_samples_leaf=1,
+                 min_weight_fraction_leaf=0.,
+                 max_features="auto",
+                 max_leaf_nodes=None,
+                 n_jobs=1,
+                 random_state=None,
+                 verbose=0,
+                 warm_start=False,
+                 class_weight=None):    
+
+        super(Bert, self).__init__(
+            base_estimator=BoostedExtraTreesClassifier(n_estimators=n_trees,
+                                 criterion=criterion,
+                                 max_depth=max_depth,
+                                 min_samples_split=min_samples_split,
+                                 min_samples_leaf=min_samples_leaf,
+                                 min_weight_fraction_leaf=min_weight_fraction_leaf,
+                                 max_features=max_features,
+                                 max_leaf_nodes=max_leaf_nodes,
+                                 n_jobs=n_jobs,
+                                 bootstrap=True),
+            n_estimators = n_iterations,
+            learning_rate = learning_rate,
+            random_state = random_state
+            )
+
+        self.n_jobs = n_jobs
+        self.n_iterations = n_iterations
+        self.n_trees = n_trees
+        self.criterion = criterion
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.min_weight_fraction_leaf = min_weight_fraction_leaf
+        self.max_features = max_features
+        self.max_leaf_nodes = max_leaf_nodes
+        self.random_state = random_state
+        self.verbose = verbose
+        self.warm_start = warm_start
+        self.class_weight = class_weight

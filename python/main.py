@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'lazy_xt', 'xt'], default='rf')
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -82,7 +82,6 @@ datasetLoadingTime = end - start;
 
 estimator = None
 if args.method == 'lazy':
-	# TODO: fix bug - lazy is not working properly with 20ng dataset using 5-fold cross validation. k > 5 works - investigate why.
 	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
@@ -94,7 +93,10 @@ elif args.method == 'adarf':
 	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, max_features=args.max_features),n_estimators=args.ibroof)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
 elif args.method == 'broof':
-	estimator = Broof(n_estimators=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
+	estimator = Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
+	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
+elif args.method == 'bert':
+	estimator = Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
 	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
 elif args.method == 'xt':
 	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
@@ -110,7 +112,7 @@ folds_predict = []
 folds_macro = []
 folds_micro = []
 
-print estimator.get_params()
+print estimator.get_params(deep=False)
 
 if not (args.output == "") :
 	f=open(args.output,'ab')
@@ -157,6 +159,8 @@ for train_index, test_index in kf:
 	print "F1-Score"
 	print "\tMicro: ", folds_micro[k-2]
 	print "\tMacro: ", folds_macro[k-2]
+	
+	del e
 	if args.test:
 		break
 
