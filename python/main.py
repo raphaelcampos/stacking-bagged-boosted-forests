@@ -15,6 +15,7 @@ import numpy as np
 
 from LazyNN_RF import *
 from Broof import *
+from stacking import *
 
 import argparse
 import time
@@ -24,7 +25,7 @@ parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt'], default='rf')
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt', 'comb1'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -101,6 +102,11 @@ elif args.method == 'bert':
 elif args.method == 'xt':
 	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
+elif args.method == 'comb1':
+	estimators_stack = list()
+	estimators_stack.append([Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5, learning_rate=args.learning_rate, max_features=args.max_features), LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)])
+	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
+	estimator = StackingClassifier(estimators_stack)
 else:
 	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
@@ -129,15 +135,6 @@ for train_index, test_index in kf:
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
-	
-	#e = cuKNeighborsSparseClassifier(n_neighbors=30)
-
-	#e.fit(X_train, y_train)	
-
-	#pred = e.predict(X_test)
-	#print (pred.T[0])
-	#print np.mean(pred.T[0] == y_test)
-	#exit()
 
 	e = clone(estimator)
 	

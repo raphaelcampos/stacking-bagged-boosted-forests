@@ -226,11 +226,9 @@ class cuKNeighborsSparseClassifier(object):
         num_terms = X.shape[1]
 
         self.y = y
-        self._device_infos()
-
+        
         self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
         
-        self._device_infos()
         #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
@@ -405,7 +403,9 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         self : object
             Returns self.
         """
-        
+        self.classes_ = np.unique(y)
+        self.n_classes_ = len(self.classes_)
+
         self.X_train = X
         self.y_train = y
 
@@ -414,7 +414,8 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         return self
 
     def runForests(self, X, idx, q, p):
-        pred = []
+        pred = np.zeros((len(idx), self.n_classes_))
+
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
@@ -432,12 +433,12 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                                  max_leaf_nodes=self.max_leaf_nodes)
 
             rf.fit(X_t, self.y_train[ids])
-            pred = pred + [rf.predict(X_i)[0]]
+            pred[i, rf.classes_.astype(int)] = rf.predict_proba(X_i)[0]
 
         q.put((p, pred))
         return
 
-    def predict(self, X):
+    def predict_proba(self, X):
         """Predict class for X.
         The predicted class of an input sample is computed as the majority
         prediction of the trees in the forest.
@@ -492,11 +493,34 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
         # make sure that it retrieves results in the correct order
         results.sort()
-        pred = []
+        pred = np.zeros((X.shape[0], self.n_classes_))
         for r in results:
-            pred = pred + r[1]
+            p = r[0]
+            s = (p-1)*chunk_size
+            e = p*chunk_size if p*chunk_size <= length else length
+            pred[s:e,:] = r[1] 
+            
+        return pred
 
-        return np.array(pred)
+    def predict(self, X):
+        """Predict class for X.
+        The predicted class of an input sample is computed as the majority
+        prediction of the trees in the forest.
+        Parameters
+        ----------
+        X : array-like or sparse matrix of shape = [n_samples, n_features]
+            The input samples. Internally, it will be converted to
+            ``dtype=np.float32`` and if a sparse matrix is provided
+            to a sparse ``csr_matrix``.
+        Returns
+        -------
+        y : array of shape = [n_samples] or [n_samples, n_outputs]
+            The predicted classes.
+        """
+        pred = self.predict_proba(X)
+        print pred
+        return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
 
     def score(self, X, y):
         return np.mean(self.predict(X) == y)
