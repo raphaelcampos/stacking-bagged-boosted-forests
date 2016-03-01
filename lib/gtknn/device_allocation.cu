@@ -123,8 +123,8 @@ void device_priority_order(int *order, int numgpu, float beta) {
     for (int deviceId = 0; deviceId < cudaDeviceCount; ++deviceId)
     {
         // Normalization
-        memUsage[deviceId] = 1 + (memUsage[deviceId] - minMem)/std::max(maxMem - minMem, 0.001f);
-        gpuUsage[deviceId] = 1 + (gpuUsage[deviceId] - minGpu)/std::max(maxGpu - minGpu, 0.001f);
+        memUsage[deviceId] = (maxMem - minMem) > 0 ? (memUsage[deviceId] - minMem)/(maxMem - minMem) : 1;
+        gpuUsage[deviceId] = (maxGpu - minGpu) > 0 ? (gpuUsage[deviceId] - minGpu)/(maxGpu - minGpu) : 1;
 
         float key = (!gpuUsage[deviceId] && !memUsage[deviceId]) ? 0 : ((1 + beta*beta) * memUsage[deviceId] * gpuUsage[deviceId])/(memUsage[deviceId] + (beta*beta)*gpuUsage[deviceId]);
 
