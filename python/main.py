@@ -143,7 +143,9 @@ for train_index, test_index in kf:
 	e.fit(X_train, y_train)
 	pred = e.predict(X_test) 
 	end = time.time()
-	
+	# force to free memory
+	del e
+
 	# stores fold results
 	folds_time = folds_time + [end - start]
 	result = np.array([range(len(y_test)), pred, y_test])
@@ -157,7 +159,6 @@ for train_index, test_index in kf:
 	print "\tMicro: ", folds_micro[k-2]
 	print "\tMacro: ", folds_macro[k-2]
 	
-	del e
 	if args.test:
 		break
 

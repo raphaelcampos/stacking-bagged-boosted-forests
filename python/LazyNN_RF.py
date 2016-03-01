@@ -518,7 +518,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
             The predicted classes.
         """
         pred = self.predict_proba(X)
-        print pred
         return self.classes_.take(np.argmax(pred, axis=1), axis=0)
 
 

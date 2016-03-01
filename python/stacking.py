@@ -26,16 +26,17 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     ----------
     .. [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
     """
-	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=True, random_state=None):
+	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=False, random_state=None):
+
+		self.check_estimators(probability)
 
 		self.estimators_stack = estimators_stack
 		self.n_folds = n_folds
 		self.random_state = random_state
 		self.probability = probability
+		self.verbose=verbose
 
-		self.check_estimator(probability)
-
-	def check_estimator(self, probability=True):
+	def check_estimators(self, probability=True):
 		pass
 
 	def fit(self, X, y, sample_weight=None):
@@ -66,6 +67,9 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					else:
 						Xi[test_index, j] = e.predict(X_test)
 
+					# force to free memory
+					del e
+
 			for estimator in self.estimators_stack[l]:
 				estimator.fit(X_tmp, y, sample_weight)
 
@@ -87,13 +91,13 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 
 			for j, estimator in enumerate(self.estimators_stack[l]):
 				if self.probability:
-					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X)
+					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp)
 				else:
-					Xi[:, j] = estimator.predict(X_temp)
+					Xi[:, j] = estimator.predict(X_tmp)
 
-			X_temp = Xi
+			X_tmp = Xi
 
-		return self.estimators_stack[l + 1].predict(X_temp)
+		return self.estimators_stack[l + 1].predict(X_tmp)
 
 
 
