@@ -230,7 +230,7 @@ __host__ void freeInvertedIndexes(InvertedIndex* indices, int n_gpu){
     	int cpuid = omp_get_thread_num();
 
     	cudaSetDevice(indices[cpuid].device_id);
-
+    	printf("free idx #%d\n", indices[cpuid].device_id);
     	cudaDeviceSynchronize();
 
         freeInvertedIndex(indices[cpuid]);
