@@ -153,10 +153,7 @@ class cuKNeighborsSparseClassifier(object):
 
     def __del__(self):
         if hasattr(self, 'inverted_idx'):
-            self._device_infos()
             self._free_inverted_indexes(self.inverted_idx, self.n_gpus)
-            self._device_infos()
-        pass
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
         
@@ -228,9 +225,9 @@ class cuKNeighborsSparseClassifier(object):
         num_terms = X.shape[1]
 
         self.y = y
-        self._device_infos()
+        
         self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
-        self._device_infos()
+        
         #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
@@ -420,6 +417,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
+            ids = ids[ids < self.X_train.shape[0]]
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
@@ -457,7 +455,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         """
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
-
+        
         jobs = []
         q = mp.Queue() 
         length = len(idx)

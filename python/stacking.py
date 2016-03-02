@@ -23,7 +23,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     	If it is true the stacking procedure will use predict_proba to
     	generate the next level training set. Otherwise it will use
     	predict result.
-    
+
     Attributes
     ----------
     
@@ -66,7 +66,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				for j, estimator in enumerate(self.estimators_stack[l]):
 					e = clone(estimator)
 					e.fit(X_train, y_train, sample_weight)
-					
+		
 					if self.probability:
 						idxs = j*self.n_classes_ + np.searchsorted(self.classes_, np.unique(y_train))
 						Xi[np.repeat(test_index, len(idxs)), np.tile(idxs, len(test_index))] = e.predict_proba(X_test).reshape(len(idxs)*len(test_index))
@@ -80,7 +80,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				estimator.fit(X_tmp, y, sample_weight)
 
 			X_tmp = Xi
-		print X_tmp
+		
 		self.estimators_stack[l + 1].fit(X_tmp, y)
 
 		return self
