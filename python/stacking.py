@@ -19,6 +19,11 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
         Number of folds to generate the next level traning set.
     verbose : int, optional (default=0)
         Controls the verbosity of the tree building process.
+    probability: bool, optional (default=True)
+    	If it is true the stacking procedure will use predict_proba to
+    	generate the next level training set. Otherwise it will use
+    	predict result.
+    
     Attributes
     ----------
     
@@ -26,7 +31,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     ----------
     .. [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
     """
-	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=False, random_state=None):
+	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=True, random_state=None):
 
 		self.check_estimators(probability)
 
@@ -63,7 +68,8 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					e.fit(X_train, y_train, sample_weight)
 					
 					if self.probability:
-						Xi[test_index, j*self.n_classes_:((j+1)*self.n_classes_)] = e.predict_proba(X_test)
+						idxs = j*self.n_classes_ + np.searchsorted(self.classes_, np.unique(y_train))
+						Xi[np.repeat(test_index, len(idxs)), np.tile(idxs, len(test_index))] = e.predict_proba(X_test).reshape(len(idxs)*len(test_index))
 					else:
 						Xi[test_index, j] = e.predict(X_test)
 
@@ -74,7 +80,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				estimator.fit(X_tmp, y, sample_weight)
 
 			X_tmp = Xi
-
+		print X_tmp
 		self.estimators_stack[l + 1].fit(X_tmp, y)
 
 		return self
@@ -90,6 +96,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				Xi = np.zeros((X.shape[0], len(self.estimators_stack[l])))
 
 			for j, estimator in enumerate(self.estimators_stack[l]):
+				print(estimator.classes_)
 				if self.probability:
 					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp)
 				else:

@@ -153,7 +153,9 @@ class cuKNeighborsSparseClassifier(object):
 
     def __del__(self):
         if hasattr(self, 'inverted_idx'):
+            self._device_infos()
             self._free_inverted_indexes(self.inverted_idx, self.n_gpus)
+            self._device_infos()
         pass
 
     def _init_params(self, n_neighbors=None, metric='cosine'):
@@ -226,9 +228,9 @@ class cuKNeighborsSparseClassifier(object):
         num_terms = X.shape[1]
 
         self.y = y
-        
+        self._device_infos()
         self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
-        
+        self._device_infos()
         #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
@@ -433,7 +435,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                                  max_leaf_nodes=self.max_leaf_nodes)
 
             rf.fit(X_t, self.y_train[ids])
-            pred[i, rf.classes_.astype(int)] = rf.predict_proba(X_i)[0]
+            pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
 
         q.put((p, pred))
         return
