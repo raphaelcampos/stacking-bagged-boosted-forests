@@ -6,6 +6,8 @@ from sklearn.cluster import  KMeans as kmeans
 
 from sklearn.neighbors import NearestNeighbors as kNN
 
+from sklearn.linear_model import *
+
 from sklearn.grid_search import GridSearchCV
 
 from sklearn.base import clone
@@ -75,7 +77,8 @@ print X.nnz, (X.nnz*4*4)/(2.0**20)
 
 tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
 
-#X = tf_transformer.fit_transform(X)
+if args.gpus <= 0:
+	X = tf_transformer.fit_transform(X)
 
 end = time.time()
 
@@ -83,12 +86,12 @@ datasetLoadingTime = end - start;
 
 estimator = None
 if args.method == 'lazy':
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		max_features=args.max_features, criterion='gini', cuda=True, n_gpus=args.gpus)
+		max_features=args.max_features, criterion='gini', n_gpus=args.gpus)
 	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
 elif args.method == 'adarf':
 	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, max_features=args.max_features),n_estimators=args.ibroof)
@@ -104,8 +107,13 @@ elif args.method == 'xt':
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
 elif args.method == 'comb1':
 	estimators_stack = list()
-	estimators_stack.append([Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5, learning_rate=args.learning_rate, max_features=args.max_features), LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs, max_features='auto', criterion='gini', cuda=True, n_gpus=args.gpus)])
+	estimators_stack.append(
+		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
+		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
 	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
 	estimator = StackingClassifier(estimators_stack)
 else:
 	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
@@ -148,7 +156,7 @@ for train_index, test_index in kf:
 
 	# stores fold results
 	folds_time = folds_time + [end - start]
-	result = np.array([range(len(y_test)), pred, y_test])
+	result = np.array([range(len(y_test)), y_test, pred])
 	if not (args.output == "") :
 		np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
 	k = k + 1

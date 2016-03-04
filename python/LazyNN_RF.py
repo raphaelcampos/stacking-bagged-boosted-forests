@@ -201,23 +201,8 @@ class cuKNeighborsSparseClassifier(object):
         func.argtypes = [POINTER(InvertedIndex), c_int]
 
         self._free_inverted_indexes = func
-
-    def _get_entries(self, X):
-        cx = scipy.sparse.coo_matrix(X)
-
-        entries = (Entry*X.nnz)()
-        # TODO: find a faster way to populate the entries that does not cosume more memory.
-        # Faster way entries = (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row))), but consumes a way too much memory
-        for i in xrange(0, len(entries)):
-            entries[i].set(cx.row[i], cx.col[i], int(cx.data[i]), 0.0)
-            #print entries[i].doc_id, test[i].doc_id
-
-        return entries
-        #return (Entry*X.nnz)(*zip(cx.row, cx.col, cx.data.astype(int), [0.0]*len(cx.row)))
         
     def fit(self, X, y):
-
-        #entries = self._get_entries(X)
 
         X = check_array(X, accept_sparse='csr')
      
@@ -227,8 +212,6 @@ class cuKNeighborsSparseClassifier(object):
         self.y = y
         
         self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
-        
-        #self.inverted_idx = self._make_inverted_index(num_docs, num_terms, entries, len(entries), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
         """Finds the K-neighbors of a point.
@@ -347,10 +330,9 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                  verbose=0,
                  warm_start=False,
                  class_weight=None,
-                 cuda=False,
                  n_gpus=1):
         
-        if cuda:
+        if n_gpus > 0:
             self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors, n_gpus=n_gpus)
         else:
             self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, algorithm='brute', metric='cosine')
@@ -360,7 +342,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
         # kNN params
         self.n_neighbors = n_neighbors
-        self.cuda = cuda
         self.n_gpus = n_gpus
         
         # ForestBase params
@@ -455,7 +436,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         """
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
-        
+        print idx
         jobs = []
         q = mp.Queue() 
         length = len(idx)
@@ -483,13 +464,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
             if not q.empty():
                 continue
             liveprocs = [p for p in liveprocs if p.is_alive()]
-
-        # Exit the completed processes
-        #for p in jobs:
-        #    p.join()
-        
-        # Get process results from the output queue
-        #results = [q.get() for p in jobs]
 
         # make sure that it retrieves results in the correct order
         results.sort()
@@ -526,9 +500,11 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
 class LazyNNExtraTrees(LazyNNRF):
     def runForests(self, X, idx, q, p):
-        pred = []
+        pred = np.zeros((len(idx), self.n_classes_))
+
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
+            ids = ids[ids < self.X_train.shape[0]]
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
@@ -544,7 +520,7 @@ class LazyNNExtraTrees(LazyNNRF):
                                  max_leaf_nodes=self.max_leaf_nodes)
 
             rf.fit(X_t, self.y_train[ids])
-            pred = pred + [rf.predict(X_i)[0]]
+            pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
 
         q.put((p, pred))
         return
