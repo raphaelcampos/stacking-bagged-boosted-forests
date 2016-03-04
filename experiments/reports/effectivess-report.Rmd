@@ -19,7 +19,7 @@ Para cada um dos *dataset* eu rodei *cross-validation 10-folds*. Para comparaÄ‡Ã
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
 
-dir_path = "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_python/"
+dir_path = "~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_python/"
 
 # load results from directory
 # and extract information such as
@@ -41,7 +41,7 @@ f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
 f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
 
 winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
-                                             datasets_labels, p.adjust = "bonf")
+                                             datasets_labels, p.adjust = "none")
 
 print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
            c("microF1", "macroF1"), winner_table, 
