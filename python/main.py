@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt', 'comb1', 'lazy_broof'], default='rf')
+parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt', 'comb1', 'comb2', 'comb3', 'lazy_broof'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
