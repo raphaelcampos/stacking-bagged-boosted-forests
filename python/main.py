@@ -202,8 +202,8 @@ for train_index, test_index in kf:
 	folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
 
 	print "F1-Score"
-	print "\tMicro: ", folds_micro[k-2]
-	print "\tMacro: ", folds_macro[k-2]
+	print "\tMicro: ", folds_micro[-1]
+	print "\tMacro: ", folds_macro[-1]
 	
 	if args.test:
 		break
