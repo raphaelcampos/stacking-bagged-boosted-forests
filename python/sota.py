@@ -2,10 +2,6 @@ from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
 from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
 
-from sklearn.cluster import  KMeans as kmeans
-
-from sklearn.neighbors import NearestNeighbors as kNN
-
 from sklearn.linear_model import *
 
 from sklearn.grid_search import GridSearchCV
@@ -19,21 +15,31 @@ from LazyNN_RF import *
 from Broof import *
 from stacking import *
 
+from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import NearestCentroid
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC, LinearSVC
+
 import argparse
 import time
 
-parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
+parser = argparse.ArgumentParser(description="State-of-the-Art classifiers for text categorization.")
 
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt', 'comb1', 'lazy_broof'], default='rf')
+parser.add_argument("-m", "--method", choices=['svm', 'nb', 'rf', 'knn'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
 parser.add_argument("-j", "--jobs", type=int, help='Number of CPUs available to parallelize the execution (Default:1). If -1 is given then it gets all CPUs available', default=1)
 
 parser.add_argument("-g","--gpus", type=int, help='Number of GPUs available to execute kNN-based classifiers (Default:1).', default=1)
+
+parser.add_argument("-a","--alpha", type=float, help='Additive (Laplace/Lidstone) smoothing parameter (0 for no smoothing).(Default: 1)', default=1)
+
+parser.add_argument("-c", type=float, help='Penalty parameter C of the error term. For SVM training. (Default: 1)', default=1)
 
 parser.add_argument("-i", "--ibroof", type=int, help='Number of iteration for broof to perform (Default:100).', default=100)
 
@@ -77,7 +83,7 @@ print X.nnz, (X.nnz*4*4)/(2.0**20)
 
 tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
 
-if args.gpus <= 0:
+if not args.method == 'nb':
 	X = tf_transformer.fit_transform(X)
 
 end = time.time()
@@ -85,47 +91,18 @@ end = time.time()
 datasetLoadingTime = end - start;
 
 estimator = None
-if args.method == 'lazy':
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-	 max_features='auto', criterion='gini', n_gpus=args.gpus)
-	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
-
-elif args.method == 'lazy_xt':
-	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		max_features=args.max_features, criterion='gini', n_gpus=args.gpus)
-	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
-elif args.method == 'lazy_broof':
-	estimator = LazyNNBroof(n_iterations=args.ibroof, learning_rate=args.learning_rate,
-		n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		max_features=args.max_features, criterion='gini', n_gpus=args.gpus)
-	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
-elif args.method == 'adarf':
-	estimator = AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs,
-	 max_features=args.max_features),n_estimators=args.ibroof)
-	tuned_parameters = [{'n_estimators': [50, 100, 200, 400, 600]}]
-elif args.method == 'broof':
-	estimator = Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
-	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
-elif args.method == 'bert':
-	estimator = Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
-	tuned_parameters = [{'n_trees': [5], 'n_estimators': [10, 20, 50, 100, 200], 'learning_rate': [0.1, 0.5, 1.0]},{'n_trees': [10, 30, 50], 'n_estimators': [10, 20, 30], 'learning_rate': [0.1, 0.5, 1.0]}]
-elif args.method == 'xt':
-	estimator = ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
-	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
-
-elif args.method == 'comb1':
-	estimators_stack = list()
-	estimators_stack.append(
-		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
-		 learning_rate=args.learning_rate, max_features=args.max_features),
-		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
-	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
-	#estimators_stack.append(RidgeClassifierCV(cv=5))
-	estimator = StackingClassifier(estimators_stack)
+if args.method == 'svm':
+	estimator = LinearSVC(C=args.c, dual=False, tol=1e-03)
+	tuned_parameters = [{'C': [0.001,0.1,0.5,1,1.5]}]
+if args.method == 'nb':
+	estimator = MultinomialNB(alpha=args.alpha)
+	tuned_parameters = [{'alpha': [0.0001, 0.001,0.1,0.5,1,1.5,10,100]}]
+if args.method == 'knn':
+	estimator = KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs)
+	tuned_parameters = [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'weights': ['uniform', 'distance']}]
 else:
-	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
-	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
+	estimator = RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
+	tuned_parameters = [{'n_estimators': [200], 'criterion':['gini'], 'max_features': ['sqrt', 'log2', 0.03, 0.08, 0.15, 0.3]}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)
 
@@ -147,7 +124,7 @@ for train_index, test_index in kf:
 	
 
 	if(args.cv > 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_macro')
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, n_jobs=1, verbose=1, scoring='f1_macro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_

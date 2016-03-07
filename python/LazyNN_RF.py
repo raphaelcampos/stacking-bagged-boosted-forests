@@ -2,6 +2,7 @@ from sklearn.neighbors import NearestNeighbors as kNN
 
 from sklearn.ensemble import RandomForestClassifier as ForestClassifier
 from sklearn.ensemble import ExtraTreesClassifier as ExtraTreesClassifier
+from Broof import *
 
 import time
 
@@ -23,7 +24,7 @@ from sklearn.feature_extraction.text import TfidfTransformer
 
 from sklearn.feature_selection.base import SelectorMixin
 from scipy.sparse import vstack, hstack
-from sklearn.utils import check_array
+from sklearn.utils import check_array, check_random_state
 from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_is_fitted
 
@@ -522,5 +523,106 @@ class LazyNNExtraTrees(LazyNNRF):
             rf.fit(X_t, self.y_train[ids])
             pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
 
+        q.put((p, pred))
+        return
+
+class LazyNNBroof(LazyNNRF):
+    def __init__(self,
+                 n_iterations=200,
+                 learning_rate=1,
+                 n_neighbors=30,
+                 n_estimators=5,
+                 criterion="gini",
+                 max_depth=None,
+                 min_samples_split=2,
+                 min_samples_leaf=1,
+                 min_weight_fraction_leaf=0.,
+                 max_features="auto",
+                 max_leaf_nodes=None,
+                 bootstrap=True,
+                 oob_score=False,
+                 n_jobs=1,
+                 random_state=None,
+                 verbose=0,
+                 warm_start=False,
+                 class_weight=None,
+                 n_gpus=1):
+
+        super(LazyNNBroof, self).__init__(n_neighbors=n_neighbors,
+                                        n_estimators=n_estimators,
+                                        criterion=criterion,
+                                        max_depth=max_depth,
+                                        min_samples_split=min_samples_split,
+                                        min_samples_leaf=min_samples_leaf,
+                                        min_weight_fraction_leaf=min_weight_fraction_leaf,
+                                        max_features=max_features,
+                                        max_leaf_nodes=max_leaf_nodes,
+                                        bootstrap=bootstrap,
+                                        oob_score=oob_score,
+                                        n_jobs=n_jobs,
+                                        random_state=random_state,
+                                        verbose=verbose,
+                                        warm_start=warm_start,
+                                        class_weight=class_weight,
+                                        n_gpus=n_gpus)
+
+        self.n_iterations = n_iterations
+        self.learning_rate = learning_rate
+        # everyone's params 
+        self.n_jobs = n_jobs
+
+        # kNN params
+        self.n_neighbors = n_neighbors
+        self.n_gpus = n_gpus
+        
+        # ForestBase params
+        self.n_estimators = n_estimators
+        self.criterion = criterion
+        self.max_depth = max_depth
+        self.min_samples_split = min_samples_split
+        self.min_samples_leaf = min_samples_leaf
+        self.min_weight_fraction_leaf = min_weight_fraction_leaf
+        self.max_features = max_features
+        self.max_leaf_nodes = max_leaf_nodes
+        self.bootstrap=bootstrap
+        self.oob_score=oob_score
+        self.random_state=random_state
+        self.verbose=verbose
+        self.warm_start=warm_start
+        self.class_weight=class_weight
+
+    def runForests(self, X, idx, q, p):
+        random_guesses = 0 
+        pred = np.zeros((len(idx), self.n_classes_))
+
+        selector = ReduceFeatureSpace() 
+        for i,ids in enumerate(idx):
+            ids = ids[ids < self.X_train.shape[0]]
+            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
+
+            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
+            #X_t, X_i = (self.X_train[ids],X[i])
+            density = X_t.nnz/float(X_t.shape[0])
+            rf = Broof(n_trees=self.n_estimators,
+                        n_iterations=self.n_iterations,
+                        learning_rate=self.learning_rate,
+                        criterion=self.criterion,
+                        max_depth=self.max_depth,
+                        min_samples_split=self.min_samples_split,
+                        min_samples_leaf=self.min_samples_leaf,
+                        min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                        max_features=self.max_features,
+                        max_leaf_nodes=self.max_leaf_nodes)
+            try:
+                rf.fit(X_t, self.y_train[ids])
+                pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
+            except Exception, e:
+                # ignore adaboost worse than random guess
+                random_instance = check_random_state(self.random_state)
+                pred[i, random_instance.randint(self.n_classes_, size=1)] = 1;
+                random_guesses = random_guesses + 1
+                pass
+
+        print "Random guesses: ",random_guesses
         q.put((p, pred))
         return

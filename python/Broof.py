@@ -733,11 +733,6 @@ class BoostedForestClassifier(AdaBoostClassifier):
                 sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
 
         for k in range(rf.n_outputs_):
-            if (predictions[k].sum(axis=1) == 0).any():
-                warn("Some inputs do not have OOB scores. "
-                     "This probably means too few trees were used "
-                     "to compute any reliable oob estimates.")
-
             decision = (predictions[k] /
                         predictions[k].sum(axis=1)[:, np.newaxis])
             oob_decision_function.append(decision)
@@ -797,7 +792,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        if estimator_error >= 1. - (1. / n_classes) or np.isnan(estimator_error):
+        if len(self.estimators_) > 1 and (estimator_error >= 1. - (1. / n_classes) or np.isnan(estimator_error)):
             self.estimators_.pop(-1)
             if len(self.estimators_) == 0:
                 raise ValueError('BaseClassifier in AdaBoostClassifier '
