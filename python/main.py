@@ -123,6 +123,30 @@ elif args.method == 'comb1':
 	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
 	#estimators_stack.append(RidgeClassifierCV(cv=5))
 	estimator = StackingClassifier(estimators_stack)
+elif args.method == 'comb2':
+	estimators_stack = list()
+	estimators_stack.append(
+		[Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
+		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
+	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
+	estimator = StackingClassifier(estimators_stack)
+elif args.method == 'comb3':
+	estimators_stack = list()
+	estimators_stack.append(
+		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
+		  max_features='auto', criterion='gini', n_gpus=args.gpus),
+		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
+		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
+	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
+	estimator = StackingClassifier(estimators_stack)
 else:
 	estimator = ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)
 	tuned_parameters = [{'n_estimators': [50, 100, 200, 400], 'criterion':['gini', 'entropy']}]
