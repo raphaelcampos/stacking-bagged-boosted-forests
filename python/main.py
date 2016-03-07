@@ -50,6 +50,8 @@ parser.add_argument("--trials", type=int, help='Number of trials (Default:10).',
 
 parser.add_argument("--cv", type=int, help='Search for best parameters using cross-validation (Default:1). When 1 is given there will not be search at all.', default=1)
 
+parser.add_argument("--start_fold", type=int, default=1)
+
 parser.add_argument("--test", action='store_true', help='Executes only one trial. It is used when you want to make a rapid test.')
 
 parser.add_argument("-o", "--output", type=str, help="Output file for results.", default="")
@@ -163,8 +165,12 @@ print estimator.get_params(deep=False)
 if not (args.output == "") :
 	f=open(args.output,'ab')
 
-k = 1
+k = args.start_fold
 for train_index, test_index in kf:
+	
+	if(k < args.start_fold):
+		continue 
+
 	# split dataset
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
