@@ -118,7 +118,7 @@ elif args.method == 'xt':
 elif args.method == 'comb1':
 	estimators_stack = list()
 	estimators_stack.append(
-		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 		 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
 		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
@@ -128,7 +128,7 @@ elif args.method == 'comb1':
 elif args.method == 'comb2':
 	estimators_stack = list()
 	estimators_stack.append(
-		[Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		[Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 		 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
 		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
@@ -138,11 +138,11 @@ elif args.method == 'comb2':
 elif args.method == 'comb3':
 	estimators_stack = list()
 	estimators_stack.append(
-		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 		 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
 		  max_features='auto', criterion='gini', n_gpus=args.gpus),
-		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=200,
+		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 		 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
 		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
