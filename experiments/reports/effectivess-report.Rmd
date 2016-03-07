@@ -9,12 +9,19 @@ output:
 header-includes: \usepackage{multirow}
 ---
 
+Eu implementei o BROOF usando Extremely Randomized Trees no lugar da RF, gerando o algoritmo que chamei de BERT (Boosted Extremely Randomized Trees).
 
-# Experimento
+A própria ERT se sai melhor em alguns datasets do que a RF. Portanto, era de se esperar
+que a BERT se saísse um pouco melhor que o BROOF, como pode-se verificar no arquivo anexo.
 
-Utilizei o executável ***tcpp*** compilado pelo Thiago Salles que estava no pacote que ele enviou no último email.
+O arquivo anexo possui uma tabela comparando todos os métodos rodados até agora.
 
-Para cada um dos *dataset* eu rodei *cross-validation 10-folds*. Para comparaćão dos métodos foi utilizado test t com correćão de bonferroni. Os valores em negritos representam os vencedores e são estatisticamente significantes.
+Além da implementaćão do BERT, eu também implementei método de ensemble "Stacked Generalization" descrito em [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
+
+O método comb1 na tabela é o stacking de 2 níveis para combinaćão dos métodos LazyNN\_RF e BROOF. No nível do zero do stacking foram utilizados os classificadores LazyNN_RF e BROOF para gerar o conjunto de treino do nível 1. No nível 1 foi utilizado uma RF com 200 árvores.
+
+Os resultados apresentados são promissores. Sobretudo quando se trata de métrica microf1, onde tivemos mais ganhos significativos.
+
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
@@ -41,11 +48,19 @@ f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
 f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
 
 winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
-                                             datasets_labels, p.adjust = "none")
+                                             datasets_labels, p.adjust = "holm")
 
 print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
            c("microF1", "macroF1"), winner_table, 
            caption = "Comparaćão entre todos os métodos")
 ```
 
+Legenda para os métodos:
 
+- LXT: Lazy Extremely Randomized Trees
+- RF: Random Forest com 200 árvores
+- RF1000: Random Forest com 1000 árvores
+- XT: Extremely Randomized Trees com 200 árvores
+- XT1000: Extremely Randomized Trees com 1000 árvores
+- COMB1: Stacking (Lazy + BROOF)
+- BERT: Boosted Extremely Randomized Trees

@@ -1,5 +1,5 @@
 library(xtable)
-require(data.table)
+require(PMCMR)
 
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/f1-measure.R")
 
@@ -44,9 +44,6 @@ result.load <- function(file, trials, metric = "f1"){
   pred <- splitAt(pred, splits)
   
   trials <- length(pred)
-  
-  #y = matrix(y, ncol = trials)
-  #pred = matrix(pred, ncol = trials)
   
   results = array(0, c(trials, n_metric))
   
@@ -125,7 +122,13 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   
   pv = pairwise.t.test(measures, rep(model_labels, each=trials), 
                        paired = T, p.adjust=p.adjust)$p.value
- 
+  
+  #y <- matrix(measures,nrow = trials, ncol = length(model_labels), 
+   #           dimnames=list(1:trials, model_labels))
+  
+  
+  #pv = posthoc.friedman.conover.test(y=y, p.adjust="bonf")$p.value
+  
   pv = pv > (1 - conf.level)
   pv_dim = dim(pv)[1]
   pv = rbind(matrix(F, nrow=1, ncol=pv_dim), pv)
@@ -135,6 +138,7 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   
   sorted <- order(model_labels)
   rownames(pv) <- colnames(pv) <- model_labels[sorted]
+  
   return(pv[model_labels, model_labels[which.max(means)]])
 }
 
@@ -151,6 +155,7 @@ stats.sigficant.winner.table <- function(measures, means, rownames, colnames,
   for(c in 1:ncol){
     for(i in 0:(nmetric-1)){
       idx = (div == i)
+
       winner_table[idx, c] <- stats.sigficant.winner(
         t(measures[idx,c,]), rownames, means[idx,c], p.adjust = p.adjust)
     }

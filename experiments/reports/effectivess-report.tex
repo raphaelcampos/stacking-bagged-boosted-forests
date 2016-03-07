@@ -88,48 +88,87 @@
 \maketitle
 
 
-\section{Experimento}\label{experimento}
+Eu implementei o BROOF usando Extremely Randomized Trees no lugar da RF,
+gerando o algoritmo que chamei de BERT (Boosted Extremely Randomized
+Trees).
 
-Utilizei o executável \textbf{\emph{tcpp}} compilado pelo Thiago Salles
-que estava no pacote que ele enviou no último email.
+A própria ERT se sai melhor em alguns datasets do que a RF. Portanto,
+era de se esperar que a BERT se saísse um pouco melhor que o BROOF, como
+pode-se verificar no arquivo anexo.
 
-Para cada um dos \emph{dataset} eu rodei \emph{cross-validation
-10-folds}. Para comparaćão dos métodos foi utilizado test t com correćão
-de bonferroni. Os valores em negritos representam os vencedores e são
-estatisticamente significantes.
+O arquivo anexo possui uma tabela comparando todos os métodos rodados
+até agora.
+
+Além da implementaćão do BERT, eu também implementei método de ensemble
+``Stacked Generalization'' descrito em {[}1{]} David H. Wolpert,
+``Stacked Generalization'', Neural Networks, 5, 241--259, 1992.
+
+O método comb1 na tabela é o stacking de 2 níveis para combinaćão dos
+métodos LazyNN\_RF e BROOF. No nível do zero do stacking foram
+utilizados os classificadores LazyNN\_RF e BROOF para gerar o conjunto
+de treino do nível 1. No nível 1 foi utilizado uma RF com 200 árvores.
+
+Os resultados apresentados são promissores. Sobretudo quando se trata de
+métrica microf1, onde tivemos mais ganhos significativos.
 
 \section{Resultados}\label{resultados}
 
 \% latex table generated in R 3.2.3 by xtable 1.8-0 package \% Fri Mar 4
-02:01:28 2016
+22:13:12 2016
 
 \begin{table}[ht]
 \centering
-\begin{tabular}{lllllll}
+\begin{tabular}{llllll}
   \hline
-V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 & MED \\ 
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
   \hline
-\multirow{2}{*}{BERT} & microF1 & \bf{89.13 $\pm$  0.41} & 84.53 $\pm$  0.9 & 74.66 $\pm$  0.63 & 67.23 $\pm$  0.86 & 0 $\pm$  0 \\ 
-   & macroF1 & \bf{89.11 $\pm$  0.48} & \bf{75.46 $\pm$  1.98} & \bf{65.05 $\pm$  1.34} & \bf{29.93 $\pm$  2.56} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{BROOF} & microF1 & 87.56 $\pm$  0.23 & \bf{84.42 $\pm$  0.7} & 73.25 $\pm$  0.69 & 66.48 $\pm$  0.9 & 0 $\pm$  0 \\ 
-   & macroF1 & 87.58 $\pm$  0.22 & \bf{76.19 $\pm$  0.54} & \bf{62.55 $\pm$  1.5} & \bf{29.53 $\pm$  2.95} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{COMB1} & microF1 & \bf{89.74 $\pm$  0.57} & \bf{86.4 $\pm$  0.91} & \bf{77.05 $\pm$  0.64} & \bf{77.99 $\pm$  1.33} & 0 $\pm$  0 \\ 
-   & macroF1 & \bf{89.53 $\pm$  0.62} & \bf{79.04 $\pm$  1.95} & \bf{64.36 $\pm$  0.78} & \bf{35.73 $\pm$  3.96} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{LAZY} & microF1 & \bf{88.22 $\pm$  0.29} & 82.04 $\pm$  0.83 & 73.41 $\pm$  0.79 & 66.2 $\pm$  1.23 & 0 $\pm$  0 \\ 
-   & macroF1 & \bf{88.02 $\pm$  0.33} & \bf{72.55 $\pm$  1.26} & \bf{64.6 $\pm$  1.97} & \bf{28.17 $\pm$  2.77} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{LXT} & microF1 & \bf{88.49 $\pm$  0.43} & 82.15 $\pm$  0.81 & 71.71 $\pm$  0.69 & 65.82 $\pm$  1.25 & \bf{83.87 $\pm$  0.07} \\ 
-   & macroF1 & \bf{88.37 $\pm$  0.43} & \bf{72.7 $\pm$  1.05} & \bf{63.44 $\pm$  0.77} & \bf{29.55 $\pm$  3.13} & \bf{71.94 $\pm$  0.43} \\ 
-  \multirow{2}{*}{RF1000} & microF1 & 86.49 $\pm$  0.46 & 81.37 $\pm$  0.85 & 71.41 $\pm$  0.53 & 63.88 $\pm$  0.96 & 0 $\pm$  0 \\ 
-   & macroF1 & 86.66 $\pm$  0.5 & \bf{71.92 $\pm$  1.3} & 59.02 $\pm$  0.6 & 25.68 $\pm$  2.5 & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{RF} & microF1 & 84.03 $\pm$  0.39 & 81.25 $\pm$  1.13 & 71.06 $\pm$  0.48 & 63.83 $\pm$  1.13 & 0 $\pm$  0 \\ 
-   & macroF1 & 84.26 $\pm$  0.36 & 72.14 $\pm$  1.08 & 58.66 $\pm$  0.79 & \bf{25.34 $\pm$  2.02} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{XT1000} & microF1 & \bf{88.71 $\pm$  0.52} & 82.61 $\pm$  1 & 73.53 $\pm$  0.69 & 64.87 $\pm$  0.95 & 0 $\pm$  0 \\ 
-   & macroF1 & \bf{88.72 $\pm$  0.57} & \bf{72.13 $\pm$  1.52} & \bf{60.83 $\pm$  0.92} & \bf{26.47 $\pm$  2.91} & 0 $\pm$  0 \\ 
-  \multirow{2}{*}{XT} & microF1 & 86.83 $\pm$  0.49 & 82.49 $\pm$  1.07 & 73.15 $\pm$  0.68 & 64.89 $\pm$  1.01 & 0 $\pm$  0 \\ 
-   & macroF1 & 86.91 $\pm$  0.52 & \bf{72.24 $\pm$  1.87} & \bf{60.6 $\pm$  0.92} & \bf{26.36 $\pm$  3.13} & 0 $\pm$  0 \\ 
+\multirow{2}{*}{BERT} & microF1 & \bf{89.13 $\pm$  0.41} & 84.53 $\pm$  0.9 & 74.66 $\pm$  0.63 & 67.23 $\pm$  0.86 \\ 
+   & macroF1 & \bf{89.11 $\pm$  0.48} & \bf{75.46 $\pm$  1.98} & \bf{65.05 $\pm$  1.34} & \bf{29.93 $\pm$  2.56} \\ 
+  \multirow{2}{*}{BROOF} & microF1 & 87.56 $\pm$  0.23 & 84.42 $\pm$  0.7 & 73.25 $\pm$  0.69 & 66.48 $\pm$  0.9 \\ 
+   & macroF1 & 87.58 $\pm$  0.22 & \bf{76.19 $\pm$  0.54} & \bf{62.55 $\pm$  1.5} & \bf{29.53 $\pm$  2.95} \\ 
+  \multirow{2}{*}{COMB1} & microF1 & \bf{89.74 $\pm$  0.57} & \bf{86.4 $\pm$  0.91} & \bf{77.05 $\pm$  0.64} & \bf{77.99 $\pm$  1.33} \\ 
+   & macroF1 & \bf{89.53 $\pm$  0.62} & \bf{79.04 $\pm$  1.95} & 64.36 $\pm$  0.78 & \bf{35.73 $\pm$  3.96} \\ 
+  \multirow{2}{*}{KNN} & microF1 & 87.41 $\pm$  0.7 & 75.02 $\pm$  1.39 & 70.41 $\pm$  0.81 & 69.04 $\pm$  0.96 \\ 
+   & macroF1 & 87.24 $\pm$  0.68 & 62.62 $\pm$  1.77 & 62.91 $\pm$  1.01 & \bf{36.97 $\pm$  1.64} \\ 
+  \multirow{2}{*}{LAZY} & microF1 & 88.22 $\pm$  0.29 & 82.04 $\pm$  0.83 & 73.41 $\pm$  0.79 & 66.2 $\pm$  1.23 \\ 
+   & macroF1 & 88.02 $\pm$  0.33 & \bf{72.55 $\pm$  1.26} & \bf{64.6 $\pm$  1.97} & \bf{28.17 $\pm$  2.77} \\ 
+  \multirow{2}{*}{LXT} & microF1 & 88.49 $\pm$  0.43 & 82.15 $\pm$  0.81 & 71.71 $\pm$  0.69 & 65.82 $\pm$  1.25 \\ 
+   & macroF1 & 88.37 $\pm$  0.43 & \bf{72.7 $\pm$  1.05} & 63.44 $\pm$  0.77 & \bf{29.55 $\pm$  3.13} \\ 
+  \multirow{2}{*}{NB} & microF1 & \bf{88.99 $\pm$  0.54} & 59.76 $\pm$  1.75 & \bf{71.79 $\pm$  1.01} & 64.86 $\pm$  1.59 \\ 
+   & macroF1 & \bf{88.78 $\pm$  0.54} & 58 $\pm$  1 & 58.35 $\pm$  0.54 & 28.01 $\pm$  1.66 \\ 
+  \multirow{2}{*}{RF1000} & microF1 & 86.49 $\pm$  0.46 & 81.37 $\pm$  0.85 & 71.41 $\pm$  0.53 & 63.88 $\pm$  0.96 \\ 
+   & macroF1 & 86.66 $\pm$  0.5 & \bf{71.92 $\pm$  1.3} & 59.02 $\pm$  0.6 & 25.68 $\pm$  2.5 \\ 
+  \multirow{2}{*}{RF} & microF1 & 84.03 $\pm$  0.39 & 81.25 $\pm$  1.13 & 71.06 $\pm$  0.48 & 63.83 $\pm$  1.13 \\ 
+   & macroF1 & 84.26 $\pm$  0.36 & \bf{72.14 $\pm$  1.08} & 58.66 $\pm$  0.79 & 25.34 $\pm$  2.02 \\ 
+  \multirow{2}{*}{SVM} & microF1 & \bf{90.77 $\pm$  0.49} & 83.36 $\pm$  0.93 & \bf{76.05 $\pm$  0.61} & 68.08 $\pm$  1.06 \\ 
+   & macroF1 & \bf{90.6 $\pm$  0.5} & \bf{74.9 $\pm$  2.55} & \bf{68.47 $\pm$  1.09} & \bf{33.83 $\pm$  2.76} \\ 
+  \multirow{2}{*}{XT1000} & microF1 & \bf{88.71 $\pm$  0.52} & 82.61 $\pm$  1 & 73.53 $\pm$  0.69 & 64.87 $\pm$  0.95 \\ 
+   & macroF1 & \bf{88.72 $\pm$  0.57} & \bf{72.13 $\pm$  1.52} & 60.83 $\pm$  0.92 & \bf{26.47 $\pm$  2.91} \\ 
+  \multirow{2}{*}{XT} & microF1 & 86.83 $\pm$  0.49 & 82.49 $\pm$  1.07 & 73.15 $\pm$  0.68 & 64.89 $\pm$  1.01 \\ 
+   & macroF1 & 86.91 $\pm$  0.52 & \bf{72.24 $\pm$  1.87} & 60.6 $\pm$  0.92 & \bf{26.36 $\pm$  3.13} \\ 
    \hline
 \end{tabular}
 \caption{Comparaćão entre todos os métodos} 
 \end{table}
+
+Legenda para os métodos:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  LXT: Lazy Extremely Randomized Trees
+\item
+  RF: Random Forest com 200 árvores
+\item
+  RF1000: Random Forest com 1000 árvores
+\item
+  XT: Extremely Randomized Trees com 200 árvores
+\item
+  XT1000: Extremely Randomized Trees com 1000 árvores
+\item
+  COMB1: Stacking (Lazy + BROOF)
+\item
+  BERT: Boosted Extremely Randomized Trees
+\end{itemize}
 
 \end{document}
