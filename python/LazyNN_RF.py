@@ -399,7 +399,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
-            ids = ids[ids < self.X_train.shape[0]]
+            ids = ids[np.logical_and(ids < self.X_train.shape[0], ids >= 0)]
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
@@ -505,7 +505,7 @@ class LazyNNExtraTrees(LazyNNRF):
 
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
-            ids = ids[ids < self.X_train.shape[0]]
+            ids = ids[np.logical_and(ids < self.X_train.shape[0], ids >= 0)]
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
@@ -597,7 +597,7 @@ class LazyNNBroof(LazyNNRF):
 
         selector = ReduceFeatureSpace() 
         for i,ids in enumerate(idx):
-            ids = ids[ids < self.X_train.shape[0]]
+            ids = ids[np.logical_and(ids < self.X_train.shape[0], ids >= 0)]
             X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
 
             X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
