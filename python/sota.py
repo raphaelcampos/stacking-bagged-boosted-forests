@@ -29,7 +29,7 @@ parser = argparse.ArgumentParser(description="State-of-the-Art classifiers for t
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['svm', 'nb', 'rf', 'knn'], default='rf')
+parser.add_argument("-m", "--method", choices=['svm', 'nb', 'rf', 'knn', 'comb1'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -100,6 +100,16 @@ if args.method == 'nb':
 if args.method == 'knn':
 	estimator = KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs)
 	tuned_parameters = [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'weights': ['uniform', 'distance']}]
+elif args.method == 'comb1':
+	estimators_stack = list()
+	estimators_stack.append(
+		[SVC(C=args.c, probability=True),
+		 MultinomialNB(alpha=args.alpha),
+		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs),
+		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)])
+	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
+	estimator = StackingClassifier(estimators_stack, probability=True)
 else:
 	estimator = RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
 	tuned_parameters = [{'n_estimators': [200], 'criterion':['gini'], 'max_features': ['sqrt', 'log2', 0.03, 0.08, 0.15, 0.3]}]

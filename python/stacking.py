@@ -44,7 +44,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 	def check_estimators(self, probability=True):
 		pass
 
-	def fit(self, X, y, sample_weight=None):
+	def fit(self, X, y):
 		self.levels = len(self.estimators_stack)
 		self.classes_ = np.unique(y)
 		self.n_classes_ = len(self.classes_)
@@ -65,7 +65,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 
 				for j, estimator in enumerate(self.estimators_stack[l]):
 					e = clone(estimator)
-					e.fit(X_train, y_train, sample_weight)
+					e.fit(X_train, y_train)
 		
 					if self.probability:
 						idxs = j*self.n_classes_ + np.searchsorted(self.classes_, np.unique(y_train))
@@ -77,7 +77,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					del e
 
 			for estimator in self.estimators_stack[l]:
-				estimator.fit(X_tmp, y, sample_weight)
+				estimator.fit(X_tmp, y)
 
 			X_tmp = Xi
 		
@@ -96,7 +96,6 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				Xi = np.zeros((X.shape[0], len(self.estimators_stack[l])))
 
 			for j, estimator in enumerate(self.estimators_stack[l]):
-				print(estimator.classes_)
 				if self.probability:
 					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp)
 				else:
