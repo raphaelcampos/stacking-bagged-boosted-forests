@@ -26,16 +26,15 @@ result.load <- function(file, trials, metric = "f1"){
   n_cols = seq_len(max(count.fields(file, sep = ' ')))
 
   lines <- readLines(file)
-  #splits <- grep("#", lines)
-  #splits[2:length(splits)] <- splits[2:length(splits)] - 1:(length(splits)-1) 
-  
+  splits <- grep("#", lines)
+  splits[2:length(splits)] <- splits[2:length(splits)] - 1:(length(splits)-1) 
   
   table = read.table(file, header = F,  stringsAsFactors=FALSE,
                      fill = T, col.names = paste0("V", n_cols))
   #table = read.table(file, header = F,  fill = T,
   #                   colClasses=c("integer","integer","integer"),
   #                   stringsAsFactors=FALSE, comment.char="#")
-  splits <- which(table$V1 == 0)
+  #splits <- which(table$V1 == 0)
   ids = parser_class_column(table$V1)
   y = parser_class_column(table$V2)
   pred = parser_class_column(table$V3)
@@ -50,7 +49,7 @@ result.load <- function(file, trials, metric = "f1"){
   for (j in 1:trials) {
     # Compute metric
     if (metric == "f1") {
-      f1_meas = f1_measure(y[[j]] , pred[[j]] )
+      f1_meas = f1_measure(y[[j]] , pred[[j]])
       results[j,1] = f1_meas[[1]]
       results[j,2] = f1_meas[[2]]
     } else {
@@ -120,16 +119,16 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   
   trials = length(measures)/length(model_labels)
   
-  pv = pairwise.t.test(measures, rep(model_labels, each=trials), 
-                       paired = T, p.adjust=p.adjust)$p.value
+  pv = pairwise.t.test(measures, rep(model_labels, each=trials), p.adjust=p.adjust)$p.value
   
   #y <- matrix(measures,nrow = trials, ncol = length(model_labels), 
-   #           dimnames=list(1:trials, model_labels))
+  #            dimnames=list(1:trials, model_labels))
   
   
-  #pv = posthoc.friedman.conover.test(y=y, p.adjust="bonf")$p.value
+  #pv = posthoc.friedman.conover.test(y=y, p.adjust="none")$p.value
   
   pv = pv > (1 - conf.level)
+  #/length(model_labels)
   pv_dim = dim(pv)[1]
   pv = rbind(matrix(F, nrow=1, ncol=pv_dim), pv)
   pv = cbind(pv, matrix(F, nrow=pv_dim + 1, ncol=1))

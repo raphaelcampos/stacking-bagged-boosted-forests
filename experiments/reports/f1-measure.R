@@ -1,5 +1,6 @@
 require(hash)
 require(caret)
+require(PerfMeas)
 
 # Create a confusion matrix from the given outcomes, whose rows correspond
 # to the actual and the columns to the predicated classes.
@@ -24,9 +25,23 @@ prf_divide <- function(numerator, denominator){
   return(result)
 }
 
+binary_matrix <- function(y, ncol){
+  id <- cbind(rowid=1:length(y), colid=y)
+  bm <- matrix(0, nrow = length(y), ncol=ncol)
+  bm[id] <- 1
+  
+  colnames(bm) <- 1:ncol;
+  return(bm)
+}
+
 f1_measure <- function(y, pred, type="both"){
   u = union(pred, y)
-  t = table(factor(pred, u), factor(y, u))
+  inc = min(u)*(-1) + 1
+  u = u + inc
+  pred = pred + inc
+  y = y + inc
+  
+  t = table(factor(pred, u), factor(y , u))
 
   cm <- as.matrix(confusionMatrix(t))
   
@@ -35,9 +50,9 @@ f1_measure <- function(y, pred, type="both"){
   fn = apply(cm, 1, sum) - tp
   
   # computing macro f1  
-  mac_p = mean(prf_divide(tp, tp + fp))
-  mac_r = mean(prf_divide(tp, tp + fn))
-  mac_f1 = 2*(mac_p * mac_r)/(mac_p + mac_r)
+  Targets <- binary_matrix(y, max(u))
+  Pred <- binary_matrix(pred, max(u))
+  mac_f1 <- F.measure.single.over.classes(Targets[,u], Pred[,u])$average['F']
   
   # computing micro f1
   mic_p = prf_divide(sum(tp), sum(tp)+sum(fp))

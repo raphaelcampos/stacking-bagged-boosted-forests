@@ -48,7 +48,7 @@ f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
 f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
 
 winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
-                                             datasets_labels, p.adjust = "holm")
+                                             datasets_labels, p.adjust = "bonf")
 
 print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
            c("microF1", "macroF1"), winner_table, 
@@ -57,10 +57,13 @@ print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
 
 Legenda para os métodos:
 
+- BERT: Boosted Extremely Randomized Trees
 - LXT: Lazy Extremely Randomized Trees
 - RF: Random Forest com 200 árvores
 - RF1000: Random Forest com 1000 árvores
 - XT: Extremely Randomized Trees com 200 árvores
 - XT1000: Extremely Randomized Trees com 1000 árvores
 - COMB1: Stacking (Lazy + BROOF)
-- BERT: Boosted Extremely Randomized Trees
+- COMB2: Stacking (LXT + BERT)
+- COMB3: Stacking (Lazy + BROOF + LXT + BERT)
+- COMBSOTA: Stacking (KNN + RF + SVM + NB)
