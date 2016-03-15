@@ -4,8 +4,6 @@ from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
 from sklearn.cluster import  KMeans as kmeans
 
-from sklearn.neighbors import NearestNeighbors as kNN
-
 from sklearn.linear_model import *
 
 from sklearn.grid_search import GridSearchCV
@@ -20,11 +18,15 @@ from Broof import *
 
 from stacking import *
 
+from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC, LinearSVC
+
 import argparse
 import time
 
 models = ['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt',
-									 'comb1', 'comb2', 'comb3', 'lazy_broof']
+				 'comb1', 'comb2', 'comb3', 'comb4', 'lazy_broof']
 
 parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 
@@ -140,6 +142,30 @@ elif args.method == 'comb3':
 	# Level 0 classifiers
 	estimators_stack.append(
 		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
+			 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
+		 							 n_jobs=args.jobs, max_features='auto', 
+		 							 criterion='gini', n_gpus=args.gpus),
+		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
+		 								 learning_rate=args.learning_rate,
+		 								 max_features=args.max_features),
+		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees,
+		 							 n_jobs=args.jobs, max_features='auto',
+		 							 criterion='gini', n_gpus=args.gpus)])
+	# Level 1 classifier (Aggregator)
+	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
+	estimator = StackingClassifier(estimators_stack)
+elif args.method == 'comb4':
+	estimators_stack = list()
+	# Level 0 classifiers
+	estimators_stack.append(
+		[SVC(C=1, kernel='linear', probability=True),
+		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute',
+							 weights='distance', metric='cosine', n_jobs=args.jobs),
+		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs,
+		 			 criterion='gini', max_features=args.max_features, verbose=10),
+		 Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 			 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
 		 							 n_jobs=args.jobs, max_features='auto', 
