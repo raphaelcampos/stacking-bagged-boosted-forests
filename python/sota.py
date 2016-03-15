@@ -16,7 +16,7 @@ from stacking import *
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neighbors import NearestCentroid
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.svm import SVC, LinearSVC
 
 import argparse
@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(description="State-of-the-Art classifiers for t
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['svm', 'nb', 'rf', 'knn', 'comb1'], default='rf')
+parser.add_argument("-m", "--method", choices=['svm', 'nb', 'rf', 'knn', 'comb1', 'comb2'], default='rf')
 
 parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
@@ -85,7 +85,7 @@ datasetLoadingTime = end - start;
 estimator = None
 if args.method == 'svm':
 	estimator = LinearSVC(C=args.c, dual=True, tol=1e-03)
-	tuned_parameters = [{'C': [0.001,0.1,0.5,1,1.5]}]
+	tuned_parameters = [{'C': 2.0 ** np.arange(-5, 15, 2)}]
 elif args.method == 'nb':
 	estimator = MultinomialNB(alpha=args.alpha)
 	tuned_parameters = [{'alpha': [0.0001, 0.001,0.1,0.5,1,1.5,10,100]}]
@@ -99,6 +99,15 @@ elif args.method == 'comb1':
 		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs),
 		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)])
 	estimators_stack.append(RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10))
+	#estimators_stack.append(RidgeClassifierCV(cv=5))
+	estimator = StackingClassifier(estimators_stack, probability=True)
+elif args.method == 'comb2':
+	estimators_stack = list()
+	estimators_stack.append(
+		[#LinearSVC(C=args.c, dual=False, tol=1e-3),
+		 ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0),
+		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)])
+	estimators_stack.append(RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=0))
 	#estimators_stack.append(RidgeClassifierCV(cv=5))
 	estimator = StackingClassifier(estimators_stack, probability=True)
 else:
@@ -133,7 +142,7 @@ for train_index, test_index in kf:
 		X_test = tf_transformer.transform(X_test)
 
 	if(args.cv > 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, n_jobs=8, verbose=1, scoring='f1_macro')
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, n_jobs=8, verbose=10, scoring='f1_macro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
