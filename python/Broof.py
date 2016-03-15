@@ -20,13 +20,15 @@ from sklearn.utils.fixes import bincount
 def _generate_sample_indices(random_state, sample_weight, n_samples):
     """Private function used to _parallel_build_trees function."""
     random_instance = check_random_state(random_state)
-    sample_indices = random_instance.choice(np.arange(0,n_samples), n_samples, p = sample_weight)
+    sample_indices = random_instance.choice(np.arange(0,n_samples),
+                                                     n_samples, p=sample_weight)
    
     return sample_indices
 
 def _generate_unsampled_indices(random_state, samples_weight,n_samples):
     """Private function used to forest._set_oob_score fuction."""
-    sample_indices = _generate_sample_indices(random_state, samples_weight, n_samples)
+    sample_indices = _generate_sample_indices(random_state, samples_weight,
+                                                                     n_samples)
     sample_counts = bincount(sample_indices, minlength=n_samples)
     unsampled_mask = sample_counts == 0
     indices_range = np.arange(n_samples)
@@ -45,9 +47,10 @@ def _parallel_build_trees(tree, forest, X, y, sample_weight, tree_idx, n_trees,
         if sample_weight is None:
             curr_sample_weight = np.ones((n_samples,), dtype=np.float64)
         else:
-            curr_sample_weight = np.ones((n_samples,), dtype=np.float64) #sample_weight.copy() #
+            curr_sample_weight = np.ones((n_samples,), dtype=np.float64)
 
-        indices = _generate_sample_indices(tree.random_state, sample_weight, n_samples)
+        indices = _generate_sample_indices(tree.random_state, sample_weight,
+                                                                     n_samples)
         sample_counts = bincount(indices, minlength=n_samples)
         curr_sample_weight *= sample_counts
 
@@ -722,15 +725,18 @@ class BoostedForestClassifier(AdaBoostClassifier):
             for k in range(rf.n_outputs_):
                 predictions[k][unsampled_indices, :] += p_estimator[k]
                 
-                incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k], axis=1)
+                incorrect = y[unsampled_indices, k] != np.argmax(p_estimator[k],
+                                                                         axis=1)
                 
-                estimator_error = np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0)
+                estimator_error = np.average(incorrect,
+                    weights=sample_weight[unsampled_indices], axis=0)
 
                 estimator_weight = (
                     (1. - estimator_error) / estimator_error)
 
                 oob_err[k][i] = estimator_error
-                sample_weight_tmp[unsampled_indices] *= np.exp(estimator_weight * (2*incorrect - 1))
+                sample_weight_tmp[unsampled_indices] *= np.exp(
+                                        estimator_weight * (2*incorrect - 1))
 
         for k in range(rf.n_outputs_):
             decision = (predictions[k] /
@@ -764,26 +770,18 @@ class BoostedForestClassifier(AdaBoostClassifier):
             pass
 
         estimator.fit(X, y, sample_weight = sample_weight)
-        sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
         
         if iboost == 0:
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
             self.n_classes_ = len(self.classes_)
 
-        #unsampled_indices = np.where((estimator.oob_decision_function_ > 0.0).any(1))[0]
-
-        #y_predict_proba = estimator.oob_decision_function_[unsampled_indices, :]
-        
-        #y_predict = self.classes_.take(np.argmax(y_predict_proba, axis=1),axis=0)
-
-        # Instances incorrectly classified
-        #incorrect = y_predict != y[unsampled_indices]
+        sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
 
         # Error fraction
-        estimator_error = 1 - estimator.oob_score_#np.mean(
-        #    np.average(incorrect, weights=sample_weight[unsampled_indices], axis=0))
+        estimator_error = 1 - estimator.oob_score_
 
-        #print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
+        #print iboost, np.average(estimator.oob_err_),
+        #       estimator_error, 1 - estimator.oob_score_ 
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -792,7 +790,10 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        if len(self.estimators_) > 1 and (estimator_error >= 1. - (1. / n_classes) or np.isnan(estimator_error)):
+        if (len(self.estimators_) > 1 and 
+            (estimator_error >= 1. - (1. / n_classes) or 
+            np.isnan(estimator_error))):
+            
             self.estimators_.pop(-1)
             if len(self.estimators_) == 0:
                 raise ValueError('BaseClassifier in AdaBoostClassifier '

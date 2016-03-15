@@ -1,6 +1,6 @@
 from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
-from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
 from sklearn.linear_model import *
 
@@ -11,8 +11,6 @@ from sklearn.metrics import f1_score
 
 import numpy as np
 
-from LazyNN_RF import *
-from Broof import *
 from stacking import *
 
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
@@ -80,35 +78,29 @@ else:
 
 print X.nnz, (X.nnz*4*4)/(2.0**20)
 
-
-tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
-
-if not args.method == 'nb':
-	X = tf_transformer.fit_transform(X)
-
 end = time.time()
 
 datasetLoadingTime = end - start;
 
 estimator = None
 if args.method == 'svm':
-	estimator = LinearSVC(C=args.c, dual=False, tol=1e-03)
+	estimator = LinearSVC(C=args.c, dual=True, tol=1e-03)
 	tuned_parameters = [{'C': [0.001,0.1,0.5,1,1.5]}]
-if args.method == 'nb':
+elif args.method == 'nb':
 	estimator = MultinomialNB(alpha=args.alpha)
 	tuned_parameters = [{'alpha': [0.0001, 0.001,0.1,0.5,1,1.5,10,100]}]
-if args.method == 'knn':
+elif args.method == 'knn':
 	estimator = KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs)
 	tuned_parameters = [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'weights': ['uniform', 'distance']}]
 elif args.method == 'comb1':
 	estimators_stack = list()
 	estimators_stack.append(
-		[LinearSVC(C=args.c, dual=False, tol=1e-3),
+		[#LinearSVC(C=args.c, dual=False, tol=1e-3),
 		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs),
 		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)])
-	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10))
+	estimators_stack.append(RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10))
 	#estimators_stack.append(RidgeClassifierCV(cv=5))
-	estimator = StackingClassifier(estimators_stack, probability=False)
+	estimator = StackingClassifier(estimators_stack, probability=True)
 else:
 	estimator = RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
 	tuned_parameters = [{'n_estimators': [200], 'criterion':['gini'], 'max_features': ['sqrt', 'log2', 0.03, 0.08, 0.15, 0.3]}]
@@ -131,9 +123,17 @@ for train_index, test_index in kf:
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
 	
+	tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True)
+	if not args.method == 'nb':
+		# Learn the idf vector from training set
+		tf_transformer.fit(X_train)
+		# Transform test and training frequency matrix
+		# based on training idf vector		
+		X_train = tf_transformer.transform(X_train)
+		X_test = tf_transformer.transform(X_test)
 
 	if(args.cv > 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, n_jobs=1, verbose=1, scoring='f1_macro')
+		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, n_jobs=8, verbose=1, scoring='f1_macro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_

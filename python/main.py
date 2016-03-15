@@ -1,6 +1,6 @@
 from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
 from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
-from sklearn.feature_extraction.text import TfidfTransformer,CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 
 from sklearn.cluster import  KMeans as kmeans
 
@@ -17,19 +17,24 @@ import numpy as np
 
 from LazyNN_RF import *
 from Broof import *
+
 from stacking import *
 
 import argparse
 import time
+
+models = ['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt',
+									 'comb1', 'comb2', 'comb3', 'lazy_broof']
 
 parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 
 parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-parser.add_argument("-m", "--method", choices=['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt', 'comb1', 'comb2', 'comb3', 'lazy_broof'], default='rf')
+parser.add_argument("-m", "--method", choices=models, default=models[0])
 
-parser.add_argument("-H", "--height", type=int, help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
+parser.add_argument("-H", "--height", type=int,
+ help='trees maximum height. If 0 is given then the trees grow to their maximum depth (default:0)', default=0)
 
 parser.add_argument("-j", "--jobs", type=int, help='Number of CPUs available to parallelize the execution (Default:1). If -1 is given then it gets all CPUs available', default=1)
 
@@ -76,21 +81,16 @@ else:
 
 print X.nnz, (X.nnz*4*4)/(2.0**20)
 
-
-tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=False, sublinear_tf=True)
-
-if args.gpus <= 0:
-	X = tf_transformer.fit_transform(X)
-
 end = time.time()
 
 datasetLoadingTime = end - start;
 
 estimator = None
 if args.method == 'lazy':
-	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-	 max_features='auto', criterion='gini', n_gpus=args.gpus)
-	tuned_parameters = [{'n_neighbors': [30,100,500], 'n_estimators': [50, 100, 200, 400]}]
+	estimator = LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
+	 n_jobs=args.jobs, max_features='auto', criterion='gini', n_gpus=args.gpus)
+	tuned_parameters = [{'n_neighbors': [30,100,500],
+							 'n_estimators': [50, 100, 200, 400]}]
 
 elif args.method == 'lazy_xt':
 	estimator = LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
@@ -137,15 +137,20 @@ elif args.method == 'comb2':
 	estimator = StackingClassifier(estimators_stack)
 elif args.method == 'comb3':
 	estimators_stack = list()
+	# Level 0 classifiers
 	estimators_stack.append(
 		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
-		 learning_rate=args.learning_rate, max_features=args.max_features),
-		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		  max_features='auto', criterion='gini', n_gpus=args.gpus),
+			 learning_rate=args.learning_rate, max_features=args.max_features),
+		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
+		 							 n_jobs=args.jobs, max_features='auto', 
+		 							 criterion='gini', n_gpus=args.gpus),
 		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
-		 learning_rate=args.learning_rate, max_features=args.max_features),
-		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
+		 								 learning_rate=args.learning_rate,
+		 								 max_features=args.max_features),
+		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees,
+		 							 n_jobs=args.jobs, max_features='auto',
+		 							 criterion='gini', n_gpus=args.gpus)])
+	# Level 1 classifier (Aggregator)
 	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
 	#estimators_stack.append(RidgeClassifierCV(cv=5))
 	estimator = StackingClassifier(estimators_stack)
@@ -162,9 +167,6 @@ folds_micro = []
 
 print estimator.get_params(deep=False)
 
-if not (args.output == "") :
-	f=open(args.output,'ab')
-
 k = args.start_fold
 for train_index, test_index in kf:
 	
@@ -175,9 +177,18 @@ for train_index, test_index in kf:
 	X_train, X_test = X[train_index], X[test_index]
 	y_train, y_test = y[train_index], y[test_index]
 	
+	tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True)
+	if args.gpus <= 0:
+		# Learn the idf vector from training set
+		tf_transformer.fit(X_train)
+		# Transform test and training frequency matrix
+		# based on training idf vector		
+		X_train = tf_transformer.transform(X_train)
+		X_test = tf_transformer.transform(X_test)
 
 	if(args.cv > 1):
-		gs = GridSearchCV(estimator, tuned_parameters, cv=args.cv, verbose=10, scoring='f1_macro')
+		gs = GridSearchCV(estimator, tuned_parameters,
+									 cv=args.cv, verbose=10, scoring='f1_macro')
 		gs.fit(X_train, y_train)
 		print gs.best_score_, gs.best_params_
 		estimator = gs.best_estimator_
@@ -189,14 +200,19 @@ for train_index, test_index in kf:
 	e.fit(X_train, y_train)
 	pred = e.predict(X_test) 
 	end = time.time()
+	
 	# force to free memory
 	del e
 
 	# stores fold results
 	folds_time = folds_time + [end - start]
 	result = np.array([range(len(y_test)), y_test, pred])
+	
 	if not (args.output == "") :
+		f=open(args.output,'ab')
 		np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+		f.close()
+
 	k = k + 1
 	folds_micro = folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
 	folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
@@ -207,9 +223,6 @@ for train_index, test_index in kf:
 	
 	if args.test:
 		break
-
-if not (args.output == "") :
-	f.close()
 
 print "F1-Score"
 print "\tMicro: ", np.average(folds_micro), np.std(folds_micro)

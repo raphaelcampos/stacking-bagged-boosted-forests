@@ -140,7 +140,7 @@ class InvertedIndex(Structure):
 
 class cuKNeighborsSparseClassifier(object):
 
-    def __init__(self, n_neighbors=30, metric='cosine', n_gpus=1, gpu=0):
+    def __init__(self, n_neighbors=30, metric='cosine', n_gpus=1):
         
         super(cuKNeighborsSparseClassifier, self).__init__()
 
@@ -149,8 +149,6 @@ class cuKNeighborsSparseClassifier(object):
         self._init_methods()
 
         self.n_gpus = n_gpus
-        
-        #self._init_gtknn(gpu)
 
     def __del__(self):
         if hasattr(self, 'inverted_idx'):
@@ -212,7 +210,11 @@ class cuKNeighborsSparseClassifier(object):
 
         self.y = y
         
-        self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
+        self.inverted_idx = self._csr_make_inverted_indices(num_docs, num_terms,
+                                             (c_float*X.nnz)(*X.data),
+                                             (c_int*len(X.indices))(*X.indices),
+                                             (c_int*len(X.indptr))(*X.indptr),
+                                             X.nnz, len(X.indptr), self.n_gpus)
 
     def kneighbors(self, X, n_neighbors=None, return_distance=True):
         """Finds the K-neighbors of a point.
@@ -272,7 +274,11 @@ class cuKNeighborsSparseClassifier(object):
         n_samples, _ = X.shape
         sample_range = np.arange(n_samples)[:, None]
 
-        idxs = self._kneighbors(self.inverted_idx, n_neighbors, (c_float*X.nnz)(*X.data), (c_int*len(X.indices))(*X.indices), (c_int*len(X.indptr))(*X.indptr), X.nnz, len(X.indptr), self.n_gpus)
+        idxs = self._kneighbors(self.inverted_idx, n_neighbors,
+                                     (c_float*X.nnz)(*X.data),
+                                     (c_int*len(X.indices))(*X.indices),
+                                     (c_int*len(X.indptr))(*X.indptr),
+                                     X.nnz, len(X.indptr), self.n_gpus)
         
         return np.ctypeslib.as_array(idxs, shape=(len(X.indptr)-1,n_neighbors))
         
