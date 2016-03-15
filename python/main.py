@@ -167,10 +167,11 @@ folds_micro = []
 
 print estimator.get_params(deep=False)
 
-k = args.start_fold
+k = 1
 for train_index, test_index in kf:
 	
 	if(k < args.start_fold):
+		k = k + 1
 		continue 
 
 	# split dataset
