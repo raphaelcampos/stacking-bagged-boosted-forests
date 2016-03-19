@@ -95,7 +95,8 @@ elif args.method == 'knn':
 elif args.method == 'comb1':
 	estimators_stack = list()
 	estimators_stack.append(
-		[#LinearSVC(C=args.c, dual=False, tol=1e-3),
+		[MultinomialNB(alpha=args.alpha),
+		 SVC(C=1, kernel='linear', probability=True),
 		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs),
 		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=10)])
 	estimators_stack.append(RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='sqrt', verbose=10))

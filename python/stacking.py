@@ -68,8 +68,11 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					e.fit(X_train, y_train)
 		
 					if self.probability:
-						idxs = j*self.n_classes_ + np.searchsorted(self.classes_, np.unique(y_train))
-						Xi[np.repeat(test_index, len(idxs)), np.tile(idxs, len(test_index))] = e.predict_proba(X_test).reshape(len(idxs)*len(test_index))
+						idxs = j*self.n_classes_ + np.searchsorted(
+											self.classes_, np.unique(y_train))
+						Xi[np.repeat(test_index, len(idxs)), np.tile(idxs,
+						 len(test_index))] = e.predict_proba(X_test).reshape(
+						 								len(idxs)*len(test_index))
 					else:
 						Xi[test_index, j] = e.predict(X_test)
 
