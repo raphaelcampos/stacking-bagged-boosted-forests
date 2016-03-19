@@ -48,7 +48,7 @@ f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
 f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
 
 winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
-                                             datasets_labels, p.adjust = "hommel")
+                                             datasets_labels, p.adjust = "none")
 
 print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
            c("microF1", "macroF1"), winner_table, 
