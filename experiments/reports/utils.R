@@ -187,6 +187,11 @@ print_meas <- function(measures, err, rownames, colnames, measnames, emphasize,
     df[idx, 2] = measnames[nmetric-i]
   }
   
+  ss <- seq(0, nrow, 2)
   tab <- xtable(df, caption = caption)
-  print(tab, sanitize.text.function = identity, include.rownames = FALSE)
+  print(tab, sanitize.text.function = identity,
+        include.rownames = FALSE, hline.after = c(-1, 0),
+        add.to.row = list(
+          pos = as.list(ss),
+          command = rep(paste("\\cline{3-", 2 + ncol, "}", sep=""), length(ss))))
 }
