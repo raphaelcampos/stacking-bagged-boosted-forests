@@ -34,6 +34,9 @@ parser.add_argument("--cols", type=int,
 parser.add_argument("--labels", type=str,
                     help="Set labels", default='A,B,C')
 
+parser.add_argument("-f","--fold", type=int,
+                    help="Fold", default=0)
+
 
 args = parser.parse_args()
 
@@ -46,6 +49,9 @@ classess = set()
 docs = []
 for arg in args.result :
 	results = np.loadtxt(arg, dtype=int, usecols=(0, 1, 2))
+	folds = np.split(results, np.where(results[:,0] == 0)[0])
+	folds.pop(0)
+	results = folds[args.fold]
 	classess = classess | (set(results[:,1]) & set(results[:,2])) 
 	sets = sets + [{"docs": results, "label": "kNN"}]
 	docs = docs + [set(results[results[:,1]==results[:,2]][:,0])]
@@ -53,7 +59,6 @@ for arg in args.result :
 #classess = classess & set(xrange(len(classess)/2+1,len(classess)))
 
 print "classess:", classess
-
 A,B,C = docs
 
 all_docs = set(sets[0]['docs'][:,0])
