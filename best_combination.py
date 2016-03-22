@@ -44,9 +44,10 @@ for i in range(len(docs[0])):
 	A, B, C = docs 
 	A, B, C = A[i], B[i], C[i]
 
+	ABC = ((A | C) | B)
 	print "#", i
 	for r in sets[0][i]['docs']:
-		if r[0] in (A | C):
+		if r[0] in ABC:
 			print r[0], r[1], r[1]
 		else:
 			print r[0], r[1], r[2]
