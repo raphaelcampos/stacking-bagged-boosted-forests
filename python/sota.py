@@ -112,7 +112,7 @@ elif args.method == 'comb2':
 	#estimators_stack.append(RidgeClassifierCV(cv=5))
 	estimator = StackingClassifier(estimators_stack, probability=True)
 else:
-	estimator = RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
+	estimator = RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0, random_state=123)
 	tuned_parameters = [{'n_estimators': [200], 'criterion':['gini'], 'max_features': ['sqrt', 'log2', 0.03, 0.08, 0.15, 0.3]}]
 
 kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True, random_state=42)

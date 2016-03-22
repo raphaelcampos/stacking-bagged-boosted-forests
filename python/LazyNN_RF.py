@@ -418,7 +418,8 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                                  min_samples_leaf=self.min_samples_leaf,
                                  min_weight_fraction_leaf=self.min_weight_fraction_leaf,
                                  max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes)
+                                 max_leaf_nodes=self.max_leaf_nodes,
+                                 random_state=self.random_state)
 
             rf.fit(X_t, self.y_train[ids])
             pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
@@ -524,7 +525,8 @@ class LazyNNExtraTrees(LazyNNRF):
                                  min_samples_leaf=self.min_samples_leaf,
                                  min_weight_fraction_leaf=self.min_weight_fraction_leaf,
                                  max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes)
+                                 max_leaf_nodes=self.max_leaf_nodes,
+                                 random_state=self.random_state)
 
             rf.fit(X_t, self.y_train[ids])
             pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
@@ -618,7 +620,8 @@ class LazyNNBroof(LazyNNRF):
                         min_samples_leaf=self.min_samples_leaf,
                         min_weight_fraction_leaf=self.min_weight_fraction_leaf,
                         max_features=self.max_features,
-                        max_leaf_nodes=self.max_leaf_nodes)
+                        max_leaf_nodes=self.max_leaf_nodes,
+                        random_state=self.random_state)
             try:
                 rf.fit(X_t, self.y_train[ids])
                 pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]

@@ -86,6 +86,11 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 		
 		self.estimators_stack[l + 1].fit(X_tmp, y)
 
+		if hasattr(self.estimators_stack[l + 1], "coef_"):
+			print self.estimators_stack[l + 1].coef_
+		elif hasattr(self.estimators_stack[l + 1], "feature_importances_"):
+			print self.estimators_stack[l + 1].feature_importances_
+
 		return self
 
 	def predict(self, X):

@@ -23,6 +23,7 @@ from LazyNN_RF import *
 from Broof import *
 
 from stacking import *
+from MLR import MLR
 
 from sklearn.naive_bayes import BernoulliNB, MultinomialNB
 from sklearn.neighbors import KNeighborsClassifier
@@ -31,39 +32,55 @@ from sklearn.svm import SVC, LinearSVC
 import argparse
 import time
 
-def instantiate_estimator(method, args):
-	random_state = 123
+from copy import copy
+
+def instantiate_estimator(method, args, random_state=123):
 	if method == 'lazy':
 		return LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
 		 			n_jobs=args.jobs, max_features='auto', criterion='gini',
 			 		n_gpus=args.gpus, random_state=random_state)
 	elif method == 'lazy_xt':
-		return LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-			max_features=args.max_features, criterion='gini', n_gpus=args.gpus)
+		return LazyNNExtraTrees(n_neighbors=args.kneighbors,
+					 n_estimators=args.trees, n_jobs=args.jobs,
+					 max_features=args.max_features, criterion='gini', 
+					 n_gpus=args.gpus, random_state=random_state)
 	elif method == 'lazy_broof':
-		return LazyNNBroof(n_iterations=args.ibroof, learning_rate=args.learning_rate,
-			n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
-			max_features=args.max_features, criterion='gini', n_gpus=args.gpus)
+		return LazyNNBroof(n_iterations=args.ibroof,
+			 learning_rate=args.learning_rate, n_neighbors=args.kneighbors,
+			 n_estimators=args.trees, n_jobs=args.jobs,
+			 max_features=args.max_features, criterion='gini',
+			 n_gpus=args.gpus, random_state=random_state)
 	elif method == 'adarf':
-		return AdaBoostClassifier(base_estimator=ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs,
-		 max_features=args.max_features),n_estimators=args.ibroof)
+		return AdaBoostClassifier(
+			 base_estimator=instantiate_estimator("rf",args, random_state),
+			 n_estimators=args.ibroof)
 	elif method == 'broof':
-		return Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
+		return Broof(n_iterations=args.ibroof, n_jobs=args.jobs,
+					 n_trees=args.trees, learning_rate=args.learning_rate,
+					 max_features=args.max_features, random_state=random_state)
 	elif method == 'bert':
-		return Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=args.trees, learning_rate=args.learning_rate, max_features=args.max_features)
+		return Bert(n_iterations=args.ibroof, n_jobs=args.jobs,
+					 n_trees=args.trees, learning_rate=args.learning_rate, 
+					 max_features=args.max_features, random_state=random_state)
 	elif method == 'xt':
-		return ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
+		return ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs,
+							 criterion='gini', max_features=args.max_features,
+							 random_state=random_state, verbose=0)
 	elif method == 'svm':
-		return LinearSVC(C=args.c, dual=True, tol=1e-03)
+		return SVC(C=args.c, kernel='linear', cache_size=1000, probability=True)
 	elif method == 'nb':
-		return MultinomialNB(alpha=args.alpha)
+		return MultinomialNB(alpha=args.alpha, random_state=random_state)
 	elif method == 'knn':
 		return KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute', weights='distance', metric='cosine', n_jobs=args.jobs)
+	elif method == 'mlr':
+		return MLR()
 	else:
-		return RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0)
+		return RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs,
+								 criterion='gini', max_features=args.max_features,
+								 random_state=random_state, verbose=0)
 
 models = ['rf','lazy', 'adarf', 'broof', 'bert', 'lazy_xt', 'xt',
-				 'comb1', 'comb2', 'comb3', 'comb4', 'lazy_broof']
+				 'comb1', 'comb2', 'comb3', 'comb4', 'lazy_broof', 'mlr']
 
 parser = argparse.ArgumentParser(description="Random Forest based classifiers.")
 
@@ -147,16 +164,23 @@ elif args.method == 'bert':
 elif args.method == 'xt':
 	estimator = instantiate_estimator(args.method, args)
 	tuned_parameters = [{'n_estimators': [200], 'criterion':['gini', 'entropy'], 'max_features': ['sqrt', 'log2', 0.03, 0.08, 0.15, 0.3]}]
+elif args.method == 'mlr':
+	estimator = instantiate_estimator(args.method, args)
 elif args.method == 'comb1':
 	estimators_stack = list()
+	args.c = 1
 	estimators_stack.append(
-		[Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
+		[instantiate_estimator("svm", args),
+		Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
 		 learning_rate=args.learning_rate, max_features=args.max_features),
 		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees, n_jobs=args.jobs,
 		  max_features='auto', criterion='gini', n_gpus=args.gpus)])
 	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
-	#estimators_stack.append(RidgeClassifierCV(cv=5))
-	estimator = StackingClassifier(estimators_stack)
+	#estimators_stack.append(ExtraTreesClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features='auto', verbose=0))
+	#estimators_stack.append(RidgeClassifierCV(cv=5, fit_intercept=False))
+	#estimators_stack.append(MLR())
+	#estimators_stack.append(LogisticRegression(solver="newton-cg", tol=1e-3))
+	estimator = StackingClassifier(estimators_stack, n_folds=2, random_state=1234)
 elif args.method == 'comb2':
 	estimators_stack = list()
 	estimators_stack.append(
@@ -188,24 +212,25 @@ elif args.method == 'comb3':
 	estimator = StackingClassifier(estimators_stack)
 elif args.method == 'comb4':
 	estimators_stack = list()
+	level0 = []
+
+	args_copy = copy(args)
+
+	args.c = 1
+	level0.append(instantiate_estimator("svm", args))
+	args.max_features = 'auto'
+	level0.append(instantiate_estimator("lazy", args))
+	level0.append(instantiate_estimator("lxt", args))
+	args.kneighbors = 10
+	level0.append(instantiate_estimator("knn", args))
+	args = args_copy
+	args.trees = 8
+	level0.append(instantiate_estimator("broof", args))
+	level0.append(instantiate_estimator("bert", args))
+
+
 	# Level 0 classifiers
-	estimators_stack.append(
-		[SVC(C=1, kernel='linear', probability=True),
-		 KNeighborsClassifier(n_neighbors=args.kneighbors, algorithm='brute',
-							 weights='distance', metric='cosine', n_jobs=args.jobs),
-		 RandomForestClassifier(n_estimators=args.trees, n_jobs=args.jobs,
-		 			 criterion='gini', max_features=args.max_features, verbose=10),
-		 Broof(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
-			 learning_rate=args.learning_rate, max_features=args.max_features),
-		 LazyNNRF(n_neighbors=args.kneighbors, n_estimators=args.trees,
-		 							 n_jobs=args.jobs, max_features='auto', 
-		 							 criterion='gini', n_gpus=args.gpus),
-		 Bert(n_iterations=args.ibroof, n_jobs=args.jobs, n_trees=5,
-		 								 learning_rate=args.learning_rate,
-		 								 max_features=args.max_features),
-		 LazyNNExtraTrees(n_neighbors=args.kneighbors, n_estimators=args.trees,
-		 							 n_jobs=args.jobs, max_features='auto',
-		 							 criterion='gini', n_gpus=args.gpus)])
+	estimators_stack.append(level0)
 	# Level 1 classifier (Aggregator)
 	estimators_stack.append(ForestClassifier(n_estimators=args.trees, n_jobs=args.jobs, criterion='gini', max_features=args.max_features, verbose=0))
 	#estimators_stack.append(RidgeClassifierCV(cv=5))

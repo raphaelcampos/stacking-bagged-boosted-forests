@@ -658,7 +658,41 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
         return proba
 
 
-class BoostedForestClassifier(AdaBoostClassifier):         
+class BoostedForestClassifier(AdaBoostClassifier):
+    """Boosted Forest classifier. It is based on AdaBoost to focus on
+     hard-to-classify regions of the input space. Nevertheless, it exploits
+     Out-of-Bag(OOB) Errors given by Forest classifiers in order to compute
+     Boosting update rule. Thus, trying to avoid over-fitting suffered by
+     forest classifier in high-dimensional scenarios with many irrelavant
+     attributes, such as text categorization tasks.
+    Parameters
+    ----------
+    Attributes
+    ----------
+    base_estimator : object, optional (default=BoostedRandomForestClassifier)
+        The base estimator from which the boosted forest is built.
+        Must be Forest based classifiers and capable of providing Out-of-Bag
+        errors estimative.
+    n_estimators : integer, optional (default=50)
+        The maximum number of estimators at which boosting is terminated.
+        In case of perfect fit, the learning procedure is stopped early.
+    learning_rate : float, optional (default=1.)
+        Learning rate shrinks the contribution of each classifier by
+        ``learning_rate``. There is a trade-off between ``learning_rate`` and
+        ``n_estimators``.
+    random_state : int, RandomState instance or None, optional (default=None)
+        If int, random_state is the seed used by the random number generator;
+        If RandomState instance, random_state is the random number generator;
+        If None, the random number generator is the RandomState instance used
+        by `np.random`.
+    References
+    ----------
+    [BFC1] Thiago Salles, Marcos Goncalves, Victor Rodrigues, and Leonardo Rocha.
+            2015. BROOF: Exploiting Out-of-Bag Errors, Boosting and Random 
+            Forests for Effective Automated Classification. In Proceedings of the
+            38th International ACM SIGIR Conference on Research and Development
+            in Information Retrieval (SIGIR '15). ACM, New York, NY, USA, 353-362.
+    """      
     def __init__(self,
                  base_estimator=None,
                  n_estimators=50,
@@ -798,7 +832,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             
             self.estimators_.pop(-1)
             if len(self.estimators_) == 0:
-                raise ValueError('BaseClassifier in AdaBoostClassifier '
+                raise ValueError('BaseClassifier in BoostedForestClassifier '
                                  'ensemble is worse than random, ensemble '
                                  'can not be fit.')
             return None, None, None
