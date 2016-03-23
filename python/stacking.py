@@ -82,6 +82,8 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 			for estimator in self.estimators_stack[l]:
 				estimator.fit(X_tmp, y)
 
+			print Xi
+			print Xi[0,:]
 			X_tmp = Xi
 		
 		self.estimators_stack[l + 1].fit(X_tmp, y)

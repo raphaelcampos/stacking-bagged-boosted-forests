@@ -712,7 +712,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             base_estimator=self.base_estimator,
             n_estimators=n_estimators,
             learning_rate=learning_rate,
-            algorithm="SAMME",
+            algorithm="SAMME.R",
             random_state=random_state)
 
     def _set_oob_score(self, rf, X, y, sample_weight=None):
@@ -850,7 +850,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         # trying to save some memory
         del estimator.oob_decision_function_
 
-        return sample_weight, estimator_weight, estimator_error 
+        return sample_weight, 1, estimator_error 
 
 
     def fit(self, X, y, sample_weight=None):
@@ -930,7 +930,91 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
         return self
 
+    def decision_function(self, X): 
+    
+        #check_is_fitted(self, "n_classes_")
+        X = self._validate_X_predict(X)
+
+        n_classes = self.n_classes_
+        classes = self.classes_[:, np.newaxis]
+        """
+        pred = None
+    
+        pred = sum((estimator.predict(X) == classes).T
+                    for estimator, w in zip(self.estimators_,
+                                            self.estimator_weights_))
+
+        #pred /= self.estimator_weights_.sum()
+        if n_classes == 2:
+            pred[:, 0] *= -1
+            return pred.sum(axis=1)
+
+        print pred
+        return pred
+        """ 
+        return sum(estimator.predict_proba(X) * w
+                        for estimator, w in zip(self.estimators_,
+                                                self.estimator_weights_))
+
+    def predict(self, X):
+        """Predict classes for X.
+
+        The predicted class of an input sample is computed as the weighted mean
+        prediction of the classifiers in the ensemble.
+
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+
+        Returns
+        -------
+        y : array of shape = [n_samples]
+            The predicted classes.
+        """
+        pred = self.decision_function(X)
         
+        print pred
+        print pred[0,:]
+        if self.n_classes_ == 2:
+            return self.classes_.take(pred > 0, axis=0)
+
+        return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
+    def predict_proba(self, X):
+        """Predict class probabilities for X.
+        The predicted class probabilities of an input sample is computed as
+        the weighted mean predicted class probabilities of the classifiers
+        in the ensemble.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        p : array of shape = [n_samples]
+            The class probabilities of the input samples. The order of
+            outputs is the same of that of the `classes_` attribute.
+        """
+        check_is_fitted(self, "n_classes_")
+
+        n_classes = self.n_classes_
+        X = self._validate_X_predict(X)
+
+        proba = sum(estimator.predict_proba(X) * w
+                    for estimator, w in zip(self.estimators_,
+                                            self.estimator_weights_))
+
+        proba /= self.estimator_weights_.sum()
+        proba = np.exp((1. / (n_classes - 1)) * proba)
+        normalizer = proba.sum(axis=1)[:, np.newaxis]
+        normalizer[normalizer == 0.0] = 1.0
+        proba /= normalizer
+
+        return proba
+
     def set_params(self, **params):
         """Set the parameters of this estimator.
         The method works on simple estimators as well as on nested objects
