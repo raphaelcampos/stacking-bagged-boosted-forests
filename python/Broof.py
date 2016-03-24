@@ -353,7 +353,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             for j in range(1, len(all_proba)):
                 proba += all_proba[j]*adjust[j]
 
-            proba /= adjust_sum
+            #proba /= adjust_sum
 
         else:
             for j in range(1, len(all_proba)):
@@ -659,12 +659,15 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
 
 
 class BoostedForestClassifier(AdaBoostClassifier):
-    """Boosted Forest classifier. It is based on AdaBoost to focus on
+    """Boosted Forest classifier.
+     
+     It is based on AdaBoost to focus on
      hard-to-classify regions of the input space. Nevertheless, it exploits
      Out-of-Bag(OOB) Errors given by Forest classifiers in order to compute
      Boosting update rule. Thus, trying to avoid over-fitting suffered by
      forest classifier in high-dimensional scenarios with many irrelavant
      attributes, such as text categorization tasks.
+    
     Parameters
     ----------
     Attributes
@@ -712,7 +715,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             base_estimator=self.base_estimator,
             n_estimators=n_estimators,
             learning_rate=learning_rate,
-            algorithm="SAMME.R",
+            algorithm="SAMME",
             random_state=random_state)
 
     def _set_oob_score(self, rf, X, y, sample_weight=None):
@@ -850,7 +853,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         # trying to save some memory
         del estimator.oob_decision_function_
 
-        return sample_weight, 1, estimator_error 
+        return sample_weight, estimator_weight, estimator_error 
 
 
     def fit(self, X, y, sample_weight=None):
@@ -981,7 +984,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             return self.classes_.take(pred > 0, axis=0)
 
         return self.classes_.take(np.argmax(pred, axis=1), axis=0)
-
+     
     def predict_proba(self, X):
         """Predict class probabilities for X.
         The predicted class probabilities of an input sample is computed as
@@ -998,7 +1001,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             The class probabilities of the input samples. The order of
             outputs is the same of that of the `classes_` attribute.
         """
-        check_is_fitted(self, "n_classes_")
+        #check_is_fitted(self, "n_classes_")
 
         n_classes = self.n_classes_
         X = self._validate_X_predict(X)
@@ -1007,8 +1010,8 @@ class BoostedForestClassifier(AdaBoostClassifier):
                     for estimator, w in zip(self.estimators_,
                                             self.estimator_weights_))
 
-        proba /= self.estimator_weights_.sum()
-        proba = np.exp((1. / (n_classes - 1)) * proba)
+        #proba /= self.estimator_weights_.sum()
+        #proba = np.exp((1. / (n_classes - 1)) * proba)
         normalizer = proba.sum(axis=1)[:, np.newaxis]
         normalizer[normalizer == 0.0] = 1.0
         proba /= normalizer
