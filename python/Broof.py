@@ -353,7 +353,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
             for j in range(1, len(all_proba)):
                 proba += all_proba[j]*adjust[j]
 
-            #proba /= adjust_sum
+            proba /= adjust_sum
 
         else:
             for j in range(1, len(all_proba)):
@@ -955,7 +955,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         print pred
         return pred
         """ 
-        return sum(estimator.predict_proba(X) * w
+        return sum(estimator.predict_proba(X)
                         for estimator, w in zip(self.estimators_,
                                                 self.estimator_weights_))
 
@@ -1006,7 +1006,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
         X = self._validate_X_predict(X)
 
-        proba = sum(estimator.predict_proba(X) * w
+        proba = sum(estimator.predict_proba(X)
                     for estimator, w in zip(self.estimators_,
                                             self.estimator_weights_))
 
