@@ -6,6 +6,7 @@ from sklearn.grid_search import GridSearchCV
 
 from sklearn.base import clone
 from sklearn.metrics import f1_score
+from sklearn.pipeline import Pipeline
 
 import numpy as np
 
@@ -67,6 +68,10 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					e = clone(estimator)
 					e.fit(X_train, y_train)
 		
+					if isinstance(e, Pipeline):
+						for name, transform in e.steps[:-1]:
+							X_test = transform.transform(X_test)
+
 					if self.probability:
 						idxs = j*self.n_classes_ + np.searchsorted(
 											self.classes_, np.unique(y_train))
@@ -76,7 +81,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					else:
 						Xi[test_index, j] = e.predict(X_test)
 
-					# force to free memory
+					# force memory release
 					del e
 
 			for estimator in self.estimators_stack[l]:
@@ -106,6 +111,10 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				Xi = np.zeros((X.shape[0], len(self.estimators_stack[l])))
 
 			for j, estimator in enumerate(self.estimators_stack[l]):
+				if isinstance(estimator, Pipeline):
+					for name, transform in estimator.steps[:-1]:
+						X_tmp = transform.transform(X_tmp)
+
 				if self.probability:
 					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp)
 				else:

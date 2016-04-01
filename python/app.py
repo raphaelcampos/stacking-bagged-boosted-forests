@@ -1,4 +1,4 @@
-from sklearn.datasets import fetch_20newsgroups, load_svmlight_file
+from sklearn.datasets import fetch_20newsgroups, load_svmlight_file, dump_svmlight_file
 from sklearn.cross_validation import KFold, StratifiedKFold
 
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
@@ -8,9 +8,10 @@ from sklearn.grid_search import GridSearchCV
 
 from sklearn.base import clone
 from sklearn.metrics import f1_score
+from sklearn.pipeline import Pipeline
 
 from instantiator import EstimatorInstantiator
-from config import default_tuning_params
+from config import default_tuning_params, default_transformers
 
 from xsklearn.ensemble import StackingClassifier
 
@@ -163,7 +164,7 @@ class ClassificationApp(BaseApp):
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
 			
-			tf_transformer = TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True)
+			tf_transformer = TfidfTransformer(norm=None, use_idf=True, smooth_idf=True, sublinear_tf=True)
 			if self._tfidf(args):
 				# Learn the idf vector from training set
 				tf_transformer.fit(X_train)
@@ -172,9 +173,14 @@ class ClassificationApp(BaseApp):
 				X_train = tf_transformer.transform(X_train)
 				X_test = tf_transformer.transform(X_test)
 
+			#dump_svmlight_file(X_train,y_train,"4uni/stratified/treino%d_orig" % (k - 1), zero_based=False)
+			#dump_svmlight_file(X_test,y_test,"4uni/stratified/teste%d_orig" % (k - 1), zero_based=False)
+			#k = k + 1
+			#continue
+
 			if(args.cv > 1):
-				gs = GridSearchCV(estimator, tuned_parameters, n_jobs=8,
-											 cv=args.cv, verbose=10, scoring='f1_macro')
+				gs = GridSearchCV(estimator, tuned_parameters, n_jobs=7,
+											 cv=args.cv, verbose=10, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print gs.best_score_, gs.best_params_
 				estimator = gs.best_estimator_
@@ -340,7 +346,7 @@ class StackerApp(TextClassificationApp):
 		if params == [] or params is None:
 			params = [{} for i in range(len(base_classifiers))]
 
-		base_level = [self.instantiator.get_instance(estimator, params[i]) for i, estimator in enumerate(base_classifiers)]
+		base_level = [Pipeline(default_transformers[estimator] + [('estimator', self.instantiator.get_instance(estimator, params[i]))]) for i, estimator in enumerate(base_classifiers)]
 
 		params = json.loads(args.meta_params)
 		meta_classifiers = json.loads(args.meta_classifiers)
@@ -354,14 +360,12 @@ class StackerApp(TextClassificationApp):
 		stack.append(base_level)
 		stack.append(meta_level[0])
 
-		print stack
 		return StackingClassifier(estimators_stack=stack,
 						 random_state=random_instance.randint(MAX_INT))
 
 
-
 	def _tfidf(self, args):
-		return args.n_gpus <= 0
+		return False
 
 if __name__ == '__main__':
 	app = StackerApp()
