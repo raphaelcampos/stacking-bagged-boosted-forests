@@ -16,10 +16,13 @@ from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees
 from xsklearn.ensemble import Broof, Bert
 from xsklearn.linear_model import MLR
 
+from sklearn.feature_extraction.text import TfidfTransformer
+
 import numpy as np
 
 base_estimators = {
 	'svm': svm.SVC,
+	'lsvm': svm.LinearSVC,
 	'nb': naive_bayes.MultinomialNB,
 	'knn': neighbors.KNeighborsClassifier,
 	'rf': ensemble.RandomForestClassifier,
@@ -38,6 +41,10 @@ default_params = {
 			 'decision_function_shape': None, 'random_state': None, 
 			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
 			 'class_weight': None},
+	'lsvm': {'loss': 'squared_hinge', 'C': 1, 'verbose': 0, 'intercept_scaling': 0.5,
+			 'fit_intercept': True, 'max_iter': 1000, 'penalty': 'l2',
+			 'multi_class': 'ovr', 'random_state': 1608637542, 'dual': True, 
+			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
 	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
 			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
@@ -83,6 +90,7 @@ default_params = {
 
 default_tuning_params = {
 	'svm': 	[{'C': 2.0 ** np.arange(-5, 15, 2)}],
+	'lsvm': [{'C': 2.0 ** np.arange(-5, 15, 2)}],
 	'nb':  	[{'alpha': [0.0001, 0.001,0.1,0.5,1,1.5,10,100]}],
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300, 500], 'weights': ['uniform', 'distance']}],
 	'rf': [{'criterion': ['entropy', 'gini'], 'n_estimators': [200], 
@@ -90,15 +98,29 @@ default_tuning_params = {
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
-	'lazy': [{'n_neighbors': [30,100,500], 'criterion': ['entropy', 'gini'], 
+	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
-	'lxt': [{'n_neighbors': [30,100,500], 'criterion': ['entropy', 'gini'], 
+	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
 	'broof': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
 	'bertf': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
+	'mlr': []
+}
+
+default_transformers = {
+	'svm': 	[('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'lsvm': [('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'nb':  	[],
+	'knn': 	[('tfidf', TfidfTransformer(norm=None, use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'rf': [],
+	'xt': [],
+	'lazy': [],
+	'lxt': [],
+	'broof': [],
+	'bertf': [],
 	'mlr': []
 }
