@@ -164,7 +164,7 @@ class ClassificationApp(BaseApp):
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
 			
-			tf_transformer = TfidfTransformer(norm=None, use_idf=True, smooth_idf=True, sublinear_tf=True)
+			tf_transformer = TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True)
 			if self._tfidf(args):
 				# Learn the idf vector from training set
 				tf_transformer.fit(X_train)
@@ -179,8 +179,8 @@ class ClassificationApp(BaseApp):
 			#continue
 
 			if(args.cv > 1):
-				gs = GridSearchCV(estimator, tuned_parameters, n_jobs=7,
-											 cv=args.cv, verbose=10, scoring='f1_micro')
+				gs = GridSearchCV(estimator, tuned_parameters,
+											 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print gs.best_score_, gs.best_params_
 				estimator = gs.best_estimator_

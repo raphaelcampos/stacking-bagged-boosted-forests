@@ -115,7 +115,7 @@ default_transformers = {
 	'svm': 	[('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'lsvm': [('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
-	'knn': 	[('tfidf', TfidfTransformer(norm=None, use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'rf': [],
 	'xt': [],
 	'lazy': [],

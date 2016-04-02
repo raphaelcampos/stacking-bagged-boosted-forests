@@ -124,6 +124,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         if n_gpus > 0:
             self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors, n_gpus=n_gpus)
         else:
+            print n_neighbors
             self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, algorithm='brute', metric='cosine')
 
         # everyone's params 
