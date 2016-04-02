@@ -179,8 +179,10 @@ class ClassificationApp(BaseApp):
 			#continue
 
 			if(args.cv > 1):
+				n_jobs = 1 if hasattr(estimator,"n_jobs") else args.n_jobs
 				gs = GridSearchCV(estimator, tuned_parameters,
-											 cv=args.cv, verbose=1, scoring='f1_micro')
+							 n_jobs=n_jobs,
+							 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print gs.best_score_, gs.best_params_
 				estimator = gs.best_estimator_
