@@ -121,11 +121,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                  class_weight=None,
                  n_gpus=1):
         
-        if n_gpus > 0:
-            self.kNN = cuKNeighborsSparseClassifier(n_neighbors=n_neighbors, n_gpus=n_gpus)
-        else:
-            print n_neighbors
-            self.kNN = kNN(n_jobs=n_jobs, n_neighbors=n_neighbors, algorithm='brute', metric='cosine')
 
         # everyone's params 
         self.n_jobs = n_jobs
@@ -173,11 +168,18 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         self : object
             Returns self.
         """
+
         self.classes_ = np.unique(y)
         self.n_classes_ = len(self.classes_)
 
         self.X_train = X
         self.y_train = y
+
+        print self.n_neighbors
+        if self.n_gpus > 0:
+            self.kNN = cuKNeighborsSparseClassifier(n_neighbors=self.n_neighbors, n_gpus=self.n_gpus)
+        else:
+            self.kNN = kNN(n_jobs=self.n_jobs, n_neighbors=self.n_neighbors, algorithm='brute', metric='cosine')
 
         self.kNN.fit(self.X_train, self.y_train)
         
@@ -288,6 +290,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
     def score(self, X, y):
         return np.mean(self.predict(X) == y)
+
 
 class LazyNNExtraTrees(LazyNNRF):
     def runForests(self, X, idx, q, p):
