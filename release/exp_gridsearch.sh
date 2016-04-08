@@ -51,34 +51,66 @@ do
 done
 ################################################################################
 
+#dataset=4uni
+#method=lazy
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=20ng
+#method=lazy
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=acm
+#method=lazy
+#python ../python/main.py -m ${method} -t 200 -k 300 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=reuters90
+#method=lazy
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=4uni
+#method=lxt
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=20ng
+#method=lxt
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=acm
+#method=lxt
+#python ../python/main.py -m ${method} -t 200 -k 300 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
+#dataset=reuters90
+#method=lxt
+#python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+
 dataset=4uni
-method=lazy
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=20ng
-method=lazy
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
-method=lazy
-python ../python/main.py -m ${method} -t 200 -k 300 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
-dataset=reuter90
-method=lazy
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+dataset=reuters90
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=4uni
-method=lxt
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=bert
+python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=20ng
-method=lxt
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
-method=lxt
-python ../python/main.py -m ${method} -t 200 -k 300 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
-dataset=reuter90
-method=lxt
-python ../python/main.py -m ${method} -t 200 -k 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+dataset=reuters90
+method=broof
+python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
