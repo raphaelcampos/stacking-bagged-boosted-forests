@@ -18,6 +18,7 @@ from xsklearn.ensemble import StackingClassifier
 import numpy as np
 import argparse
 import time
+import json
 
 MAX_INT = np.iinfo(np.int32).max
 
@@ -173,10 +174,6 @@ class ClassificationApp(BaseApp):
 				X_train = tf_transformer.transform(X_train)
 				X_test = tf_transformer.transform(X_test)
 
-			#dump_svmlight_file(X_train,y_train,"4uni/stratified/treino%d_orig" % (k - 1), zero_based=False)
-			#dump_svmlight_file(X_test,y_test,"4uni/stratified/teste%d_orig" % (k - 1), zero_based=False)
-			#k = k + 1
-			#continue
 
 			if(args.cv > 1):
 				n_jobs = 1 if hasattr(estimator,"n_jobs") else args.n_jobs
@@ -186,6 +183,7 @@ class ClassificationApp(BaseApp):
 				gs.fit(X_train, y_train)
 				print gs.best_score_, gs.best_params_
 				estimator.set_params(**gs.best_params_)
+				print estimator.get_params()
 
 			e = clone(estimator)
 			
@@ -267,7 +265,7 @@ class TextClassificationApp(ClassificationApp):
 
 	def _setup_instantiator(self, args):
 		random_instance = check_random_state(args.seed)
-
+		
 		self.instantiator.set_general_params(vars(args))
 		self.instantiator.set_general_params(
 						{'random_state': random_instance.randint(MAX_INT)})
@@ -298,7 +296,7 @@ class TextClassificationApp(ClassificationApp):
 			pass
 
 		return args 
-import json
+
 class StackerApp(TextClassificationApp):
 	"""Application for text classification using stacking of classifiers
     
@@ -332,8 +330,7 @@ class StackerApp(TextClassificationApp):
 
 	def _setup_instantiator(self, args):
 		
-		estimator, tuned_parameters = super(StackerApp, self)._setup_instantiator(
-																			args)
+		estimator, tuned_parameters = super(StackerApp, self)._setup_instantiator(args)
 		self.instantiator.set_general_params({'probability': True})
 		return self._create_stacking(args), tuned_parameters
 

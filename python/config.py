@@ -98,15 +98,13 @@ default_tuning_params = {
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
-	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
-			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
-			0.15, 0.30]}],
-	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
-			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
-			0.15, 0.30]}],
-	'broof': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
-				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
-	'bertf': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
+	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy'], 
+			'n_estimators': [200], 'max_features': ['sqrt']}],
+	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy'], 
+			'n_estimators': [200], 'max_features': ['sqrt']}],
+	'broof': [{'n_trees': [5], 'n_iterations': [50],
+				'max_features': [0.08]}],
+	'bert': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
 	'mlr': []
 }
@@ -121,6 +119,6 @@ default_transformers = {
 	'lazy': [],
 	'lxt': [],
 	'broof': [],
-	'bertf': [],
+	'bert': [],
 	'mlr': []
 }
