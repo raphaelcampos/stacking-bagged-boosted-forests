@@ -185,7 +185,7 @@ class ClassificationApp(BaseApp):
 							 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print gs.best_score_, gs.best_params_
-				estimator = gs.best_estimator_
+				estimator.set_params(**gs.best_params_)
 
 			e = clone(estimator)
 			
