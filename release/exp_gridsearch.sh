@@ -85,32 +85,32 @@ done
 
 dataset=4uni
 method=broof
-python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+#python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=20ng
 method=broof
-python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+#python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
 method=broof
-python ../python/main.py -m ${method} -t 8 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+#python ../python/main.py -m ${method} -t 8 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=reuters90
 method=broof
-python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+#python ../python/main.py -m ${method} -t 8 -i 200 -f 0.08 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=4uni
 method=bert
-python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+#python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=20ng
-method=broof
-python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+method=bert
+python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
-method=broof
+method=bert
 python ../python/main.py -m ${method} -t 8 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=reuters90
-method=broof
+method=bert
 python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
