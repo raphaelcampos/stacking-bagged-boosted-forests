@@ -3,7 +3,7 @@
 dataset_dir=$1
 output_dir=$2
 n_jobs=$3
-trials=2
+trials=5
 
 datasets=('20ng' 'reuters90' 'acm')
 
@@ -105,7 +105,7 @@ method=bert
 
 dataset=20ng
 method=bert
-python ../python/main.py -m ${method} -t 8 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
 method=bert
