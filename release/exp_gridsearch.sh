@@ -105,7 +105,7 @@ method=bert
 
 dataset=20ng
 method=bert
-python ../python/main.py -m ${method} -t 8 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
+python ../python/main.py -m ${method} -t 5 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} --o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
 method=bert
