@@ -111,10 +111,48 @@ de treino do nível 1. No nível 1 foi utilizado uma RF com 200 árvores.
 Os resultados apresentados são promissores. Sobretudo quando se trata de
 métrica microf1, onde tivemos mais ganhos significativos.
 
+\begin{verbatim}
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_bert_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_bert_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_bert_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_bert_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_broof_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_broof_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_broof_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_broof_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_knn_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_knn_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_knn_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_knn_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lazy_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lazy_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lazy_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lazy_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lxt_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lxt_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lxt_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_lxt_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_nb_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_nb_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_nb_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_nb_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_rf_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_rf_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_rf_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_rf_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_svm_20ng"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_svm_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_svm_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_svm_reuters90"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_xt_4uni"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_xt_acm"
+## [1] "~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/release/results/results_grid//results_xt_reuters90"
+\end{verbatim}
+
 \section{Resultados}\label{resultados}
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Mon Mar
-21 09:58:22 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun Apr
+10 16:32:36 2016
 
 \begin{table}[ht]
 \centering
@@ -122,40 +160,24 @@ métrica microf1, onde tivemos mais ganhos significativos.
   \hline
 V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
   \cline{3-6} \hline
-\multirow{2}{*}{BERT} & microF1 & 89.13 $\pm$  0.41 & \bf{84.53 $\pm$  0.9} & 74.66 $\pm$  0.63 & 67.23 $\pm$  0.86 \\ 
-   & macroF1 & 88.8 $\pm$  0.52 & 72.64 $\pm$  1.96 & 61.83 $\pm$  0.98 & 29.27 $\pm$  2.26 \\ 
-   \cline{3-6}\multirow{2}{*}{BROOF} & microF1 & 87.56 $\pm$  0.23 & 84.42 $\pm$  0.7 & 73.25 $\pm$  0.69 & 66.48 $\pm$  0.9 \\ 
-   & macroF1 & 87.06 $\pm$  0.18 & 73.64 $\pm$  0.95 & 60.01 $\pm$  0.94 & 28.76 $\pm$  2.65 \\ 
-   \cline{3-6}\multirow{2}{*}{COMB1} & microF1 & 89.74 $\pm$  0.57 & \bf{86.4 $\pm$  0.91} & 77.05 $\pm$  0.64 & 77.99 $\pm$  1.33 \\ 
-   & macroF1 & 89.46 $\pm$  0.61 & \bf{78.08 $\pm$  1.8} & 62.8 $\pm$  0.88 & 34.12 $\pm$  3.7 \\ 
-   \cline{3-6}\multirow{2}{*}{COMB2} & microF1 & \bf{90.57 $\pm$  0.48} & \bf{86.35 $\pm$  1.03} & \bf{78.03 $\pm$  0.9} & \bf{79.84 $\pm$  1.27} \\ 
-   & macroF1 & \bf{90.35 $\pm$  0.46} & \bf{77.8 $\pm$  1.92} & 64.13 $\pm$  1.31 & \bf{35.42 $\pm$  2.2} \\ 
-   \cline{3-6}\multirow{2}{*}{COMB3} & microF1 & \bf{90.71 $\pm$  0.39} & \bf{86.44 $\pm$  1.17} & \bf{77.86 $\pm$  0.98} & \bf{79.98 $\pm$  1.25} \\ 
-   & macroF1 & \bf{90.49 $\pm$  0.36} & \bf{78.23 $\pm$  1.9} & 63.55 $\pm$  1.09 & \bf{36.25 $\pm$  3.56} \\ 
-   \cline{3-6}\multirow{2}{*}{COMB4} & microF1 & \bf{91.26 $\pm$  0.46} & \bf{86.78 $\pm$  1} & \bf{79.09 $\pm$  0.75} & \bf{81.94 $\pm$  1.12} \\ 
-   & macroF1 & \bf{91.05 $\pm$  0.45} & \bf{79.25 $\pm$  1.83} & \bf{67.05 $\pm$  1.44} & \bf{41.08 $\pm$  2.74} \\ 
-   \cline{3-6}\multirow{2}{*}{COMBSOTA} & microF1 & \bf{91.35 $\pm$  0.37} & \bf{85.76 $\pm$  0.63} & \bf{79 $\pm$  1.02} & 77.47 $\pm$  0.95 \\ 
-   & macroF1 & \bf{91.18 $\pm$  0.37} & \bf{77.3 $\pm$  1.12} & \bf{67.15 $\pm$  0.47} & 33.62 $\pm$  2.09 \\ 
-   \cline{3-6}\multirow{2}{*}{KNN} & microF1 & 87.41 $\pm$  0.7 & 75.02 $\pm$  1.39 & 70.41 $\pm$  0.81 & 69.04 $\pm$  0.96 \\ 
-   & macroF1 & 87.11 $\pm$  0.68 & 60.08 $\pm$  1.12 & 59.72 $\pm$  0.96 & \bf{35.35 $\pm$  1.43} \\ 
-   \cline{3-6}\multirow{2}{*}{LAZY} & microF1 & 88.22 $\pm$  0.29 & 82.04 $\pm$  0.83 & 73.41 $\pm$  0.79 & 65.72 $\pm$  1.06 \\ 
-   & macroF1 & 87.75 $\pm$  0.35 & 67.77 $\pm$  1.2 & 61.56 $\pm$  1.69 & 26.85 $\pm$  2.92 \\ 
-   \cline{3-6}\multirow{2}{*}{LXT} & microF1 & 88.49 $\pm$  0.43 & 82.15 $\pm$  0.81 & 71.71 $\pm$  0.69 & 65.82 $\pm$  1.25 \\ 
-   & macroF1 & 88.19 $\pm$  0.39 & 68.1 $\pm$  1.72 & 60.32 $\pm$  0.55 & 28.73 $\pm$  2.95 \\ 
-   \cline{3-6}\multirow{2}{*}{NB} & microF1 & 88.99 $\pm$  0.54 & 59.76 $\pm$  1.75 & 71.79 $\pm$  1.01 & 64.86 $\pm$  1.59 \\ 
-   & macroF1 & 88.68 $\pm$  0.55 & 53.96 $\pm$  1.28 & 57.59 $\pm$  0.51 & 26.76 $\pm$  1.54 \\ 
-   \cline{3-6}\multirow{2}{*}{RF1000} & microF1 & 86.49 $\pm$  0.46 & 81.37 $\pm$  0.85 & 71.41 $\pm$  0.53 & 63.88 $\pm$  0.96 \\ 
-   & macroF1 & 85.93 $\pm$  0.49 & 66.7 $\pm$  1.52 & 56.78 $\pm$  0.49 & 24.8 $\pm$  2.29 \\ 
-   \cline{3-6}\multirow{2}{*}{RF} & microF1 & 84.03 $\pm$  0.39 & 81.25 $\pm$  1.13 & 71.06 $\pm$  0.48 & 63.83 $\pm$  1.13 \\ 
-   & macroF1 & 83.55 $\pm$  0.38 & 66.9 $\pm$  1.9 & 56.37 $\pm$  0.58 & 24.51 $\pm$  1.91 \\ 
-   \cline{3-6}\multirow{2}{*}{SVM} & microF1 & \bf{90.77 $\pm$  0.49} & 83.36 $\pm$  0.93 & 76.05 $\pm$  0.61 & 68.08 $\pm$  1.06 \\ 
-   & macroF1 & \bf{90.53 $\pm$  0.48} & 71.89 $\pm$  2.54 & \bf{65.69 $\pm$  1.14} & 33.02 $\pm$  2.57 \\ 
-   \cline{3-6}\multirow{2}{*}{SVMTF} & microF1 & 86.41 $\pm$  0.51 & 79.13 $\pm$  1.34 & 74.06 $\pm$  0.51 & 66.58 $\pm$  1.1 \\ 
-   & macroF1 & 86.14 $\pm$  0.52 & 70.27 $\pm$  2.31 & 62.63 $\pm$  0.82 & 31.6 $\pm$  2.53 \\ 
-   \cline{3-6}\multirow{2}{*}{XT1000} & microF1 & 88.71 $\pm$  0.52 & 82.61 $\pm$  1 & 73.53 $\pm$  0.69 & 64.87 $\pm$  0.95 \\ 
-   & macroF1 & 88.32 $\pm$  0.64 & 66.55 $\pm$  2.02 & 59.11 $\pm$  0.83 & 25.45 $\pm$  2.6 \\ 
-   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 86.83 $\pm$  0.49 & 82.49 $\pm$  1.07 & 73.15 $\pm$  0.68 & 64.89 $\pm$  1.01 \\ 
-   & macroF1 & 86.49 $\pm$  0.51 & 66.76 $\pm$  2.12 & 58.93 $\pm$  0.91 & 25.36 $\pm$  2.81 \\ 
+\multirow{2}{*}{BERT} & microF1 & 82.12 $\pm$  0.51 & \bf{84.61 $\pm$  0.98} & \bf{74.8 $\pm$  0.59} & \bf{67.33 $\pm$  0.72} \\ 
+   & macroF1 & 81.86 $\pm$  0.54 & \bf{73.61 $\pm$  1.85} & \bf{62.1 $\pm$  0.99} & \bf{29.24 $\pm$  1.4} \\ 
+   \cline{3-6}\multirow{2}{*}{BROOF} & microF1 & 86.77 $\pm$  0.39 & \bf{84.41 $\pm$  1.07} & \bf{73.35 $\pm$  0.79} & \bf{66.79 $\pm$  0.97} \\ 
+   & macroF1 & 86.25 $\pm$  0.49 & \bf{73.23 $\pm$  1.1} & \bf{60.76 $\pm$  0.8} & \bf{28.48 $\pm$  2.17} \\ 
+   \cline{3-6}\multirow{2}{*}{KNN} & microF1 & 87.53 $\pm$  0.69 & 75.63 $\pm$  0.94 & 70.99 $\pm$  0.96 & \bf{68.07 $\pm$  1.07} \\ 
+   & macroF1 & 87.22 $\pm$  0.66 & 60.34 $\pm$  1.36 & 55.85 $\pm$  0.97 & \bf{29.93 $\pm$  2.48} \\ 
+   \cline{3-6}\multirow{2}{*}{LAZY} & microF1 & 87.96 $\pm$  0.37 & 82.34 $\pm$  0.61 & \bf{74.02 $\pm$  0.79} & \bf{66.3 $\pm$  1.07} \\ 
+   & macroF1 & 87.39 $\pm$  0.37 & 68.33 $\pm$  1.6 & 59.46 $\pm$  1.35 & 26.61 $\pm$  2.12 \\ 
+   \cline{3-6}\multirow{2}{*}{LXT} & microF1 & \bf{88.39 $\pm$  0.51} & 81.24 $\pm$  0.71 & 69.63 $\pm$  0.91 & 65.92 $\pm$  0.82 \\ 
+   & macroF1 & \bf{88.05 $\pm$  0.44} & 66.89 $\pm$  1.23 & 57.33 $\pm$  1.48 & 26.71 $\pm$  2.53 \\ 
+   \cline{3-6}\multirow{2}{*}{NB} & microF1 & \bf{88.99 $\pm$  0.54} & 62.63 $\pm$  1.7 & \bf{73.54 $\pm$  0.71} & 65.32 $\pm$  1.13 \\ 
+   & macroF1 & \bf{88.68 $\pm$  0.55} & 51.38 $\pm$  3.19 & 58.03 $\pm$  0.85 & \bf{27.86 $\pm$  0.79} \\ 
+   \cline{3-6}\multirow{2}{*}{RF} & microF1 & 83.64 $\pm$  0.29 & 81.52 $\pm$  1 & 71.05 $\pm$  0.31 & 63.92 $\pm$  0.81 \\ 
+   & macroF1 & 83.08 $\pm$  0.35 & 65.44 $\pm$  1.91 & 56.56 $\pm$  0.45 & 24.36 $\pm$  1.98 \\ 
+   \cline{3-6}\multirow{2}{*}{SVM} & microF1 & \bf{88.35 $\pm$  0.37} & 81.36 $\pm$  1.01 & \bf{73.82 $\pm$  0.78} & \bf{67.6 $\pm$  1.1} \\ 
+   & macroF1 & \bf{88.3 $\pm$  0.38} & 68.01 $\pm$  2.39 & \bf{62.55 $\pm$  1.53} & \bf{31.73 $\pm$  3.13} \\ 
+   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 0 $\pm$  0 & 81.66 $\pm$  1.03 & 71.94 $\pm$  0.66 & 64.33 $\pm$  0.86 \\ 
+   & macroF1 & 0 $\pm$  0 & 65.44 $\pm$  2.41 & 57.4 $\pm$  1.13 & 24.47 $\pm$  2.22 \\ 
    \cline{3-6}\end{tabular}
 \caption{Comparaćão entre todos os métodos} 
 \end{table}

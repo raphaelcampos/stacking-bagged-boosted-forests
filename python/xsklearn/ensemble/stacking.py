@@ -68,18 +68,19 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 					e = clone(estimator)
 					e.fit(X_train, y_train)
 		
+					X_test2 = X_test.copy()
 					if isinstance(e, Pipeline):
 						for name, transform in e.steps[:-1]:
-							X_test = transform.transform(X_test)
+							X_test2 = transform.transform(X_test2)
 
 					if self.probability:
 						idxs = j*self.n_classes_ + np.searchsorted(
 											self.classes_, np.unique(y_train))
 						Xi[np.repeat(test_index, len(idxs)), np.tile(idxs,
-						 len(test_index))] = e.predict_proba(X_test).reshape(
+						 len(test_index))] = e.predict_proba(X_test2).reshape(
 						 								len(idxs)*len(test_index))
 					else:
-						Xi[test_index, j] = e.predict(X_test)
+						Xi[test_index, j] = e.predict(X_test2)
 
 					# force memory release
 					del e
@@ -111,14 +112,15 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 				Xi = np.zeros((X.shape[0], len(self.estimators_stack[l])))
 
 			for j, estimator in enumerate(self.estimators_stack[l]):
+				X_tmp2 = X_tmp.copy()
 				if isinstance(estimator, Pipeline):
 					for name, transform in estimator.steps[:-1]:
-						X_tmp = transform.transform(X_tmp)
+						X_tmp2 = transform.transform(X_tmp2)
 
 				if self.probability:
-					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp)
+					Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X_tmp2)
 				else:
-					Xi[:, j] = estimator.predict(X_tmp)
+					Xi[:, j] = estimator.predict(X_tmp2)
 
 			X_tmp = Xi
 

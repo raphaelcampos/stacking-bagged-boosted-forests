@@ -24,7 +24,7 @@ result.load <- function(file, trials, metric = "f1"){
     n_metric = 2 
   }
   n_cols = seq_len(max(count.fields(file, sep = ' ')))
-
+  
   lines <- readLines(file)
   splits <- grep("#", lines)
   splits[2:length(splits)] <- splits[2:length(splits)] - 1:(length(splits)-1) 

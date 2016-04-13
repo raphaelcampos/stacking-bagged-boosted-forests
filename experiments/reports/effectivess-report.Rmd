@@ -26,7 +26,7 @@ Os resultados apresentados são promissores. Sobretudo quando se trata de métri
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
 
-dir_path = "~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_python/"
+dir_path = "~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_grid/"
 
 # load results from directory
 # and extract information such as

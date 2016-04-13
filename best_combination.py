@@ -44,7 +44,7 @@ for i in range(len(docs[0])):
 	A, B, C = docs 
 	A, B, C = A[i], B[i], C[i]
 
-	ABC = ((A | C) | B)
+	ABC = ((A | C))
 	print "#", i
 	for r in sets[0][i]['docs']:
 		if r[0] in ABC:
