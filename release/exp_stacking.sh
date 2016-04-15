@@ -10,7 +10,7 @@ dataset=4uni
 python ../python/app.py -c 0.125 -a 0.001 -k 30 -t 200 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{},{},{},{"max_features": 0.08, "n_estimators": 200, "criterion":"gini"},{"max_features": 0.3, "n_estimators": 200, "criterion": "entropy"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset}
 
 dataset=20ng
-python ../python/app.py -c 0.125 -a 0.001 -k 10 -t 200 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{},{},{},{"max_features": "log2", "n_estimators": 200, "criterion":"gini"},{"max_features": "log2", "n_estimators": 200, "criterion": "gini"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset}
+python ../python/app.py -c 0.125 -a 0.001 -k 10 -t 200 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{},{},{"n_neighbors":10},{"max_features": "log2", "n_estimators": 200, "criterion":"gini"},{"max_features": "log2", "n_estimators": 200, "criterion": "gini"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset}
 
 dataset=acm
 python ../python/app.py -c 0.5 -a 0.5 -k 30 -t 200 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{},{},{},{"max_features": "sqrt", "n_estimators": 200, "criterion":"gini"},{"max_features": "sqrt", "n_estimators": 200, "criterion": "gini"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset}
@@ -79,5 +79,24 @@ comb3(){
 	python ../python/app.py -k 200 -t 200 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["broof","lazy","bert","lxt"]' '["rf"]' --base_params '[{"n_trees":8, "max_features":0.08},{"max_features":"sqrt"},{"n_trees":8, "max_features":0.3},{"max_features":"sqrt"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset} &
 }
 
+comball(){
+	dataset_dir=$1
+	output_dir=$2
+	n_jobs=$3
+	trials=$4
+	method=comball
+	dataset=4uni
+	python ../python/app.py -c 0.125 -a 0.001 -k 200 -t 200 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["broof","lazy","bert","lxt","svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{"n_trees":8, "max_features":0.08},{"max_features":"sqrt"},{"n_trees":8},{"max_features":"sqrt", "max_features":0.3},{},{},{"n_neighbors":30},{"max_features": 0.08, "n_estimators": 200, "criterion":"gini"},{"max_features": 0.3, "n_estimators": 200, "criterion": "entropy"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset} &
+
+	dataset=20ng
+	python ../python/app.py -c 0.125 -a 0.001 -k 200 -t 200 -i 200 -f log2 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["broof","lazy","bert","lxt","svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{"n_trees":20},{"max_features":"sqrt"},{"n_trees":5},{"max_features":"sqrt"},{},{},{"n_neighbors":10},{"max_features": "log2", "n_estimators": 200, "criterion":"gini"},{"max_features": "log2", "n_estimators": 200, "criterion": "gini"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset} &
+
+	dataset=acm
+	python ../python/app.py -c 0.5 -a 0.5 -k 300 -t 200 -i 200 -f sqrt -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["broof","lazy","bert","lxt","svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{"n_trees":8},{"max_features":"sqrt"},{"n_trees":8},{"max_features":"sqrt"},{},{},{"n_neighbors":30},{"max_features": "sqrt", "n_estimators": 200, "criterion":"gini"},{"max_features": "sqrt", "n_estimators": 200, "criterion": "gini"}]' --meta_params '[{"max_features":"sqrt"}]' --meta_params '[{"max_features":"sqrt"}]' > ${output_dir}/grid_${method}_${dataset} &
+
+	dataset=reuters90
+	python ../python/app.py -c 0.5 -a 0.1 -k 200 -t 200 -i 200 -f 0.3 -g 1 -j ${n_jobs} --trials ${trials} -o ${output_dir}/results_${method}_${dataset} ${dataset_dir}/${dataset}.svm '["broof","lazy","bert","lxt","svm","nb","knn","rf","xt"]' '["rf"]' --base_params '[{"n_trees":8, "max_features":0.08},{"max_features":"sqrt"},{"n_trees":8, "max_features":0.3},{"max_features":"sqrt"},{},{},{"n_neighbors":10},{"max_features": 0.08, "n_estimators": 200, "criterion":"gini"},{"max_features": 0.3, "n_estimators": 200, "criterion": "gini"}]' > ${output_dir}/grid_${method}_${dataset} &
+}
+
 #comb2 ${dataset_dir} ${output_dir} ${n_jobs} ${trials}
-comb3 ${dataset_dir} ${output_dir} ${n_jobs} ${trials}
+comball ${dataset_dir} ${output_dir} ${n_jobs} ${trials}
