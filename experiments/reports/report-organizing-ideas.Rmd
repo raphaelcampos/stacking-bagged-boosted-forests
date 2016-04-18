@@ -6,7 +6,7 @@ output:
   pdf_document:
     keep_tex: yes
   html_document: default
-header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc}
+header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
 ---
 
 # Stacking
@@ -50,3 +50,48 @@ A idea é obter ainda mais informações em relação a predição feita pelos c
 Entropia é uma medida de incerteza. Quanto maior a entropia da distribuição menor é a certeza sobre a predição. A probabilidade máxima de uma DP $M_{C_j}$ também contém informação sobre certeza da predição: quanto maior $M_{C_j}$ for mais certo daquela resposta o classificador do nível base está, e vice versa.
 
 Esse é uma ideia para aplicarmos futuramente. Nesse momento continuarei utilizanto somente a DP.
+
+# SVM 
+
+Nessa seção, vamos dar uma visão geral sobre Support Vector Machine(SVM) utilizado nos experimentos.
+
+Seja $x_i \in R^d$ um vetor de caracteríticas. Nosso objetivo é projetar um classificador, por exemplo, que associa a cada vetor $x_i$ um rótulo positivo ou negativo baseado no critério desejado.
+
+O vetor $x_i$ é classificador olhando o sinal do resultado do função $f(x_i,w) = w^Tx_i$.O objetivo é aprender a estimar os paramêtros $w \in R^d$ de tal forma que o sinal é positvo seo vetor $x_i$ pertence a classe negativa e negativo caso contrário. De  fato, na formulação padrão do SVM o objetivo é ter o o valor da função no mínimo 1  no primeiro caso, e no máximo -1* no segundo, impondo uma margem.
+
+O paramêtr $w$ é estimado ou aprendido ajustando o função a um conjunto de treino de $n$ pares de exemplos $(x_i,y_i),i=1,…,n$, onde $y_i \in \{-1,1\}$ são os rótulos dos correspondentes vetores de caracteríticas. A qualidade do ajuste é mensurada pela função de perda que, em SVMs padrões SVMs, é a **hinge loss**:
+
+\begin{equation}
+l_i(w,x_i)=\max(0,1-y_iw^Tx_i))
+\end{equation}
+
+Note que a **hinge loss** é zero apenas se o valor de $w^Tx_i$ é no mínimo 1 ou no máximo -1, dependendo do rótulo de $y_i$.
+
+Somente ajustar ao treino é normalmente insuficiente. Para que a função seja capaz de generalizar para dados nunca visto, é preferível um **trade off** entre a acurácia do ajuste e complexidade do modelo. Dessa forma, é adionado um termo de regularição a formula, o regularizador na formulação padrão é mensurado pela normado vetor de pesos $\mid w\mid^2$. Tirando-se a média da perda de todo os exemplos de treino e adicionando-se a ela o regularizador ponderado pelo paramêtro $\lambda$ produz uma função objetiva de perda regularizada:
+
+\begin{equation}
+  E(w)  = \lambda||w||^2+\frac{1}{n} \sum_{i=1}^{n}\max(0,1-y_if(w,x)
+\end{equation}
+Note que a função objetiva é convexa, desse modo existe um único ótimo global.
+
+A função $f(x_i,w)$ considerada até aqui é linear em sem viés. A subseção seguinte discute como um termo de viés pode ser adicionado ao SVM.
+
+## Adicionando viés
+
+É comum adicionar a funcão do SVM um termo de viés b, e considerar a nova função $f(x_i,w) = w^{T}x_i + b$. Na prática termo de viés pode ser crucial para ajustar os dados de treino de forma ótima, já que não há razão que o produto interno $w^{T}x_i$ devesse ser naturalmente centrado em zero. Alguns algoritmos de aprendizado do SVM podem estimar ambos $w$ e $b$ diretamente. Porém, outros algoritmos como **Stochastic Gradient Descente(SGC)** e **Stochastic Dual Coordinate Ascent (SDCA)** não podem (ambos usados pelo LIBLINEAR). Nesse caso, uma simples solução é adcionar um termo constante $B > 0$ ao dado, por exemplo, considere os vetores estendidos:
+
+$\bar{x_i}=\begin{bmatrix} x_i \\ B \end{bmatrix}$, $\bar{w}=\begin{bmatrix} w \\ w_b\end{bmatrix}$.
+
+De modo que função incorpore implicitamente o termo de viés $b = Bw_b$: 
+\begin{equation}
+  \bar{w}^T\bar{x_i} = w^Tx_i + Bw_b
+\end{equation}
+
+A desvantagem dessa redução é que o termo $w^2_b$ torna parte do regularizador do SVM, que encole o viés $b$ em direção a zero. Esse efeito pode ser aliviado tomando valor de $B$ suficientemente grandes, por causa disso $||w||^2 >> w^2_b$ e o efeito de encolimento pode ser ignorado.
+Infelizmente, fazer $B$ muito grande faz o problema numericamente desbalanciado, assim uma troca justa entre encolhimento e estabilidade é buscada. Tipicamente, isso é obtido normalizando o dado, para que tenha uma norma Euclidiana unitária e, então, escolhendo $B \in [1,10]$.
+
+Referências:
+
+  - http://www.vlfeat.org/api/svm-fundamentals.html
+  - https://www.csie.ntu.edu.tw/~cjlin/papers/liblinear.pdf 
+
