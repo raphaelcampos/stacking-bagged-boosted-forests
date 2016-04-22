@@ -102,6 +102,8 @@ class ClassificationApp(BaseApp):
 
 		self.parser.add_argument("-o", "--output", type=str, help="Output file for results.", default="")
 
+		self.parser.add_argument("-n", "--norm", help='Dataset sample normalization', choices=["max", "l1", "l2"], default=None)
+
 	def parse_arguments(self):
 		return self.parser.parse_args()
 
@@ -165,7 +167,7 @@ class ClassificationApp(BaseApp):
 			X_train, X_test = X[train_index], X[test_index]
 			y_train, y_test = y[train_index], y[test_index]
 			
-			tf_transformer = TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True)
+			tf_transformer = TfidfTransformer(norm=args.norm, use_idf=True, smooth_idf=True, sublinear_tf=True)
 			if self._tfidf(args):
 				# Learn the idf vector from training set
 				tf_transformer.fit(X_train)
@@ -262,6 +264,7 @@ class TextClassificationApp(ClassificationApp):
 		self.parser.add_argument("-a","--alpha", type=float, help='Additive (Laplace/Lidstone) smoothing parameter (0 for no smoothing).(Default: 1)', default=1)
 
 		self.parser.add_argument("-c", "--C", type=float, help='Penalty parameter C of the error term. For SVM training. (Default: 1)', default=1)
+
 
 	def _setup_instantiator(self, args):
 		random_instance = check_random_state(args.seed)
