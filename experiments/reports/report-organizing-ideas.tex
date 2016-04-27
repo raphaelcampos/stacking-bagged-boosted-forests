@@ -78,7 +78,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{15 abril, 2016}
+  \date{26 abril, 2016}
 
 \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
 
@@ -303,5 +303,180 @@ Referências:
 \item
   \url{https://www.csie.ntu.edu.tw/~cjlin/papers/liblinear.pdf}
 \end{itemize}
+
+\section{Esquema de ponderação
+TF-IDF}\label{esquema-de-ponderacao-tf-idf}
+
+Um dos mais populares esquemas de ponderação de termos em recuperação de
+informação é baseado na combinação da frequência do termo (TF) e o fator
+IDF.
+
+\begin{equation}
+    w_{i,j}=\left\{
+                \begin{array}{ll}
+                  tf \times idf &, f_{i,j} > 0\\
+                  0 &, f_{i,j} = 0
+                \end{array}
+              \right.
+\end{equation}
+
+Há várias variações dos fatores TF e IDF, tais variações são mais
+adequadas que outras para certos algoritmo de classificação.
+
+\subsection{Variações de TF-IDF}\label{variacoes-de-tf-idf}
+
+A table \ref{tab:tfs} mostra cinco variações do fator TF. O esquema
+binário atribui 1 ao TF se o termo ocorre no documento, e 0 caso
+contrátio. A frequência pura é o uso da contagem do número de vezes que
+o termo ocorre no documento. A normalização log diminui a impacto do
+crescimento do frequência \(f_{i,j}\). A normalização \(0.5\) introduz
+dois efeitos: 1) ele normaliza o peso pela frequência máxima no
+documento and 2) normaliza o peso mantendo-o entre 0.5 e 1. A
+normalização \(K\) é simplesmente uma generalização da anterior.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|lc|}
+\hline
+  Esquema & TF\\ 
+\hline
+binário & {0,1}\\
+frequência pura & $f_{i,j}$\\
+normalização log & $1 + \log f_{i,j}$\\
+normalização $0.5$ & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
+normalização $K$ & $k + (1-K) \frac{f_{i,j}}{max_if_{i,j}}$\\
+\hline
+\end{tabular}
+\label{tab:tfs}
+\caption{Variações do TF}
+\end{table}
+
+A tabela \ref{tab:idfs} mostra três variações do fator TF. O esquema
+unário fixa o valor do IDF como 1 (IDF é ignorado). A frequência inversa
+é a formulação padrão para IDF. A frequÊncia inversa suave soma 1 ao
+denominador e numerador para evitar comportamento inesperado quando
+\(n_i\) atingir valores extremos.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|lc|}
+\hline
+  Esquema & IDF\\ 
+\hline
+unária & 1\\
+frequência inversa & $\log \frac{N}{n_i}$\\
+frequência inversa suave & $\log \frac{N + 1}{n_i + 1}$\\
+\hline
+\end{tabular}
+\label{tab:idfs}
+\caption{Variações do IDF}
+\end{table}
+
+As combinações das variações de TF e IDF produzem vários esquemas
+TF-IDF. Nesse trabalho focaremos apenas no esquema
+\((1 + \log f_{i,j}) \times \log \frac{N + 1}{n_i + 1}\).
+
+\iffalse
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|cc|}
+\hline
+  Esquema de ponderação & peso do termo do documento\\ 
+\hline
+1 & $(1 +  \log f_{i,j}) \times \log \frac{N + 1}{n_i + 1}$\\
+2 & $(0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}) \times \log \frac{N + 1}{n_i + 1}$\\
+3 & $f_{i,j}$\\
+4 & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
+\hline
+\end{tabular}
+\label{tab:tf-idfs}
+\caption{Variações do TF-IDF}
+\end{table}
+
+\fi
+
+\section{Normalização dos documentos}\label{normalizacao-dos-documentos}
+
+Há várias formas de normalizar documentos representados no espaço
+vetorial como \textbf{bag-of-words}. Seja \(w_j\) um vetor de pesos,
+criado a partir de algum dos esquemas de ponderação mencionado acima,
+que representa um documento \(d_j\) no espaço vetorial. Temos as
+seguintes formas normalizações utilizadas nesse trabalho:
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|cc|}
+\hline
+  Normalização & fórmula\\ 
+\hline
+None & $w_j$\\
+Max & $\frac{w_j}{\max_i w_{i,j}}$\\
+L1 & $\frac{w_j}{\|w_{j}\|_1}$\\
+L2 & $\frac{w_j}{\|w_{j}\|_2}$\\
+\hline
+\end{tabular}
+\label{tab:tf-idfs}
+\caption{Normalizações}
+\end{table}
+
+\section{Efeitos dos esquemas de ponderação e normalizacao em
+classificação de
+texto}\label{efeitos-dos-esquemas-de-ponderacao-e-normalizacao-em-classificacao-de-texto}
+
+Nos experimentos subsequentes, é feito um estudo sobre os efeitos dessas
+normalizações e dos esquemas de ponderação quando aplicados a
+classificadores vetorias tais como Support Vector Machine (SVM) e K
+Nearest Neighbors (KNN).
+
+\subsection{SVM}\label{svm-1}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Tue Apr
+26 21:09:39 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{L2} & microF1 & \bf{90.06 $\pm$  0.43} & \bf{83.48 $\pm$  1.08} & \bf{75.4 $\pm$  0.66} & \bf{68.19 $\pm$  1.15} \\ 
+   & macroF1 & \bf{89.93 $\pm$  0.43} & \bf{73.39 $\pm$  2.17} & \bf{63.84 $\pm$  0.55} & \bf{31.95 $\pm$  2.59} \\ 
+   \cline{3-6}\multirow{2}{*}{L1} & microF1 & \bf{89.8 $\pm$  0.4} & 78.23 $\pm$  1.49 & \bf{75.31 $\pm$  0.74} & \bf{68.25 $\pm$  1.2} \\ 
+   & macroF1 & \bf{89.59 $\pm$  0.43} & 67.47 $\pm$  3.01 & \bf{62.33 $\pm$  1.76} & \bf{31.37 $\pm$  2.22} \\ 
+   \cline{3-6}\multirow{2}{*}{MAX} & microF1 & 88.35 $\pm$  0.37 & 81.36 $\pm$  1.01 & 73.82 $\pm$  0.78 & \bf{67.6 $\pm$  1.1} \\ 
+   & macroF1 & 88.3 $\pm$  0.38 & 68.01 $\pm$  2.39 & \bf{62.55 $\pm$  1.53} & \bf{31.73 $\pm$  3.13} \\ 
+   \cline{3-6}\multirow{2}{*}{NONE} & microF1 & 83.47 $\pm$  0.46 & 80.55 $\pm$  0.72 & 71.34 $\pm$  1.01 & 66.6 $\pm$  1.06 \\ 
+   & macroF1 & 83.37 $\pm$  0.42 & \bf{71.04 $\pm$  2.06} & 61.08 $\pm$  0.67 & \bf{31.68 $\pm$  3.32} \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entre as normalizações aplicada ao calssificador SVM} 
+\end{table}
+
+Como pode-se observar, a normalização tem um papel fundamental no
+desempenho do SVM. A normalização \(L2\) teve o melhor desempenho em
+todos os conjuntos de dados testados.
+
+\subsection{KNN}\label{knn}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Tue Apr
+26 21:09:47 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{KNN-L2} & microF1 & \bf{87.39 $\pm$  0.68} & \bf{75.51 $\pm$  1.25} & \bf{70.67 $\pm$  1.1} & \bf{69.39 $\pm$  1.46} \\ 
+   & macroF1 & \bf{87.1 $\pm$  0.66} & \bf{60.15 $\pm$  1.26} & \bf{55.39 $\pm$  0.96} & \bf{34.23 $\pm$  2.75} \\ 
+   \cline{3-6}\multirow{2}{*}{KNN-NONE} & microF1 & \bf{87.45 $\pm$  0.67} & \bf{75.73 $\pm$  1.2} & \bf{71.06 $\pm$  1.03} & \bf{68.13 $\pm$  1.01} \\ 
+   & macroF1 & \bf{87.15 $\pm$  0.65} & \bf{60.02 $\pm$  0.8} & \bf{55.82 $\pm$  0.92} & \bf{31.53 $\pm$  3.42} \\ 
+   \cline{3-6}\multirow{2}{*}{KNN-L1} & microF1 & \bf{87.46 $\pm$  0.69} & \bf{75.74 $\pm$  0.86} & \bf{71.02 $\pm$  1.08} & 67.8 $\pm$  1.02 \\ 
+   & macroF1 & \bf{87.16 $\pm$  0.66} & \bf{60.29 $\pm$  0.55} & \bf{55.83 $\pm$  1.15} & \bf{30.91 $\pm$  2.7} \\ 
+   \cline{3-6}\multirow{2}{*}{KNN-MAX} & microF1 & \bf{87.53 $\pm$  0.69} & \bf{75.63 $\pm$  0.94} & \bf{70.99 $\pm$  0.96} & \bf{68.07 $\pm$  1.07} \\ 
+   & macroF1 & \bf{87.22 $\pm$  0.66} & \bf{60.34 $\pm$  1.36} & \bf{55.85 $\pm$  0.97} & 29.93 $\pm$  2.48 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entre as normalizações aplicada ao calssificador KNN} 
+\end{table}
 
 \end{document}

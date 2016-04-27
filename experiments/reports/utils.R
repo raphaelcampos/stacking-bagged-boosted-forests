@@ -24,7 +24,7 @@ result.load <- function(file, trials, metric = "f1"){
     n_metric = 2 
   }
   n_cols = seq_len(max(count.fields(file, sep = ' ')))
-  
+
   lines <- readLines(file)
   splits <- grep("#", lines)
   splits[2:length(splits)] <- splits[2:length(splits)] - 1:(length(splits)-1) 
@@ -186,6 +186,13 @@ print_meas <- function(measures, err, rownames, colnames, measnames, emphasize,
     }
     df[idx, 2] = measnames[nmetric-i]
   }
+  
+  sums = apply(emphasize, 1, sum)
+  even = 1:(nrow/nmetric)*nmetric
+  
+  o = even[order(sums[even]+sums[even-1], decreasing = T)]
+  df[even,] = df[o, ]
+  df[even-1,] = df[o-1, ]
   
   ss <- seq(0, nrow, 2)
   tab <- xtable(df, caption = caption)
