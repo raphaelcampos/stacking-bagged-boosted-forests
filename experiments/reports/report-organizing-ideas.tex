@@ -1,4 +1,4 @@
-\documentclass[]{article}
+\documentclass[]{book}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -24,6 +24,9 @@
 \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
 }{}
 \usepackage[margin=1in]{geometry}
+\usepackage{natbib}
+\bibliographystyle{plainnat}
+\usepackage{longtable,booktabs}
 \usepackage{graphicx}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -53,7 +56,7 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt plus 2pt minus 1pt}
 \setlength{\emergencystretch}{3em}  % prevent overfull lines
-\setcounter{secnumdepth}{0}
+\setcounter{secnumdepth}{5}
 
 %%% Use protect on footnotes to avoid problems with footnotes in titles
 \let\rmarkdownfootnote\footnote%
@@ -78,9 +81,10 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{26 abril, 2016}
+  \date{28 abril, 2016}
 
 \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
+\usepackage[portuguese]{babel}
 
 
 \begin{document}
@@ -88,7 +92,9 @@
 \maketitle
 
 
-\section{Stacking}\label{stacking}
+\chapter{Overview}
+
+\subsection{Stacking}\label{stacking}
 
 Stacking também conhecido como ``Stacked Generalization'' é um método
 para combinar multiplos classificadores usando algoritmos de
@@ -96,7 +102,7 @@ aprendizados heterogêneos \(L_1, ..., L_N\) sobre um único conjunto de
 dados \(D\), que consiste de exemplos \(e_i = (x_i, y_i)\), onde \(x_i\)
 é o vetor de atributos e \(y_i\) sua classificação.
 
-\subsection{Stacking Framework}\label{stacking-framework}
+\subsubsection{Stacking Framework}\label{stacking-framework}
 
 O staking framework utilizado é baseado no descrito em {[}1{]} David H.
 Wolpert, ``Stacked Generalization'', Neural Networks, 5, 241--259, 1992.
@@ -122,7 +128,7 @@ conjunto de treino do meta-nível consiste de exemplos da seguinte forma
 predicóes do s classificadores do nível base e a classe é a classe
 correta sabida de antemão.
 
-\subsubsection{Exemplo}\label{exemplo}
+\paragraph{Exemplo}\label{exemplo}
 
 Esse procedimento pode parecer complicado, mas na verdade é simples.
 Como um exemplo, vamos gerar alguns dados sintéticos com a função
@@ -151,7 +157,7 @@ predizendo a entrada formada pelas predições do valor do exemplo de
 teste \(q\), de ambos classificadores do nível base \(C_1\) e \(C_2\),
 que por suas vezes foram treinados com todo \(D\).
 
-\subsection{Stacking com distribuições de
+\subsubsection{Stacking com distribuições de
 probabilidade}\label{stacking-com-distribuicoes-de-probabilidade}
 
 Usar probabilidade para gerar o conjunto de treino do meta-nível é mais
@@ -176,7 +182,7 @@ atributos para cada classificador do nível base.
 Os experimentos rodados até então utilizaram o stacking framework com
 DPs.
 
-\subsection{Stacking com DP, Entropia e probabilidade
+\subsubsection{Stacking com DP, Entropia e probabilidade
 máxima}\label{stacking-com-dp-entropia-e-probabilidade-maxima}
 
 No artigo {[}2{]} Is combining classifiers better than selecting the
@@ -347,8 +353,8 @@ normalização $0.5$ & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
 normalização $K$ & $k + (1-K) \frac{f_{i,j}}{max_if_{i,j}}$\\
 \hline
 \end{tabular}
-\label{tab:tfs}
 \caption{Variações do TF}
+\label{tab:tfs}
 \end{table}
 
 A tabela \ref{tab:idfs} mostra três variações do fator TF. O esquema
@@ -368,8 +374,8 @@ frequência inversa & $\log \frac{N}{n_i}$\\
 frequência inversa suave & $\log \frac{N + 1}{n_i + 1}$\\
 \hline
 \end{tabular}
-\label{tab:idfs}
 \caption{Variações do IDF}
+\label{tab:idfs}
 \end{table}
 
 As combinações das variações de TF e IDF produzem vários esquemas
@@ -390,7 +396,7 @@ TF-IDF. Nesse trabalho focaremos apenas no esquema
 4 & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
 \hline
 \end{tabular}
-\label{tab:tf-idfs}
+\label{tab:tfidfs}
 \caption{Variações do TF-IDF}
 \end{table}
 
@@ -416,8 +422,8 @@ L1 & $\frac{w_j}{\|w_{j}\|_1}$\\
 L2 & $\frac{w_j}{\|w_{j}\|_2}$\\
 \hline
 \end{tabular}
-\label{tab:tf-idfs}
 \caption{Normalizações}
+\label{tab:norms}
 \end{table}
 
 \section{Efeitos dos esquemas de ponderação e normalizacao em
@@ -431,8 +437,8 @@ Nearest Neighbors (KNN).
 
 \subsection{SVM}\label{svm-1}
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Tue Apr
-26 21:09:39 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 10:22:27 2016
 
 \begin{table}[ht]
 \centering
@@ -458,8 +464,8 @@ todos os conjuntos de dados testados.
 
 \subsection{KNN}\label{knn}
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Tue Apr
-26 21:09:47 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 10:22:36 2016
 
 \begin{table}[ht]
 \centering
@@ -478,5 +484,163 @@ V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\
    \cline{3-6}\end{tabular}
 \caption{Comparação entre as normalizações aplicada ao calssificador KNN} 
 \end{table}
+
+Como pode-se observar, para o KNN a normalização teve pouco efeito sobre
+a efetividade do classificador. A normalização \(L2\) empata
+estatisticamente com o esquema de ponderação sem normalização(None), que
+praticamente empatou com as outras normalizações.
+
+\chapter{Avaliação experimental}
+
+\section{Caso de Estudo: Classificação Automática de
+Texto}\label{caso-de-estudo-classificacao-automatica-de-texto}
+
+\subsection{Resultados e discussões}\label{resultados-e-discussoes}
+
+A Tabela \ref{tab:base} sumariza os resultados da avaliação empirica de
+algums algoritmos estado-da-arte para classificação de texto e os
+algoritmos propostos baseado na \textbf{Extremelly Randomized
+Tree}(doravante Extra-trees).
+
+Primeiro aspecto que pode ser observado é que as \emph{Extra-Trees} por
+si só melhoram a eficácia da \emph{Random Forest} em dois conjuntos de
+dados(empatando nos outros dois). Esse resultado comprova que
+\emph{Extra-Trees} também são mais robustas a ruídos e atributos
+irrelevante como mostrado em \citep{GEURTS2006}, além disso, mostra que
+isso se mantém quando aplicadas a tarefas de classificação de texto.
+Todavia, está longe de figurar o cojunto dos melhores classificadores
+dentre os algoritmos analizados. O SVM continua sendo o melhor
+classificador, sendo o melhor classificador em todos os 4 conjuntos de
+dados. Isso não é supresa, já que o SVM é bom para aprender quando
+aplicado a dados de alta dimensionalidade e com natural robustês para
+atributos ruidosos e irrelevantes.
+
+Logo em seguida vem \emph{BERT (Boosted Extremelly Randomized Trees)}, o
+algoritmo é uma extensão do \emph{BROOF} proposto em
+\citep{Salles:2015:BEO:2766462.2767747}. Os resultados obtidos com a
+abordagem comprova nossa intuição de que a simples substituição da RF
+pela Extra-Trees traria ganhos expressivos no poder de generalização do
+\emph{BROOF}, tornando a técnica ainda mais competitiva se comparada a
+outros classificadores.
+
+Outra proposta foi a substituíção da RF pela \emph{Extra-Trees} no
+algorimo \emph{LazyNN\_RF}, na esperação de ganho no poder de
+generalização do mesmo. É nítido que o uso das Extra-Trees no algoritmo
+LXT proporcionou um ganho sobretudo nos conjuntos de dados 20NG e
+REUTERS90, quando comparado ao algoritmo Lazy.
+
+Esses resultados reforçam que as Extra-Trees são mais robustas a ruídos
+que as RF, todavia estão aquém se comparadas a capacidade do SVM de
+lidar com dados de alta dimensionalidade e ruidosos. Porém, com uso das
+técnicas apresentadas em \citep{Salles:Proposal:2015} pode-se aumentar a
+capacidade desses algoritmos de lidar com dados ruidosos tarnando-os
+assim mais competitivos ou muitas vezes melhores que a os algoritmos a
+presentados na Tabela \ref{tab:base}.
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 17:53:01 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{SVM} & microF1 & \bf{90.06 $\pm$  0.43} & \bf{83.48 $\pm$  1.08} & \bf{75.4 $\pm$  0.66} & \bf{68.19 $\pm$  1.15} \\ 
+   & macroF1 & \bf{89.93 $\pm$  0.43} & \bf{73.39 $\pm$  2.17} & \bf{63.84 $\pm$  0.55} & \bf{31.95 $\pm$  2.59} \\ 
+   \cline{3-6}\multirow{2}{*}{BERT} & microF1 & 88.93 $\pm$  0.39 & \bf{84.61 $\pm$  0.98} & \bf{74.8 $\pm$  0.59} & \bf{67.33 $\pm$  0.72} \\ 
+   & macroF1 & 88.59 $\pm$  0.5 & \bf{73.61 $\pm$  1.85} & \bf{62.1 $\pm$  0.99} & \bf{29.24 $\pm$  1.4} \\ 
+   \cline{3-6}\multirow{2}{*}{BROOF} & microF1 & 87.96 $\pm$  0.24 & \bf{84.41 $\pm$  1.07} & 73.35 $\pm$  0.79 & \bf{66.79 $\pm$  0.97} \\ 
+   & macroF1 & 87.44 $\pm$  0.28 & \bf{73.23 $\pm$  1.1} & 60.76 $\pm$  0.8 & \bf{28.48 $\pm$  2.17} \\ 
+   \cline{3-6}\multirow{2}{*}{LAZY} & microF1 & 87.96 $\pm$  0.37 & \bf{82.34 $\pm$  0.61} & \bf{74.02 $\pm$  0.79} & \bf{66.3 $\pm$  1.07} \\ 
+   & macroF1 & 87.39 $\pm$  0.37 & 68.33 $\pm$  1.6 & 59.46 $\pm$  1.35 & 26.61 $\pm$  2.12 \\ 
+   \cline{3-6}\multirow{2}{*}{KNN} & microF1 & 87.53 $\pm$  0.69 & 75.63 $\pm$  0.94 & 70.99 $\pm$  0.96 & \bf{68.07 $\pm$  1.07} \\ 
+   & macroF1 & 87.22 $\pm$  0.66 & 60.34 $\pm$  1.36 & 55.85 $\pm$  0.97 & \bf{29.93 $\pm$  2.48} \\ 
+   \cline{3-6}\multirow{2}{*}{NB} & microF1 & 88.99 $\pm$  0.54 & 62.63 $\pm$  1.7 & 73.54 $\pm$  0.71 & 65.32 $\pm$  1.13 \\ 
+   & macroF1 & 88.68 $\pm$  0.55 & 51.38 $\pm$  3.19 & 58.03 $\pm$  0.85 & \bf{27.86 $\pm$  0.79} \\ 
+   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 85.94 $\pm$  0.23 & 81.66 $\pm$  1.03 & 71.94 $\pm$  0.66 & 64.33 $\pm$  0.86 \\ 
+   & macroF1 & 85.57 $\pm$  0.22 & 65.44 $\pm$  2.41 & 57.4 $\pm$  1.13 & 24.47 $\pm$  2.22 \\ 
+   \cline{3-6}\multirow{2}{*}{LXT} & microF1 & 88.39 $\pm$  0.51 & 81.24 $\pm$  0.71 & 69.63 $\pm$  0.91 & 65.92 $\pm$  0.82 \\ 
+   & macroF1 & 88.05 $\pm$  0.44 & 66.89 $\pm$  1.23 & 57.33 $\pm$  1.48 & 26.71 $\pm$  2.53 \\ 
+   \cline{3-6}\multirow{2}{*}{RF} & microF1 & 83.64 $\pm$  0.29 & 81.52 $\pm$  1 & 71.05 $\pm$  0.31 & 63.92 $\pm$  0.81 \\ 
+   & macroF1 & 83.08 $\pm$  0.35 & 65.44 $\pm$  1.91 & 56.56 $\pm$  0.45 & 24.36 $\pm$  1.98 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entres métodos de base} 
+\label{tab:base}
+\end{table}
+
+\subsubsection{Stacking}\label{stacking-1}
+
+Nessa seção contrastamos o aumento do poder de generalização ao
+combinarmos técnicas altamente eficázes, tais como LazyNN\_RF, BROOF,
+BERT e LazyExtraTrees(LXT), com o ganho proporcionado pela combinação de
+alguns classificadores estado-da-arte para classificação automática de
+texto.
+
+\begin{longtable}[c]{@{}ll@{}}
+\caption{Legenda para os stacking. Os classificadores reportados na
+descrição são todos do nível base, para todos os stackings foi utilizado
+RF como classificador do meta-nível.}\tabularnewline
+\toprule
+Stacking & Descrição\tabularnewline
+\midrule
+\endfirsthead
+\toprule
+Stacking & Descrição\tabularnewline
+\midrule
+\endhead
+COMB1 & BROOF + Lazy\tabularnewline
+COMB2 & BERT + LXT\tabularnewline
+COMB3 & BROOF + Lazy + BERT + LXT\tabularnewline
+COMBSOTA & SVM + KNN + XT + RF + NB\tabularnewline
+COMBALL & Stacking de todos\tabularnewline
+\bottomrule
+\end{longtable}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi})}
+\setcounter{enumi}{1}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  temos um a abordagem combinando stacking, bagging (arvores
+  tradicionais e LAZY) e boosting (BROOF e BERT)
+\item
+  os resulatdos de stacking so são bons qdo os novos métodos de
+  florestas entram (COMBSOTA não eh tao bom)
+\item
+  ha' um ganho em combinar tudo mas 5) nao precisa combinar tudo
+  praobter bons resuatdos, o stacking de florestas jah eh competitivo
+\end{enumerate}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 18:21:38 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{COMBALL} & microF1 & \bf{91.67 $\pm$  0.44} & \bf{86.74 $\pm$  1.17} & \bf{78.46 $\pm$  0.72} & \bf{80.02 $\pm$  1.24} \\ 
+   & macroF1 & \bf{91.43 $\pm$  0.42} & \bf{79.45 $\pm$  2.23} & \bf{63.72 $\pm$  1.01} & \bf{37.84 $\pm$  3.14} \\ 
+   \cline{3-6}\multirow{2}{*}{COMB3} & microF1 & 90.63 $\pm$  0.57 & \bf{86.79 $\pm$  0.86} & \bf{77.34 $\pm$  0.6} & \bf{79 $\pm$  1.14} \\ 
+   & macroF1 & 90.4 $\pm$  0.57 & \bf{79.63 $\pm$  1.91} & \bf{62.91 $\pm$  0.92} & \bf{33.93 $\pm$  2.97} \\ 
+   \cline{3-6}\multirow{2}{*}{COMB2} & microF1 & 90.2 $\pm$  0.51 & \bf{86.54 $\pm$  1.06} & 76.88 $\pm$  0.55 & \bf{78.25 $\pm$  1.17} \\ 
+   & macroF1 & 89.95 $\pm$  0.52 & \bf{79.41 $\pm$  1.63} & \bf{62.66 $\pm$  0.81} & \bf{32.86 $\pm$  2.23} \\ 
+   \cline{3-6}\multirow{2}{*}{COMBSOTA} & microF1 & 90.65 $\pm$  0.45 & \bf{84.95 $\pm$  1.15} & \bf{77.78 $\pm$  0.73} & 74.63 $\pm$  1 \\ 
+   & macroF1 & 90.42 $\pm$  0.44 & \bf{75.96 $\pm$  1.78} & \bf{63.04 $\pm$  0.85} & 27.66 $\pm$  0.88 \\ 
+   \cline{3-6}\multirow{2}{*}{COMB1} & microF1 & 89.32 $\pm$  0.42 & \bf{86.52 $\pm$  1.18} & 76.74 $\pm$  0.73 & 77.22 $\pm$  1.14 \\ 
+   & macroF1 & 89.01 $\pm$  0.44 & \bf{78.66 $\pm$  1.9} & \bf{62.2 $\pm$  1.01} & 31.71 $\pm$  2.7 \\ 
+   \cline{3-6}\multirow{2}{*}{BERT} & microF1 & 88.93 $\pm$  0.39 & \bf{84.61 $\pm$  0.98} & 74.8 $\pm$  0.59 & 67.33 $\pm$  0.72 \\ 
+   & macroF1 & 88.59 $\pm$  0.5 & 73.61 $\pm$  1.85 & \bf{62.1 $\pm$  0.99} & 29.24 $\pm$  1.4 \\ 
+   \cline{3-6}\multirow{2}{*}{SVM-L2} & microF1 & 90.06 $\pm$  0.43 & 83.48 $\pm$  1.08 & 75.4 $\pm$  0.66 & 68.19 $\pm$  1.15 \\ 
+   & macroF1 & 89.93 $\pm$  0.43 & 73.39 $\pm$  2.17 & \bf{63.84 $\pm$  0.55} & 31.95 $\pm$  2.59 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entre os métodos de stackings} 
+\label{tab:stacking}
+\end{table}
+
+\renewcommand\refname{References}
+\bibliography{references}
 
 \end{document}

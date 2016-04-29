@@ -1,0 +1,202 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={Raphael Rodrigues Campos},
+            pdftitle={Effectivess comparison report},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+  \title{Effectivess comparison report}
+  \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+  \author{Raphael Rodrigues Campos}
+  \preauthor{\centering\large\emph}
+  \postauthor{\par}
+  \predate{\centering\large\emph}
+  \postdate{\par}
+  \date{January 17, 2016}
+
+\usepackage{multirow}
+
+
+\begin{document}
+
+\maketitle
+
+
+\section{Caso de Estudo: Classificação Automática de
+Texto}\label{caso-de-estudo-classificacao-automatica-de-texto}
+
+\subsection{Resultados e discussões}\label{resultados-e-discussoes}
+
+A Tabela \ref{tab:base} sumariza os resultados da avaliaćão empirica de
+algums algoritmos estado-da-arte para classificaćão de texto e os
+algoritmos propostos baseado na ** Extremelly Randomized Tree**.
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi})}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  ha' uma avanco na area baseada em florestas
+\item
+  temos um a abordagem combinando stacking, bagging (arvores
+  tradicionais e LAZY) e boosting (BROOF e BERT)
+\item
+  os resulatdos de stacking so são bons qdo os novos métodos de
+  florestas entram (COMBSOTA não eh tao bom)
+\item
+  ha' um ganho em combinar tudo mas 5) nao precisa combinar tudo
+  praobter bons resuatdos, o stacking de florestas jah eh competitivo
+\end{enumerate}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 15:29:23 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{SVM} & microF1 & \bf{90.06 $\pm$  0.43} & \bf{83.48 $\pm$  1.08} & \bf{75.4 $\pm$  0.66} & \bf{68.19 $\pm$  1.15} \\ 
+   & macroF1 & \bf{89.93 $\pm$  0.43} & \bf{73.39 $\pm$  2.17} & \bf{63.84 $\pm$  0.55} & \bf{31.95 $\pm$  2.59} \\ 
+   \cline{3-6}\multirow{2}{*}{BERT} & microF1 & 88.93 $\pm$  0.39 & \bf{84.61 $\pm$  0.98} & \bf{74.8 $\pm$  0.59} & \bf{67.33 $\pm$  0.72} \\ 
+   & macroF1 & 88.59 $\pm$  0.5 & \bf{73.61 $\pm$  1.85} & \bf{62.1 $\pm$  0.99} & \bf{29.24 $\pm$  1.4} \\ 
+   \cline{3-6}\multirow{2}{*}{BROOF} & microF1 & 87.96 $\pm$  0.24 & \bf{84.41 $\pm$  1.07} & 73.35 $\pm$  0.79 & \bf{66.79 $\pm$  0.97} \\ 
+   & macroF1 & 87.44 $\pm$  0.28 & \bf{73.23 $\pm$  1.1} & 60.76 $\pm$  0.8 & \bf{28.48 $\pm$  2.17} \\ 
+   \cline{3-6}\multirow{2}{*}{KNN} & microF1 & 87.53 $\pm$  0.69 & 75.63 $\pm$  0.94 & 70.99 $\pm$  0.96 & \bf{68.07 $\pm$  1.07} \\ 
+   & macroF1 & 87.22 $\pm$  0.66 & 60.34 $\pm$  1.36 & 55.85 $\pm$  0.97 & \bf{29.93 $\pm$  2.48} \\ 
+   \cline{3-6}\multirow{2}{*}{LAZY} & microF1 & 87.96 $\pm$  0.37 & 82.34 $\pm$  0.61 & 74.02 $\pm$  0.79 & \bf{66.3 $\pm$  1.07} \\ 
+   & macroF1 & 87.39 $\pm$  0.37 & 68.33 $\pm$  1.6 & 59.46 $\pm$  1.35 & 26.61 $\pm$  2.12 \\ 
+   \cline{3-6}\multirow{2}{*}{NB} & microF1 & 88.99 $\pm$  0.54 & 62.63 $\pm$  1.7 & 73.54 $\pm$  0.71 & 65.32 $\pm$  1.13 \\ 
+   & macroF1 & 88.68 $\pm$  0.55 & 51.38 $\pm$  3.19 & 58.03 $\pm$  0.85 & \bf{27.86 $\pm$  0.79} \\ 
+   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 85.94 $\pm$  0.23 & 81.66 $\pm$  1.03 & 71.94 $\pm$  0.66 & 64.33 $\pm$  0.86 \\ 
+   & macroF1 & 85.57 $\pm$  0.22 & 65.44 $\pm$  2.41 & 57.4 $\pm$  1.13 & 24.47 $\pm$  2.22 \\ 
+   \cline{3-6}\multirow{2}{*}{LXT} & microF1 & 88.39 $\pm$  0.51 & 81.24 $\pm$  0.71 & 69.63 $\pm$  0.91 & 65.92 $\pm$  0.82 \\ 
+   & macroF1 & 88.05 $\pm$  0.44 & 66.89 $\pm$  1.23 & 57.33 $\pm$  1.48 & 26.71 $\pm$  2.53 \\ 
+   \cline{3-6}\multirow{2}{*}{RF} & microF1 & 83.64 $\pm$  0.29 & 81.52 $\pm$  1 & 71.05 $\pm$  0.31 & 63.92 $\pm$  0.81 \\ 
+   & macroF1 & 83.08 $\pm$  0.35 & 65.44 $\pm$  1.91 & 56.56 $\pm$  0.45 & 24.36 $\pm$  1.98 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entres métodos de base} 
+\label{tab:base}
+\end{table}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
+28 15:29:40 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{COMBALL} & microF1 & \bf{91.67 $\pm$  0.44} & \bf{86.74 $\pm$  1.17} & \bf{78.46 $\pm$  0.72} & \bf{80.02 $\pm$  1.24} \\ 
+   & macroF1 & \bf{91.43 $\pm$  0.42} & \bf{79.45 $\pm$  2.23} & \bf{63.72 $\pm$  1.01} & \bf{37.84 $\pm$  3.14} \\ 
+   \cline{3-6}\multirow{2}{*}{COMB3} & microF1 & 90.63 $\pm$  0.57 & \bf{86.79 $\pm$  0.86} & \bf{77.34 $\pm$  0.6} & \bf{79 $\pm$  1.14} \\ 
+   & macroF1 & 90.4 $\pm$  0.57 & \bf{79.63 $\pm$  1.91} & \bf{62.91 $\pm$  0.92} & \bf{33.93 $\pm$  2.97} \\ 
+   \cline{3-6}\multirow{2}{*}{COMBSOTA} & microF1 & 90.65 $\pm$  0.45 & \bf{84.95 $\pm$  1.15} & \bf{77.78 $\pm$  0.73} & 74.63 $\pm$  1 \\ 
+   & macroF1 & 90.42 $\pm$  0.44 & \bf{75.96 $\pm$  1.78} & \bf{63.04 $\pm$  0.85} & 27.66 $\pm$  0.88 \\ 
+   \cline{3-6}\multirow{2}{*}{COMB2} & microF1 & 90.2 $\pm$  0.51 & \bf{86.54 $\pm$  1.06} & 76.88 $\pm$  0.55 & \bf{78.25 $\pm$  1.17} \\ 
+   & macroF1 & 89.95 $\pm$  0.52 & \bf{79.41 $\pm$  1.63} & \bf{62.66 $\pm$  0.81} & 32.86 $\pm$  2.23 \\ 
+   \cline{3-6}\multirow{2}{*}{COMB1} & microF1 & 89.32 $\pm$  0.42 & \bf{86.52 $\pm$  1.18} & 76.74 $\pm$  0.73 & 77.22 $\pm$  1.14 \\ 
+   & macroF1 & 89.01 $\pm$  0.44 & \bf{78.66 $\pm$  1.9} & \bf{62.2 $\pm$  1.01} & 31.71 $\pm$  2.7 \\ 
+   \cline{3-6}\multirow{2}{*}{BERT} & microF1 & 88.93 $\pm$  0.39 & \bf{84.61 $\pm$  0.98} & 74.8 $\pm$  0.59 & 67.33 $\pm$  0.72 \\ 
+   & macroF1 & 88.59 $\pm$  0.5 & 73.61 $\pm$  1.85 & \bf{62.1 $\pm$  0.99} & 29.24 $\pm$  1.4 \\ 
+   \cline{3-6}\multirow{2}{*}{SVM-L2} & microF1 & 90.06 $\pm$  0.43 & 83.48 $\pm$  1.08 & 75.4 $\pm$  0.66 & 68.19 $\pm$  1.15 \\ 
+   & macroF1 & 89.93 $\pm$  0.43 & 73.39 $\pm$  2.17 & \bf{63.84 $\pm$  0.55} & 31.95 $\pm$  2.59 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entre os métodos de stacking} 
+\label{tab:stacking}
+\end{table}
+
+Legenda para os métodos:
+
+\begin{itemize}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  BERT: Boosted Extremely Randomized Trees
+\item
+  LXT: Lazy Extremely Randomized Trees
+\item
+  RF: Random Forest com 200 árvores
+\item
+  RF1000: Random Forest com 1000 árvores
+\item
+  XT: Extremely Randomized Trees com 200 árvores
+\item
+  XT1000: Extremely Randomized Trees com 1000 árvores
+\item
+  COMB1: Stacking (Lazy + BROOF)
+\item
+  COMB2: Stacking (LXT + BERT)
+\item
+  COMB3: Stacking (Lazy + BROOF + LXT + BERT)
+\item
+  COMBSOTA: Stacking (KNN + RF + SVM + NB)
+\end{itemize}
+
+\end{document}

@@ -5,76 +5,21 @@ date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   pdf_document:
     keep_tex: yes
-  html_document: default
-header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
+    citation_package: natbib
+    number_sections: true
+documentclass: book
+bibliography: references.bib
+header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc}  \usepackage{mathtools} \usepackage[portuguese]{babel}
 ---
 
-# Stacking
-  
-Stacking também conhecido como "Stacked Generalization" é um método para combinar multiplos
-classificadores usando algoritmos de aprendizados heterogêneos $L_1, ..., L_N$ sobre um único
-conjunto de dados $D$, que consiste de exemplos $e_i = (x_i, y_i)$, onde $x_i$ é o vetor
-de atributos e $y_i$ sua classificação.
+\chapter{Overview}
+ 
 
-## Stacking Framework
+```{r child='concepts/stacking.Rmd'}
+```
 
-O staking framework utilizado é baseado no descrito em [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992. Foi utilizado um stacking de dois níveis (o framework não se limita a apenas dois níveis, é possível fazer o stacking de quantos níveis julgar necessário), que pode ser dividido em duas fases. Na primeira fase, um conjunto de classificadores do nível base $C_1, C_2, ..., C_N$ é gerado, onde $C_i = L_i(D)$. Na segunda fase um classidicador do meta-nível aprende a combinar as saídas dos classificadores do nível base. 
-
-Para gerar o conjunto de treino para o aprendizado do classificador do meta-nível, pode-se aplicar o procedimento **leave-one-out** ou **cross validation**.
-Por questões óbvias de custo computacional, é utilizado nesse relatório cross validation, mais especificamente **5-fold cross validation**. Cada classificador do nível base aprende usando $D - F_k$ deixando o k-ésimo *fold* para teste: $\forall i = 1,...,N : \forall k = 1,...,5 : C^{k}_i = L_i(D-F_k)$. Agora, os classificadores recém aprendidos são usados para gerar as predições para $\forall x_j \in F_k:\hat{y}_j^i=C^k_i(x_j)$. O conjunto de treino do meta-nível consiste de exemplos da seguinte forma $((\hat{y}_i^1,..., \hat{y}_i^N), y_i)$, onde os atributos são as predicóes do s classificadores do nível base e a classe é a classe correta sabida de antemão.
-
-### Exemplo
-
-Esse procedimento pode parecer complicado, mas na verdade é simples. Como um exemplo, vamos gerar alguns dados sintéticos com a função "saída = soma do três componentes de entrada". Nosso conjunto de treino D consiste de 5 pares de entrada e saída $\{((0,0,0),0), ((1,0,0),1), ((1,2,0),3), ((1,1,1),3), ((1,-2,4),3)\}$, todas as entradas sem ruídos. Vamos rotular esses 5 pares de entrada e saída como $F_1$ até $F_5$ (Então por exemplo $D - F_2$ consiste dos quatros pares $\{((0,0,0),0), ((1,2,0),3), ((1,1,1),3), ((1,-2,4),3)\}$). Nesse exemplo, temos dois classificadores do nível base $C_1$ e $C_2$, e um único classificador do meta-nível $\Gamma$. O conjunto de treino do meta-nível $D'$ é dado pelo cinco pares de entrada e saída $\{$ (($C_1^k(F_k), C_2^k(F_k)$), componente de saída de $F_k) : \forall k \in \{1,...,5\}$ e $C_i^k = L_i(D-F_k)\}$ (Esse espaço do meta-nível possui duas dimensões de entrada  e uma de saída). Ou seja, a instância do conjunto de treino do meta-nível correspondente a $k = 1$ tem o componetne de saída 0 e entrada $(C_1^1((0,0,0)), C_2^1((0,0,0)))$. Agora nos é dado um exemplo de teste no formato do nível base $(x_1, x_2, x_3)$. Nós predizemos seu valor com $\Gamma((C_1((x_1, x_2, x_3)), (C_2((x_1, x_2, x_3)))$, onde $C_1$ e $C_2$ foram treinados com todo $D$, e $\Gamma$ com $D'$. Em outras palavras, nós predizemos o valor da entrada de teste $q = (x_1, x_2, x_3)$ treinando $\Gamma$ em $D'$ e assim predizendo a entrada formada pelas predições do valor do exemplo de teste $q$, de ambos classificadores do nível base $C_1$ e $C_2$, que por suas vezes foram treinados com todo $D$.
-
-## Stacking com distribuições de probabilidade
-
-Usar probabilidade para gerar o conjunto de treino do meta-nível é mais vantajoso já que disponibiliza mais informação acerca das predições feitas pelos classificadores do nível base. Essa informações adicionais permitem que não seja usado somente a predição, mas também o confiança de cada classificador do nível base.
-
-Nessa abordagem, cada classificador do nível base prediz uma Distribuição de Probabilidade (DP) sobre todas as classes possíveis. Então, a predição do classificador do nível base $C$ apliacado a um exemplo $x$ é a DP: $p^C(x) = (p^C(c_1|x), ... , p^C(c_m|x))$, onde $\{c_1, ..., c_m\}$ é o conjunto de possíveis valores para as classes e $p^C(c_i|x))$ descreve a probabilidade do exemplo $x$ ser da classe $c_i$ estimado pelo classificador $C$. A  classe $c_j$ com maior probalidade será classe predita por $C$. Dessa forma, os atributos do meta-nível serão as probabilidade preditas para cada classe possível por cada classificador do nível base. O número total de atributos no conjunto de treino do meta-nível seria $Nm$, $m$ atributos para cada classificador do nível base.
-
-Os experimentos rodados até então utilizaram o stacking framework com DPs.
-
-## Stacking com DP, Entropia e probabilidade máxima
-
-No artigo [2] Is combining classifiers better than selecting the best one, os autores propões uma extensão para esse framework com DP espandindo o número de meta-atributos. Esse novos meta-atributos seriam:
-
-- A distribuição de probabilidade mutiplicadao pela probabilidade máxima: $p_{C_j} = p^{C_j}(c_i|x) \times M_{C_j}(x) = p^{C_j}(c_i|x) \times max_{i=1}^{m}(p^{C_j}(c_i|x))$, $\forall i \in \{1,...,m\}$ e $\forall j \in \{1,...,N\}$.
-
-- As entropias das distripuições de probabilidade: $E_{C_j}(x) = -\sum_{i=1}^{m}p^{C_j}(c_i|x).\log_2(p^{C_j}(c_i|x))$.
-
-O número total de atributos do meta-nível é $N(2m+1)$.
-
-A idea é obter ainda mais informações em relação a predição feita pelos classificadores do nível base. Como Ting and Witten (1999) disseram: o uso de distribuição de probabilidades tem a vantagemde capturar não apenas as predições dos classificadores do nível base, mas também, suas certezas. Os atributos adicionais tentam capturar a certeza de forma mais explicita. 
-
-Entropia é uma medida de incerteza. Quanto maior a entropia da distribuição menor é a certeza sobre a predição. A probabilidade máxima de uma DP $M_{C_j}$ também contém informação sobre certeza da predição: quanto maior $M_{C_j}$ for mais certo daquela resposta o classificador do nível base está, e vice versa.
-
-Esse é uma ideia para aplicarmos futuramente. Nesse momento continuarei utilizanto somente a DP.
-
-# SVM 
-
-Nessa seção, vamos dar uma visão geral sobre Support Vector Machine(SVM) utilizado nos experimentos.
-
-Seja $x_i \in R^d$ um vetor de caracteríticas. Nosso objetivo é projetar um classificador, por exemplo, que associa a cada vetor $x_i$ um rótulo positivo ou negativo baseado no critério desejado.
-
-O vetor $x_i$ é classificador olhando o sinal do resultado do função $f(x_i,w) = w^Tx_i$.O objetivo é aprender a estimar os paramêtros $w \in R^d$ de tal forma que o sinal é positvo seo vetor $x_i$ pertence a classe negativa e negativo caso contrário. De  fato, na formulação padrão do SVM o objetivo é ter o o valor da função no mínimo 1  no primeiro caso, e no máximo -1* no segundo, impondo uma margem.
-
-O paramêtr $w$ é estimado ou aprendido ajustando o função a um conjunto de treino de $n$ pares de exemplos $(x_i,y_i),i=1,…,n$, onde $y_i \in \{-1,1\}$ são os rótulos dos correspondentes vetores de caracteríticas. A qualidade do ajuste é mensurada pela função de perda que, em SVMs padrões SVMs, é a **hinge loss**:
-
-\begin{equation}
-l_i(w,x_i)=\max(0,1-y_iw^Tx_i))
-\end{equation}
-
-Note que a **hinge loss** é zero apenas se o valor de $w^Tx_i$ é no mínimo 1 ou no máximo -1, dependendo do rótulo de $y_i$.
-
-Somente ajustar ao treino é normalmente insuficiente. Para que a função seja capaz de generalizar para dados nunca visto, é preferível um **trade off** entre a acurácia do ajuste e complexidade do modelo. Dessa forma, é adionado um termo de regularição a formula, o regularizador na formulação padrão é mensurado pela normado vetor de pesos $\mid w\mid^2$. Tirando-se a média da perda de todo os exemplos de treino e adicionando-se a ela o regularizador ponderado pelo paramêtro $\lambda$ produz uma função objetiva de perda regularizada:
-
-\begin{equation}
-  E(w)  = \lambda||w||^2+\frac{1}{n} \sum_{i=1}^{n}\max(0,1-y_if(w,x)
-\end{equation}
-Note que a função objetiva é convexa, desse modo existe um único ótimo global.
-
-A função $f(x_i,w)$ considerada até aqui é linear em sem viés. A subseção seguinte discute como um termo de viés pode ser adicionado ao SVM.
+```{r child='concepts/svm.Rmd'}
+```
 
 ## Adicionando viés
 
@@ -128,8 +73,8 @@ normalização $0.5$ & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
 normalização $K$ & $k + (1-K) \frac{f_{i,j}}{max_if_{i,j}}$\\
 \hline
 \end{tabular}
-\label{tab:tfs}
 \caption{Variações do TF}
+\label{tab:tfs}
 \end{table}
 
 A tabela \ref{tab:idfs} mostra três variações do fator TF. O esquema unário fixa o valor do IDF como 1 (IDF é ignorado). A frequência inversa  é a formulação padrão para IDF. A frequÊncia inversa suave soma 1 ao denominador e numerador para evitar comportamento inesperado quando $n_i$ atingir valores extremos.
@@ -145,8 +90,8 @@ frequência inversa & $\log \frac{N}{n_i}$\\
 frequência inversa suave & $\log \frac{N + 1}{n_i + 1}$\\
 \hline
 \end{tabular}
-\label{tab:idfs}
 \caption{Variações do IDF}
+\label{tab:idfs}
 \end{table}
 
 As combinações das variações de TF e IDF produzem vários esquemas TF-IDF. Nesse trabalho focaremos apenas no esquema $(1 +  \log f_{i,j}) \times \log \frac{N + 1}{n_i + 1}$.
@@ -164,7 +109,7 @@ As combinações das variações de TF e IDF produzem vários esquemas TF-IDF. N
 4 & $0.5 + 0.5  \frac{f_{i,j}}{max_if_{i,j}}$\\
 \hline
 \end{tabular}
-\label{tab:tf-idfs}
+\label{tab:tfidfs}
 \caption{Variações do TF-IDF}
 \end{table}
 \fi
@@ -185,8 +130,8 @@ L1 & $\frac{w_j}{\|w_{j}\|_1}$\\
 L2 & $\frac{w_j}{\|w_{j}\|_2}$\\
 \hline
 \end{tabular}
-\label{tab:tf-idfs}
 \caption{Normalizações}
+\label{tab:norms}
 \end{table}
 
 
@@ -196,28 +141,7 @@ Nos experimentos subsequentes, é feito um estudo sobre os efeitos dessas normal
 
 ## SVM
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
-build_table <- function(dir_path, caption, trials=5){
-  source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
-  # load results from directory
-  # and extract information such as
-  # metric (f1-measure), models and
-  # datasets used
-  results = result.load.dir(dir_path, trials)
-  
-  f1 = results[[1]]
-  models_labels = toupper(results[[2]])
-  datasets_labels = toupper(results[[3]])
-  
-  f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
-  f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
-  
-  winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
-                                               datasets_labels, p.adjust = "none")
-  
-  print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
-             c("microF1", "macroF1"), winner_table, 
-             caption = caption)
-}
+
 ```
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE, cache=T,  results="asis", echo=F}
@@ -240,3 +164,13 @@ Como pode-se observar, a normalização tem um papel fundamental no desempenho d
 build_table("~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_norm/knn/tf",
             "Comparação entre as normalizações aplicada ao calssificador KNN")
 ```
+
+Como pode-se observar, para o KNN a normalização teve pouco efeito sobre a efetividade do classificador. A normalização $L2$ empata estatisticamente com o esquema de ponderação sem normalização(None), que praticamente empatou com as outras normalizações.
+
+
+\chapter{Avaliação experimental}
+
+```{r child='exp/methods-effectiveness-report.Rmd'}
+```
+
+# References

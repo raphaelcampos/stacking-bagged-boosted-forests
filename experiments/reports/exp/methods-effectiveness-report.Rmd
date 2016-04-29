@@ -1,0 +1,68 @@
+---
+title: "Effectivess comparison report"
+author: "Raphael Rodrigues Campos"
+date: "January 17, 2016"
+output:
+  pdf_document:
+    keep_tex: yes
+  html_document: default
+header-includes: \usepackage{multirow} \usepackge{natbib}
+bibliography: ../references.bibtex
+---
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
+```
+
+# Caso de Estudo: Classificação Automática de Texto
+
+
+## Resultados e discussões
+
+A Tabela \ref{tab:base} sumariza os resultados da avaliação empirica de algums algoritmos estado-da-arte para classificação de texto e os algoritmos propostos baseado na **Extremelly Randomized Tree**(doravante Extra-trees).
+
+Primeiro aspecto que pode ser observado é que as *Extra-Trees* por si só melhoram a eficácia da *Random Forest* em dois conjuntos de dados(empatando nos outros dois). Esse resultado comprova que *Extra-Trees* também são mais robustas a ruídos e atributos irrelevante como mostrado em [@GEURTS2006], além disso, mostra que isso se mantém quando aplicadas a tarefas de classificação de texto. Todavia, está longe de figurar o cojunto dos melhores classificadores dentre os algoritmos analizados. O SVM continua sendo o melhor classificador, sendo o melhor classificador em todos os 4 conjuntos de dados. Isso não é supresa, já que o SVM é bom para aprender quando aplicado a dados de alta dimensionalidade e com natural robustês para atributos ruidosos e irrelevantes.
+
+Logo em seguida vem *BERT (Boosted Extremelly Randomized Trees)*, o algoritmo é uma extensão do *BROOF* proposto em [@Salles:2015:BEO:2766462.2767747]. Os resultados obtidos com a abordagem comprova nossa intuição de que a simples substituição da RF pela Extra-Trees traria ganhos expressivos no poder de generalização do *BROOF*, tornando a técnica ainda mais competitiva se comparada a outros classificadores.
+
+Outra proposta foi a substituíção da RF pela *Extra-Trees* no algorimo *LazyNN_RF*, na esperação de ganho no poder de generalização do mesmo. É nítido que o uso das Extra-Trees no algoritmo LXT proporcionou um ganho sobretudo nos conjuntos de dados 20NG e REUTERS90, quando comparado ao algoritmo Lazy.
+
+Esses resultados reforçam que as Extra-Trees são mais robustas a ruídos que as RF, todavia estão aquém se comparadas a capacidade do SVM de lidar com dados de alta dimensionalidade e ruidosos. Porém, com uso das técnicas apresentadas em [@Salles:Proposal:2015] pode-se aumentar a capacidade desses algoritmos de lidar com dados ruidosos tarnando-os assim mais competitivos ou muitas vezes melhores que a os algoritmos a presentados na Tabela \ref{tab:base}.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, results="asis", echo=F, cache=T}
+dir_path = "~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_comparison/base/"
+
+build_table(dir_path, caption = "Comparação entres métodos de base", label = "tab:base")
+```
+
+### Stacking
+
+Nessa seção contrastamos o aumento do poder de generalização ao combinarmos técnicas altamente eficázes, tais como LazyNN_RF, BROOF, BERT e LazyExtraTrees(LXT), com o ganho proporcionado pela combinação de alguns classificadores estado-da-arte para classificação automática de texto.
+
+
+Stacking      |   Descrição
+------------- | -------------------------
+COMB1         | BROOF + Lazy
+COMB2         | BERT + LXT
+COMB3         | BROOF + Lazy + BERT + LXT
+COMBSOTA      | SVM + KNN + XT + RF + NB
+COMBALL       | Stacking de todos
+
+Table: Legenda para os stacking. Os classificadores reportados na descrição são todos do nível base, para todos os stackings foi utilizado RF como classificador do meta-nível.
+
+
+2) temos um a abordagem combinando stacking, bagging (arvores tradicionais e LAZY) e boosting (BROOF e BERT)
+3) os resulatdos de stacking so são bons qdo os novos métodos de florestas entram (COMBSOTA não eh tao bom)
+4) ha' um ganho em combinar tudo
+mas 5) nao precisa combinar tudo  praobter bons resuatdos, o stacking de florestas jah eh competitivo
+
+
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE, results="asis", echo=F, cache=T}
+
+dir_path = "~/Documents/Master\ Degree/Master\ Project/Implementation/LazyNN_RF/release/results/results_comparison/stacking/"
+
+
+build_table(dir_path, caption = "Comparação entre os métodos de stacking", label = "tab:stacking")
+
+```

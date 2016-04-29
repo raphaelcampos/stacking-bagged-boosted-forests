@@ -1,5 +1,7 @@
 library(xtable)
+library(RankAggreg)
 require(PMCMR)
+
 
 source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/f1-measure.R")
 
@@ -164,7 +166,7 @@ stats.sigficant.winner.table <- function(measures, means, rownames, colnames,
 }
 
 print_meas <- function(measures, err, rownames, colnames, measnames, emphasize,
-                       caption = "Table", type="tex"){
+                       caption = "Table", label = "tab:tab", type="tex"){
   nrow = dim(measures)[1]
   ncol = dim(measures)[2]
   
@@ -189,16 +191,49 @@ print_meas <- function(measures, err, rownames, colnames, measnames, emphasize,
   
   sums = apply(emphasize, 1, sum)
   even = 1:(nrow/nmetric)*nmetric
+  # sort using rank aggregation
+  x <- t(apply(measures[even,], 2, order, decreasing=T))
+  x <- rbind(t(apply(measures[even-1,], 2, order, decreasing=T)))
+
+  rank <- RankAggreg(x, nrow/nmetric, verbose = F)
   
+  df[even,] = df[even[rank$top.list], ]
+  df[even-1,] = df[even[rank$top.list]-1, ]
+  sums[even] = sums[even[rank$top.list]]
+  sums[even-1] = sums[even[rank$top.list]-1]
+  # sort by biggest winner
   o = even[order(sums[even]+sums[even-1], decreasing = T)]
   df[even,] = df[o, ]
   df[even-1,] = df[o-1, ]
   
   ss <- seq(0, nrow, 2)
-  tab <- xtable(df, caption = caption)
+  tab <- xtable(df, caption = caption, label = label)
   print(tab, sanitize.text.function = identity,
         include.rownames = FALSE, hline.after = c(-1, 0),
         add.to.row = list(
           pos = as.list(ss),
           command = rep(paste("\\cline{3-", 2 + ncol, "}", sep=""), length(ss))))
+}
+
+build_table <- function(dir_path, caption, label, trials=5){
+  source("~/Documents/Master Degree/Master Project/Implementation/LazyNN_RF/experiments/reports/utils.R")
+  # load results from directory
+  # and extract information such as
+  # metric (f1-measure), models and
+  # datasets used
+  results = result.load.dir(dir_path, trials)
+  
+  f1 = results[[1]]
+  models_labels = toupper(results[[2]])
+  datasets_labels = toupper(results[[3]])
+  
+  f1_avg = round(apply(f1, c(1,2), mean)*100, digits=2)
+  f1_sd = round(apply(f1, c(1,2), sd)*100, digits=2)
+  
+  winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
+                                               datasets_labels, p.adjust = "bonf")
+  
+  print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
+             c("microF1", "macroF1"), winner_table, 
+             caption = caption, label = label)
 }
