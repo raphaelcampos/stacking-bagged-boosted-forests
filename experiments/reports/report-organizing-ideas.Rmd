@@ -7,7 +7,7 @@ output:
     keep_tex: yes
     citation_package: natbib
     number_sections: true
-documentclass: book
+documentclass: article
 bibliography: references.bib
 header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc}  \usepackage{mathtools} \usepackage[portuguese]{babel}
 ---
@@ -20,27 +20,6 @@ header-includes: \usepackage{multirow} \usepackage[utf8]{inputenc}  \usepackage{
 
 ```{r child='concepts/svm.Rmd'}
 ```
-
-## Adicionando viés
-
-É comum adicionar a funcão do SVM um termo de viés b, e considerar a nova função $f(x_i,w) = w^{T}x_i + b$. Na prática termo de viés pode ser crucial para ajustar os dados de treino de forma ótima, já que não há razão que o produto interno $w^{T}x_i$ devesse ser naturalmente centrado em zero. Alguns algoritmos de aprendizado do SVM podem estimar ambos $w$ e $b$ diretamente. Porém, outros algoritmos como **Stochastic Gradient Descente(SGC)** e **Stochastic Dual Coordinate Ascent (SDCA)** não podem (ambos usados pelo LIBLINEAR). Nesse caso, uma simples solução é adcionar um termo constante $B > 0$ ao dado, por exemplo, considere os vetores estendidos:
-
-$\bar{x_i}=\begin{bmatrix} x_i \\ B \end{bmatrix}$, $\bar{w}=\begin{bmatrix} w \\ w_b\end{bmatrix}$.
-
-De modo que função incorpore implicitamente o termo de viés $b = Bw_b$: 
-\begin{equation}
-  \bar{w}^T\bar{x_i} = w^Tx_i + Bw_b
-\end{equation}
-
-A desvantagem dessa redução é que o termo $w^2_b$ torna parte do regularizador do SVM, que encole o viés $b$ em direção a zero. Esse efeito pode ser aliviado tomando valor de $B$ suficientemente grandes, por causa disso $||w||^2 >> w^2_b$ e o efeito de encolimento pode ser ignorado.
-Infelizmente, fazer $B$ muito grande faz o problema numericamente desbalanciado, assim uma troca justa entre encolhimento e estabilidade é buscada. Tipicamente, isso é obtido normalizando o dado, para que tenha uma norma Euclidiana unitária e, então, escolhendo $B \in [1,10]$.
-
-Referências:
-
-  - http://www.vlfeat.org/api/svm-fundamentals.html
-  - https://www.csie.ntu.edu.tw/~cjlin/papers/liblinear.pdf 
-
-
 # Esquema de ponderação TF-IDF 
 
 Um dos mais populares esquemas de ponderação de termos em recuperação de informação é baseado na combinação da frequência do termo (TF) e o fator IDF.
@@ -169,8 +148,8 @@ Como pode-se observar, para o KNN a normalização teve pouco efeito sobre a efe
 
 
 \chapter{Avaliação experimental}
-
 ```{r child='exp/methods-effectiveness-report.Rmd'}
 ```
+
 
 # References

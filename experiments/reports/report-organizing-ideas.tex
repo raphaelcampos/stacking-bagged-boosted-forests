@@ -1,4 +1,4 @@
-\documentclass[]{book}
+\documentclass[]{article}
 \usepackage{lmodern}
 \usepackage{amssymb,amsmath}
 \usepackage{ifxetex,ifluatex}
@@ -81,7 +81,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{28 abril, 2016}
+  \date{01 maio, 2016}
 
 \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
 \usepackage[portuguese]{babel}
@@ -104,15 +104,14 @@ dados \(D\), que consiste de exemplos \(e_i = (x_i, y_i)\), onde \(x_i\)
 
 \subsubsection{Stacking Framework}\label{stacking-framework}
 
-O staking framework utilizado é baseado no descrito em {[}1{]} David H.
-Wolpert, ``Stacked Generalization'', Neural Networks, 5, 241--259, 1992.
-Foi utilizado um stacking de dois níveis (o framework não se limita a
-apenas dois níveis, é possível fazer o stacking de quantos níveis julgar
-necessário), que pode ser dividido em duas fases. Na primeira fase, um
-conjunto de classificadores do nível base \(C_1, C_2, ..., C_N\) é
-gerado, onde \(C_i = L_i(D)\). Na segunda fase um classidicador do
-meta-nível aprende a combinar as saídas dos classificadores do nível
-base.
+O staking framework utilizado é baseado no descrito em
+\citep{Wolpert92stackedgeneralization}. Foi utilizado um stacking de
+dois níveis (o framework não se limita a apenas dois níveis, é possível
+fazer o stacking de quantos níveis julgar necessário), que pode ser
+dividido em duas fases. Na primeira fase, um conjunto de classificadores
+do nível base \(C_1, C_2, ..., C_N\) é gerado, onde \(C_i = L_i(D)\). Na
+segunda fase um classidicador do meta-nível aprende a combinar as saídas
+dos classificadores do nível base.
 
 Para gerar o conjunto de treino para o aprendizado do classificador do
 meta-nível, pode-se aplicar o procedimento \textbf{leave-one-out} ou
@@ -307,11 +306,9 @@ Referências:
 \item
   \url{http://www.vlfeat.org/api/svm-fundamentals.html}
 \item
-  \url{https://www.csie.ntu.edu.tw/~cjlin/papers/liblinear.pdf}
+  \url{https://www.csie.ntu.edu.tw/~cjlin/papers/liblinear.pdf} \#
+  Esquema de ponderação TF-IDF
 \end{itemize}
-
-\section{Esquema de ponderação
-TF-IDF}\label{esquema-de-ponderacao-tf-idf}
 
 Um dos mais populares esquemas de ponderação de termos em recuperação de
 informação é baseado na combinação da frequência do termo (TF) e o fator
@@ -537,8 +534,8 @@ capacidade desses algoritmos de lidar com dados ruidosos tarnando-os
 assim mais competitivos ou muitas vezes melhores que a os algoritmos a
 presentados na Tabela \ref{tab:base}.
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
-28 17:53:01 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
+17:15:22 2016
 
 \begin{table}[ht]
 \centering
@@ -597,23 +594,28 @@ COMBALL & Stacking de todos\tabularnewline
 \bottomrule
 \end{longtable}
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi})}
-\setcounter{enumi}{1}
-\itemsep1pt\parskip0pt\parsep0pt
-\item
-  temos um a abordagem combinando stacking, bagging (arvores
-  tradicionais e LAZY) e boosting (BROOF e BERT)
-\item
-  os resulatdos de stacking so são bons qdo os novos métodos de
-  florestas entram (COMBSOTA não eh tao bom)
-\item
-  ha' um ganho em combinar tudo mas 5) nao precisa combinar tudo
-  praobter bons resuatdos, o stacking de florestas jah eh competitivo
-\end{enumerate}
+Pode-se observar na Tabela \ref{tab:stacking} que o algoritmo COMBALL
+obteve efetividade superior (ou, pelo menos empatou) a todos os
+classificadores baseados em stacking e os classficadores da Tabela
+\ref{tab:base}. Isso pode parecer obvio, porém podemos notar que não há
+necessidade de combinar todos os classificadores para obtenção de
+resultados satisfatórios, por exemplo, o algoritmo COMB3 que combina
+algoritmos basedos em florestas aleatórias proporciona resultados
+similares aos obtidos com COMBALL, porém, a um custo computacional muito
+menor. Pode-se notar que o único conjunto de dados que de fato COMBALL
+ganhou do COMB3 foi o 20NG. Um outro aspecto interessante que pode-se
+notar da Tabela \ref{tab:stacking} é que os métodos baseados em floresta
+aleatórias, tais como Lazy, LXT, BROOF e Bert, tem papel fundamental na
+melhoria na acurácia dos métodos de stacking COMBALL. Pode-se observar
+que o algoritmo COMBSOTA não tem um resultado extraordinário em todos os
+conjuntos de dados se compararmos ao COMB3, todavia, quando é feito uma
+mesclagem do COMBSOTA e COMB3, orinando-se o stacking COMBALL, são
+obtidos resultados extraordinários, assim indicando a força que esses
+métodos dão para o aumento do poder generalização do stacking nesse tipo
+de tarefa.
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Thu Apr
-28 18:21:38 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
+21:49:28 2016
 
 \begin{table}[ht]
 \centering
@@ -636,8 +638,126 @@ V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\
    \cline{3-6}\multirow{2}{*}{SVM-L2} & microF1 & 90.06 $\pm$  0.43 & 83.48 $\pm$  1.08 & 75.4 $\pm$  0.66 & 68.19 $\pm$  1.15 \\ 
    & macroF1 & 89.93 $\pm$  0.43 & 73.39 $\pm$  2.17 & \bf{63.84 $\pm$  0.55} & 31.95 $\pm$  2.59 \\ 
    \cline{3-6}\end{tabular}
-\caption{Comparação entre os métodos de stackings} 
+\caption{Comparação entre os métodos de stacking} 
 \label{tab:stacking}
+\end{table}
+
+A pergunta que fica é: Qual a influência de cada classificador de base
+na predição final do stacking?
+
+\subsection{Quais classificadores são realmente importantes para o
+stacking?}\label{quais-classificadores-sao-realmente-importantes-para-o-stacking}
+
+Todos os classificadores empregados no COMBALL contribuem
+equivalentemente para predição final do stacking? Para tentar responder
+essa pergunta foi utilizado uma característica única do classificador
+utilizado no meta-nível, a RF, que é medida de importância de atributos.
+
+As Tabelas \ref{tab:imp20ng}, \ref{tab:imp4uni} e \ref{tab:impacm}
+mostram a estimativa do peso de cada classificador de base para predição
+de uma dada classe no conjunto dados 20NG, 4UNI e ACM respectivamente.
+Para o conjunto de dados 20NG temos que os classificadores do nível base
+que mais contribuíram para a predição do stacking foram NB, LXT, BERT,
+LAZY e BROOF. Para o conjunto 4UNI foram BERT, BROOF, LAZY, XT, RF. Para
+o conjunto ACM tivemos o LAZY, BERT, NB, BROOF, XT como maiores
+contribuintes. Apesar do SVM ter sido o melhor classificador de base
+para todos os conjuntos de dados, ele não figurou o grupo de
+classificadores de base que mais contribuíram para predição do COMBALL,
+todavia, isso não quer dizer que o SVM não é bom para stacking. Na
+verdade, o que podemos concluir é que as predições feitas pelo SVM são
+correlatas as predições feitas por algum dos classificadores
+mencionados. Pode-se observar na Tabela \ref{tab:stacking} que há um
+ganho expressivo de eficácia do stacking COMBSOTA quando são acrescidos
+os métodos BERT, BROOF, LAZY e LXT (originando-se o stacking COMBALL),
+isso comprova que as predições feitas pelos classificadores de base
+estados-da-arte (NB, RF, XT, KNN e SVM) são de certa forma correlatos,
+assim, não gerando ganhos tão expressivos com stacking. O ponto
+interessante é que podemos notar que de fato os classificadores BERT,
+BROOF, LAZY e LXT são complementares e bom para serem combinados com
+stacking, já que tem alta eficácia e geram modelos um tanto distintos,
+isso pode ser notado pelo bom desempenho do stacking COMB3.
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
+21:50:43 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrrr}
+  \hline
+ & nb & lxt & bert & lazy & broof & xt & rf & svm & knn \\ 
+  \hline
+1 & 0.17 & 0.17 & 0.16 & 0.15 & 0.10 & 0.12 & 0.07 & 0.03 & 0.04 \\ 
+  2 & 0.22 & 0.16 & 0.15 & 0.15 & 0.09 & 0.07 & 0.06 & 0.04 & 0.06 \\ 
+  3 & 0.16 & 0.18 & 0.16 & 0.16 & 0.11 & 0.09 & 0.06 & 0.04 & 0.04 \\ 
+  4 & 0.17 & 0.15 & 0.15 & 0.15 & 0.14 & 0.08 & 0.08 & 0.03 & 0.04 \\ 
+  5 & 0.17 & 0.19 & 0.19 & 0.17 & 0.14 & 0.06 & 0.04 & 0.02 & 0.02 \\ 
+  6 & 0.18 & 0.12 & 0.17 & 0.21 & 0.14 & 0.07 & 0.06 & 0.02 & 0.02 \\ 
+  7 & 0.12 & 0.20 & 0.17 & 0.16 & 0.13 & 0.09 & 0.06 & 0.05 & 0.02 \\ 
+  8 & 0.26 & 0.14 & 0.13 & 0.15 & 0.12 & 0.11 & 0.05 & 0.02 & 0.01 \\ 
+  9 & 0.25 & 0.12 & 0.14 & 0.20 & 0.11 & 0.08 & 0.06 & 0.02 & 0.01 \\ 
+  10 & 0.27 & 0.17 & 0.13 & 0.15 & 0.11 & 0.08 & 0.06 & 0.02 & 0.01 \\ 
+  11 & 0.23 & 0.14 & 0.17 & 0.13 & 0.09 & 0.10 & 0.09 & 0.03 & 0.02 \\ 
+  12 & 0.24 & 0.12 & 0.16 & 0.13 & 0.13 & 0.11 & 0.08 & 0.02 & 0.01 \\ 
+  13 & 0.17 & 0.18 & 0.15 & 0.16 & 0.14 & 0.11 & 0.04 & 0.02 & 0.03 \\ 
+  14 & 0.30 & 0.09 & 0.17 & 0.12 & 0.14 & 0.08 & 0.06 & 0.02 & 0.02 \\ 
+  15 & 0.30 & 0.10 & 0.12 & 0.13 & 0.14 & 0.10 & 0.08 & 0.02 & 0.02 \\ 
+  16 & 0.44 & 0.18 & 0.10 & 0.09 & 0.06 & 0.07 & 0.03 & 0.02 & 0.02 \\ 
+  17 & 0.29 & 0.18 & 0.15 & 0.09 & 0.09 & 0.10 & 0.05 & 0.03 & 0.02 \\ 
+  18 & 0.24 & 0.15 & 0.14 & 0.12 & 0.14 & 0.08 & 0.08 & 0.02 & 0.01 \\ 
+  19 & 0.16 & 0.18 & 0.11 & 0.15 & 0.13 & 0.12 & 0.09 & 0.03 & 0.03 \\ 
+  20 & 0.13 & 0.14 & 0.16 & 0.09 & 0.14 & 0.11 & 0.09 & 0.05 & 0.09 \\ 
+   \hline
+\end{tabular}
+\caption{Importância de cada classificador no stacking COMBALL para o conjunto de dados 20NG} 
+\label{tab:imp20ng}
+\end{table}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
+21:51:12 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrrr}
+  \hline
+ & bert & broof & lazy & xt & rf & svm & lxt & knn & nb \\ 
+  \hline
+1 & 0.14 & 0.12 & 0.21 & 0.13 & 0.09 & 0.05 & 0.20 & 0.02 & 0.04 \\ 
+  2 & 0.18 & 0.18 & 0.13 & 0.11 & 0.11 & 0.13 & 0.09 & 0.04 & 0.03 \\ 
+  3 & 0.19 & 0.20 & 0.11 & 0.14 & 0.12 & 0.07 & 0.12 & 0.03 & 0.02 \\ 
+  4 & 0.19 & 0.18 & 0.19 & 0.12 & 0.14 & 0.03 & 0.13 & 0.02 & 0.01 \\ 
+  5 & 0.20 & 0.18 & 0.11 & 0.14 & 0.11 & 0.11 & 0.08 & 0.04 & 0.03 \\ 
+  6 & 0.21 & 0.21 & 0.08 & 0.07 & 0.07 & 0.23 & 0.07 & 0.04 & 0.03 \\ 
+  7 & 0.15 & 0.16 & 0.13 & 0.14 & 0.14 & 0.11 & 0.11 & 0.02 & 0.02 \\ 
+   \hline
+\end{tabular}
+\caption{Importância de cada classificador no stacking COMBALL para o conjunto de dados 4UNI} 
+\label{tab:imp4uni}
+\end{table}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
+21:52:12 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrrrrrrrrr}
+  \hline
+ & lazy & bert & nb & broof & xt & rf & lxt & knn & svm \\ 
+  \hline
+1 & 0.12 & 0.13 & 0.11 & 0.14 & 0.11 & 0.10 & 0.10 & 0.07 & 0.13 \\ 
+  2 & 0.15 & 0.15 & 0.14 & 0.13 & 0.10 & 0.10 & 0.12 & 0.07 & 0.05 \\ 
+  3 & 0.15 & 0.14 & 0.13 & 0.11 & 0.14 & 0.10 & 0.09 & 0.08 & 0.06 \\ 
+  4 & 0.16 & 0.15 & 0.19 & 0.14 & 0.09 & 0.12 & 0.06 & 0.07 & 0.03 \\ 
+  5 & 0.06 & 0.16 & 0.13 & 0.17 & 0.05 & 0.06 & 0.05 & 0.06 & 0.26 \\ 
+  6 & 0.10 & 0.14 & 0.14 & 0.13 & 0.11 & 0.10 & 0.09 & 0.09 & 0.10 \\ 
+  7 & 0.11 & 0.15 & 0.13 & 0.14 & 0.11 & 0.09 & 0.11 & 0.09 & 0.09 \\ 
+  8 & 0.18 & 0.12 & 0.15 & 0.11 & 0.16 & 0.09 & 0.10 & 0.06 & 0.03 \\ 
+  9 & 0.20 & 0.15 & 0.20 & 0.10 & 0.10 & 0.09 & 0.07 & 0.05 & 0.04 \\ 
+  10 & 0.08 & 0.15 & 0.12 & 0.15 & 0.09 & 0.10 & 0.08 & 0.09 & 0.14 \\ 
+  11 & 0.16 & 0.14 & 0.11 & 0.10 & 0.15 & 0.12 & 0.09 & 0.09 & 0.05 \\ 
+   \hline
+\end{tabular}
+\caption{Importância de cada classificador no stacking COMBALL para o conjunto de dados ACM} 
+\label{tab:impacm}
 \end{table}
 
 \renewcommand\refname{References}
