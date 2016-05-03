@@ -1,9 +1,6 @@
 
 from .MLR import MLR
+from .svm import LinearSVM
 
-__all__ = ['kneighbors_sparse',
-			'kneighbors_forest'
-			'cuKNeighborsSparseClassifier',
-			'LazyNNRF',
-			'LazyNNExtraTrees', 
-			'LazyNNBroof']
+__all__ = ['MLR',
+			'LinearSVM']
