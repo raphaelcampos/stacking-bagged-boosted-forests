@@ -144,13 +144,6 @@ class ClassificationApp(BaseApp):
 	def run(self, args):
 		X, y = self._load_dataset(args)
 
-		### max tf normalization ####
-		tf_transformer = TfidfTransformer(norm='max', use_idf=False,
-											 smooth_idf=False, sublinear_tf=False)
-		X = tf_transformer.fit_transform(X)
-		X.data = 0.5 + 0.5*X.data
-		#############################
-
 		kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True,
 												 random_state=args.seed)
 
@@ -175,7 +168,7 @@ class ClassificationApp(BaseApp):
 			y_train, y_test = y[train_index], y[test_index]
 			
 			tf_transformer = TfidfTransformer(norm=args.norm, use_idf=True,
-											 smooth_idf=True, sublinear_tf=False)
+											 smooth_idf=True, sublinear_tf=True)
 			if self._tfidf(args):
 				# Learn the idf vector from training set
 				tf_transformer.fit(X_train)
