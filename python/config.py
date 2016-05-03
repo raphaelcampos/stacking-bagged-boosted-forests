@@ -14,7 +14,7 @@ from sklearn import naive_bayes, neighbors, svm, ensemble
 
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
 from xsklearn.ensemble import Broof, Bert
-from xsklearn.linear_model import MLR
+from xsklearn.linear_model import MLR, LinearSVM
 
 from sklearn.feature_extraction.text import TfidfTransformer
 
@@ -22,7 +22,7 @@ import numpy as np
 
 base_estimators = {
 	'svm': svm.SVC,
-	'lsvm': svm.LinearSVC,
+	'lsvm': LinearSVM,
 	'nb': naive_bayes.MultinomialNB,
 	'knn': neighbors.KNeighborsClassifier,
 	'rf': ensemble.RandomForestClassifier,
@@ -36,12 +36,12 @@ base_estimators = {
 
 # default parameters for text classification
 default_params = {
-	'svm': 	{'kernel': 'linear', 'C': 1, 'verbose': False, 'probability': False,
+	'svm': 	{'kernel': 'linear', 'C': 1, 'verbose': False, 'probability': True,
 			 'degree': 3, 'shrinking': True, 'max_iter': -1, 
 			 'decision_function_shape': None, 'random_state': None, 
 			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
 			 'class_weight': None},
-	'lsvm': {'loss': 'squared_hinge', 'C': 1, 'verbose': 0, 'intercept_scaling': 0.5,
+	'lsvm': {'loss': 'squared_hinge', 'C': 1, 'verbose': 0, 'intercept_scaling': 1,
 			 'fit_intercept': True, 'max_iter': 1000, 'penalty': 'l2',
 			 'multi_class': 'ovr', 'random_state': 1608637542, 'dual': True, 
 			 'tol': 0.001, 'class_weight': None},
@@ -56,7 +56,7 @@ default_params = {
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
 			 'class_weight': None},
 	'xt':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
-			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1, 
+			 'max_leaf_nodes': None, 'bootstrap': False, 'min_samples_leaf': 1, 
 			 'n_estimators': 200, 'min_samples_split': 2, 
 			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
@@ -68,7 +68,7 @@ default_params = {
 			 'criterion': 'gini', 'random_state': None, 'max_features': 'auto',
 			 'max_depth': None, 'class_weight': None},
 	'lxt': 	{'warm_start': False, 'n_neighbors': 200, 'n_gpus': 0, 'n_jobs': 1,
-			 'verbose': 0, 'max_leaf_nodes': None, 'bootstrap': True,
+			 'verbose': 0, 'max_leaf_nodes': None, 'bootstrap': False,
 			 'oob_score': False, 'min_samples_leaf': 1, 'n_estimators': 200, 
 			 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
 			 'criterion': 'gini', 'random_state': None, 'max_features': 'auto',
@@ -111,7 +111,7 @@ default_tuning_params = {
 
 default_transformers = {
 	'svm': 	[('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
-	'lsvm': [('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'lsvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
 	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'rf': [],
