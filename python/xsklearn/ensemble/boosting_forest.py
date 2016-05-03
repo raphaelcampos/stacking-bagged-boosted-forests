@@ -770,7 +770,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                 estimator_error = np.average(incorrect,
                     weights=sample_weight[unsampled_indices], axis=0)
 
-                estimator_weight = (
+                estimator_weight = self.learning_rate * (
                     (1. - estimator_error) / estimator_error)
 
                 oob_err[k][i] = estimator_error
@@ -781,7 +781,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             decision = (predictions[k] /
                         predictions[k].sum(axis=1)[:, np.newaxis])
             oob_decision_function.append(decision)
-            oob_score += np.mean(y[:, k] ==
+            oob_score += np.average(y[:, k] ==
                                  np.argmax(predictions[k], axis=1), axis=0)
 
         if rf.n_outputs_ == 1:
@@ -819,8 +819,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         # Error fraction
         estimator_error = 1 - estimator.oob_score_
 
-        #print iboost, np.average(estimator.oob_err_),
-        #       estimator_error, 1 - estimator.oob_score_ 
+        #print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -978,10 +977,8 @@ class BoostedForestClassifier(AdaBoostClassifier):
         """
         pred = self.decision_function(X)
         
-        print pred
-        print pred[0,:]
-        if self.n_classes_ == 2:
-            return self.classes_.take(pred > 0, axis=0)
+        #if self.n_classes_ == 2:
+        #    return self.classes_.take(pred > 0, axis=0)
 
         return self.classes_.take(np.argmax(pred, axis=1), axis=0)
      
