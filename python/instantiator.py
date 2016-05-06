@@ -18,7 +18,7 @@ class EstimatorInstantiator(object):
 
 
 	def get_instance(self, estimator, params=None):
-		if not self.base_estimators.has_key(estimator):
+		if not estimator in self.base_estimators:
 			raise ValueError("unrecognized estimator: '%s'" % estimator)
 
 		default_params = self.default_params[estimator].copy()
@@ -38,14 +38,9 @@ class EstimatorInstantiator(object):
 		for estimator in default_params:
 			params = set(base_estimators[estimator]().get_params().keys())
 			keys = params & general_params_keys 
- 			for key in keys:
- 				self.default_params[estimator][key] = general_params[key]
+			for key in keys:
+				self.default_params[estimator][key] = general_params[key]
 
- 	def set_params(self, params):
+	def set_params(self, params):
 		for estimator in params:
 			self.default_params[estimator].update(params[estimator])
-
-if __name__ == '__main__':
-	instantiator = EstimatorInstantiator()
-
-	print instantiator.get_instance('bert')

@@ -175,7 +175,6 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         self.X_train = X
         self.y_train = y
 
-        print self.n_neighbors
         if self.n_gpus > 0:
             self.kNN = cuKNeighborsSparseClassifier(n_neighbors=self.n_neighbors, n_gpus=self.n_gpus)
         else:
@@ -250,7 +249,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                 while 1:
                     results = results + [(q.get(False))]
                     #print results
-            except Exception, e:
+            except(Exception, e):
                 pass
 
             time.sleep(0.005)    # Give tasks a chance to put more data in
@@ -411,13 +410,13 @@ class LazyNNBroof(LazyNNRF):
             try:
                 rf.fit(X_t, self.y_train[ids])
                 pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
-            except Exception, e:
+            except(Exception, e):
                 # ignore adaboost worse than random guess
                 random_instance = check_random_state(self.random_state)
                 pred[i, random_instance.randint(self.n_classes_, size=1)] = 1;
                 random_guesses = random_guesses + 1
                 pass
 
-        print "Random guesses: ",random_guesses
+        print("Random guesses:", random_guesses)
         q.put((p, pred))
         return

@@ -10,10 +10,10 @@ default_params: dict, {'estimator_name': dict}
 default_tuning_params: dict, {'estimator_name': dict}
 	Dictionaty containing base classifiers default tunning parameter values
 """
-from sklearn import naive_bayes, neighbors, svm, ensemble
+from sklearn import naive_bayes, neighbors, svm, ensemble, tree
 
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
-from xsklearn.ensemble import Broof, Bert
+from xsklearn.ensemble import Broof, Bert, VIG
 from xsklearn.linear_model import MLR, LinearSVM
 
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -31,7 +31,9 @@ base_estimators = {
 	'lxt': LazyNNExtraTrees,
 	'broof': Broof,
 	'bert': Bert,
-	'mlr': MLR
+	'mlr': MLR,
+	'dt': tree.DecisionTreeClassifier,
+	'vig': VIG
 }
 
 # default parameters for text classification
@@ -85,7 +87,9 @@ default_params = {
 			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
 			 'class_weight': None},
-	'mlr':	{}
+	'mlr':	{},
+	'dt': {},
+	'vig': {}
 }
 
 default_tuning_params = {
@@ -106,11 +110,13 @@ default_tuning_params = {
 				'max_features': [0.08]}],
 	'bert': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
-	'mlr': []
+	'mlr': [],
+	'dt': [],
+	'vig': []
 }
 
 default_transformers = {
-	'svm': 	[('tfidf', TfidfTransformer(norm='max', use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'svm': 	[('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
 	'lsvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
 	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
@@ -120,5 +126,7 @@ default_transformers = {
 	'lxt': [],
 	'broof': [],
 	'bert': [],
-	'mlr': []
+	'mlr': [],
+	'dt': [],
+	'vig': []
 }

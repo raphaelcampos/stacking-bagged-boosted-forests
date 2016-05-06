@@ -83,7 +83,7 @@ class ClassificationApp(BaseApp):
 		self.parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
-		self.parser.add_argument("-m", "--method", choices=models, default=models[0])
+		self.parser.add_argument("-m", "--method", choices=models, default=list(models)[0])
 
 		self.parser.add_argument("-j", "--n_jobs", type=int, help='Number of CPUs available to parallelize the execution (Default:1). If -1 is given then it gets all CPUs available', default=1)
 
@@ -119,7 +119,7 @@ class ClassificationApp(BaseApp):
 			X, y = load_svmlight_file(args.dataset)
 
 
-		print X.nnz, (X.nnz*4*4)/(2.0**20)
+		print(X.nnz, (X.nnz*4*4)/(2.0**20))
 
 		end = time.time()
 
@@ -154,7 +154,7 @@ class ClassificationApp(BaseApp):
 		folds_macro = []
 		folds_micro = []
 
-		print estimator.get_params(deep=False)
+		print(estimator.get_params(deep=False))
 
 		k = 1
 		for train_index, test_index in kf:
@@ -184,9 +184,9 @@ class ClassificationApp(BaseApp):
 							 n_jobs=n_jobs, refit=False,
 							 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
-				print gs.best_score_, gs.best_params_
+				print(gs.best_score_, gs.best_params_)
 				estimator.set_params(**gs.best_params_)
-				print estimator.get_params()
+				print(estimator.get_params())
 
 			e = clone(estimator)
 			
@@ -212,19 +212,19 @@ class ClassificationApp(BaseApp):
 			folds_micro = folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
 			folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
 
-			print "F1-Score"
-			print "\tMicro: ", folds_micro[-1]
-			print "\tMacro: ", folds_macro[-1]
+			print("F1-Score")
+			print("\tMicro: ", folds_micro[-1])
+			print("\tMacro: ", folds_macro[-1])
 			
 			if args.test:
 				break
 
-		print "F1-Score"
-		print "\tMicro: ", np.average(folds_micro), np.std(folds_micro)
-		print "\tMacro: ", np.average(folds_macro), np.std(folds_macro)
+		print("F1-Score")
+		print("\tMicro: ", np.average(folds_micro), np.std(folds_micro))
+		print("\tMacro: ", np.average(folds_macro), np.std(folds_macro))
 
-		print 'loading time : ', self.datasetLoadingTime
-		print 'times : ', np.average(folds_time), np.std(folds_time)
+		print('loading time : ', self.datasetLoadingTime)
+		print('times : ', np.average(folds_time), np.std(folds_time))
 
 class TextClassificationApp(ClassificationApp):
 	"""Application for text classification
@@ -296,7 +296,7 @@ class TextClassificationApp(ClassificationApp):
 
 		try:
 			args.max_features = float(args.max_features)
-		except Exception, e:
+		except Exception as e:
 			pass
 
 		return args 
@@ -357,7 +357,7 @@ class StackerApp(TextClassificationApp):
 		if params == [] or params is None:
 			params = [{} for i in range(len(base_classifiers))]
 
-		meta_level = [self.instantiator.get_instance(estimator, params[i]) for i, estimator in enumerate(meta_classifiers)]
+		meta_level = [Pipeline(default_transformers[estimator] + [('estimator', self.instantiator.get_instance(estimator, params[i]))]) for i, estimator in enumerate(meta_classifiers)]
 		
 		stack = list()
 		stack.append(base_level)
