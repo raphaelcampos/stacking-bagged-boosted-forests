@@ -129,7 +129,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     ----------
     .. [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
     """
-	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=True, random_state=None):
+	def __init__(self, estimators_stack, n_folds=10, verbose=0, probability=True, random_state=None):
 
 		self.check_estimators(probability)
 
@@ -224,7 +224,7 @@ class VIG(BaseEstimator):
 			#N, D = L.shape
 			
 
-			Lambda = nodes.Wishart(D, np.identity(D)*(1./D))
+			Lambda = nodes.Wishart(D, np.identity(D))
 			mu = nodes.Gaussian(np.zeros(D), Lambda)
 
 			x = nodes.Gaussian(mu, Lambda, plates=(N,))
