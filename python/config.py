@@ -10,10 +10,10 @@ default_params: dict, {'estimator_name': dict}
 default_tuning_params: dict, {'estimator_name': dict}
 	Dictionaty containing base classifiers default tunning parameter values
 """
-from sklearn import naive_bayes, neighbors, svm, ensemble, tree
-
+from sklearn import naive_bayes, neighbors, svm, ensemble, tree, discriminant_analysis
+from sklearn import linear_model
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
-from xsklearn.ensemble import Broof, Bert, VIG
+from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates
 from xsklearn.linear_model import MLR, LinearSVM
 
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -31,9 +31,12 @@ base_estimators = {
 	'lxt': LazyNNExtraTrees,
 	'broof': Broof,
 	'bert': Bert,
-	'mlr': MLR,
+	'mlr': MLR,#linear_model.LogisticRegressionCV, #LinearSVM,#MLR,
 	'dt': tree.DecisionTreeClassifier,
-	'vig': VIG
+	'vig': VIG,
+	'DT': DecisionTemplates,
+	'lda': discriminant_analysis.LinearDiscriminantAnalysis,
+	'qda': discriminant_analysis.QuadraticDiscriminantAnalysis
 }
 
 # default parameters for text classification
@@ -88,8 +91,17 @@ default_params = {
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
 			 'class_weight': None},
 	'mlr':	{},
-	'dt': {},
-	'vig': {}
+	'dt': 	{'max_features': 1.0, 'max_leaf_nodes': None,
+			 'min_weight_fraction_leaf': 0.0, 'splitter': 'best',
+			 'min_samples_leaf': 1, 'max_depth': None, 'presort': False,
+			 'criterion': 'gini', 'random_state': None, 'class_weight': None,
+			 'min_samples_split': 2}
+,
+	'vig': {},
+	'DT': {},
+	'lda': {'n_components':None, 'priors':None, 'shrinkage':None,
+			 'solver':'svd', 'store_covariance':False, 'tol':0.0001},
+	'qda': {}
 }
 
 default_tuning_params = {
@@ -102,24 +114,28 @@ default_tuning_params = {
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
-	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy'], 
+	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt']}],
-	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy'], 
+	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt']}],
 	'broof': [{'n_trees': [5], 'n_iterations': [50],
 				'max_features': [0.08]}],
 	'bert': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
 	'mlr': [],
-	'dt': [],
-	'vig': []
+	'dt': [{'criterion': ['entropy', 'gini'], 'max_depth': [None] + list(2.0 ** np.arange(0, 10, 1))}],
+	'vig': [],
+	'DT': [],
+	'lda': [],
+	'qda': []
 }
 
 default_transformers = {
 	'svm': 	[('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
 	'lsvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
-	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	#'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
+	'knn': [],
 	'rf': [],
 	'xt': [],
 	'lazy': [],
@@ -128,5 +144,7 @@ default_transformers = {
 	'bert': [],
 	'mlr': [],
 	'dt': [],
-	'vig': []
+	'vig': [],
+	'DT': [],
+	'lda': []
 }

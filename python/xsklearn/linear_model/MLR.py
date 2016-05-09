@@ -4,6 +4,8 @@ from sklearn.preprocessing import LabelBinarizer
 from scipy.optimize import nnls
 import numpy as np
 
+from sklearn.linear_model import LinearRegression
+
 class MLR(LinearClassifierMixin, LinearModel):
     """Classifier using Multi-response linear regression.
     Parameters
@@ -53,18 +55,27 @@ class MLR(LinearClassifierMixin, LinearModel):
         self._label_binarizer = LabelBinarizer(pos_label=1, neg_label=0)
         Y = self._label_binarizer.fit_transform(y)
 
-        #X, y, X_mean, y_mean, X_std = LinearModel._center_data(
-        #    X, y, self.fit_intercept, self.normalize, self.copy_X,
-        #    sample_weight=sample_weight)
+        X, y, X_mean, y_mean, X_std = LinearModel._center_data(
+            X, y, self.fit_intercept, 'l2', False,
+            sample_weight=sample_weight)
 
         n_classes_ = len(self._label_binarizer.classes_)
+
+        if n_classes_ < 2:
+            raise ValueError("This solver needs samples of at least 2 classes"
+                             " in the data, but the data contains only one"
+                             " class: %r" % classes_[0])
+
+        if(n_classes_ == 2):
+            n_classes_ = 1
+
         self.coef_ = np.zeros((n_classes_, n_features))
         X_copy = X.copy()
         for i, y in enumerate(Y.T):
-        	r, _ = nnls(X_copy, y)
-        	self.coef_[i,:] = r
-        
-        #self._set_intercept(X_mean, y_mean, X_std)
+            r, _ = nnls(X_copy, y)
+            self.coef_[i,:] = r
+
+        self._set_intercept(X_mean, y_mean, X_std)
 
         return self
 

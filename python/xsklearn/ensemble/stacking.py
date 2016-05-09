@@ -1,6 +1,6 @@
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from sklearn.cross_validation import train_test_split, cross_val_predict, cross_val_score, KFold, StratifiedKFold
+from sklearn.cross_validation import KFold, StratifiedKFold
 
 from sklearn.grid_search import GridSearchCV
 
@@ -14,7 +14,7 @@ class MetaLevelTransformerCV(object):
 	"""docstring for MetaLevelTransformerCV"""
 	def __init__(self, base_estimators,
 				 n_folds = 5,
-				 stratified = True,
+				 stratified = False,
 				 probability = True,
 				 random_state = None):
 		super(MetaLevelTransformerCV, self).__init__()
@@ -27,17 +27,37 @@ class MetaLevelTransformerCV(object):
 
 
 	def fit(self, X, y):
-		"""
-			Fit base estimators
-		"""
+		"""Fit base estimators.
+        Parameters
+        ----------
+        X : {array-likem, sparse matrix}, shape = [n_samples,n_features]
+            Training data. Accepts sparse matrix as long as the base estimator does
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        self : returns an instance of self.
+        """
 		for estimator in self.base_estimators:
 			estimator.fit(X, y)
 
+		return self
+
 	def transform(self, X):
+		"""Transform X accordingly to the fitted base estimators.
+			It is used at prediction step of stacking.
+		Parameters
+        ----------
+        X : {array-likem, sparse matrix}, shape = [n_samples,n_features]
+            Training data. Accepts sparse matrix as long as the base estimator does
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        Xt : array-like, shape = [n_samples, n_features]
+            Base estimators' output matrix.
 		"""
-			Transform X accordingly to the fitted base classifires.
-			It is used at prediction step of stacking
-		"""
+
 		if self.probability:
 			Xi = np.zeros((X.shape[0], len(self.base_estimators)*self.n_classes_))
 		else:
@@ -58,15 +78,27 @@ class MetaLevelTransformerCV(object):
 		return Xi
 
 	def fit_transform(self, X, y):
-		"""
-			Fit base estimators and transform X
-			into meta level dataset using K-fold 
-			cross-validation
+		"""Fit base estimators and transform X into meta level dataset
+		 	using K-fold cross-validation.
+		Parameters
+        ----------
+        X : {array-likem, sparse matrix}, shape = [n_samples,n_features]
+            Training data. Accepts sparse matrix as long as the base estimator does
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        Xt : array-like, shape = [n_samples, n_features]
+            Base estimators' output matrix.
 		"""
 		self.classes_ = np.unique(y)
 		self.n_classes_ = len(self.classes_)
 
-		kf = StratifiedKFold(y, n_folds=self.n_folds,
+		if self.stratified:
+			kf = StratifiedKFold(y, n_folds=self.n_folds,
+							 shuffle=True, random_state=self.random_state)
+		else:
+			kf = KFold(len(y), n_folds=self.n_folds,
 							 shuffle=True, random_state=self.random_state)
 
 		if self.probability:
@@ -74,6 +106,7 @@ class MetaLevelTransformerCV(object):
 		else:
 			Xi = np.zeros((X.shape[0], len(self.base_estimators)))
 
+		# creating meta-level data
 		for train_index, test_index in kf:
 			# split dataset
 			X_train, X_test = X[train_index], X[test_index]
@@ -103,8 +136,10 @@ class MetaLevelTransformerCV(object):
 		#from sklearn.datasets import dump_svmlight_file
 		#dump_svmlight_file(Xi, y, "meta_level_10fold.svm")
 		#exit()
+		
+		# fit base estimators to original data
 		self.fit(X, y)
-
+		
 		return Xi
 
 class StackingClassifier(BaseEstimator, ClassifierMixin):
@@ -129,7 +164,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     ----------
     .. [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
     """
-	def __init__(self, estimators_stack, n_folds=10, verbose=0, probability=True, random_state=None):
+	def __init__(self, estimators_stack, n_folds=2, verbose=0, probability=True, random_state=None):
 
 		self.check_estimators(probability)
 
@@ -160,7 +195,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 
 		
 		self.estimators_stack[l + 1].fit(X_tmp, y)
-
+		
 		if hasattr(self.estimators_stack[l + 1], "coef_"):
 			print(self.estimators_stack[l + 1].coef_)
 		elif hasattr(self.estimators_stack[l + 1], "feature_importances_"):
@@ -198,11 +233,33 @@ from bayespy import nodes
 from bayespy.inference import VB
 
 class VIG(BaseEstimator):
-
+	"""Variational Inference for multivariate Gaussian estimator
+    Attributes
+    ----------
+    models_ : list,
+		Each element contains tuple mean, covariance matrix and prior probability.
+		The attribute is created after fitting the model.
+    References
+    ----------
+    .. [1] Tien Thanh Nguyen, Thi Thu Thuy Nguyen, Xuan Cuong Pham, and Alan Wee-Chung Liew.
+    		2016. A novel combining classifier method based on Variational Inference. 
+    		Pattern Recogn. 49, C (January 2016), 198-212.
+    """
 	def __init__(self):
 		super(VIG, self).__init__()
 
 	def fit(self, X, y):
+		"""Fit Multivariate Gaussian model per class using Variational Inference.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples,n_features]
+            Training data
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        self : returns an instance of self.
+        """
 		n_samples, n_features = X.shape
 		
 		classes_ = np.unique(y)
@@ -215,14 +272,6 @@ class VIG(BaseEstimator):
 			L = X[y == Y,:]
 			
 			N, D = L.shape
-			
-			#L_ = L.reshape((N, n_estimators, n_classes_)).mean(1)
-			#pred = classes_.take(np.argmax(L_, axis=1), axis=0)
-			
-			#L = L[(pred == Y)]
-
-			#N, D = L.shape
-			
 
 			Lambda = nodes.Wishart(D, np.identity(D))
 			mu = nodes.Gaussian(np.zeros(D), Lambda)
@@ -231,7 +280,7 @@ class VIG(BaseEstimator):
 			x.observe(L)
 
 			Q = VB(x, mu, Lambda)
-			Q.update(repeat=200, tol=0)
+			Q.update(repeat=200, tol=1e-10, verbose=False)
 			cov = np.linalg.inv(Lambda.u[0])
 			m = mu.u[0]
 			
@@ -243,6 +292,16 @@ class VIG(BaseEstimator):
 		return self
 
 	def predict(self, X):
+		"""Predict class labels for samples in X.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples, n_features]
+            Samples.
+        Returns
+        -------
+        C : array, shape = [n_samples]
+            Predicted class label per sample.
+        """
 		n_samples = X.shape[0]
 		n_classes_ = self.n_classes_ 
 		pred = np.zeros((n_samples, n_classes_))
@@ -353,6 +412,118 @@ class VIG2(BaseEstimator):
 			return multivariate_normal.pdf(X, mean=m, cov=inv(lamda))
 
 		#return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
+
+def union(A, B):
+	return np.minimum(A,B)
+
+def intersec(A, B):
+	return np.maximum(A,B)
+
+
+def relative_card(A):
+	if A.ndim == 1:
+		return A.mean(dtype=float)
+	return A.mean(1, dtype=float)
+
+def fsupport(A):
+	if A.ndim == 1:
+		return np.maximum(np.zeros(A.shape), A)
+
+	return np.maximum(np.zeros(A.shape[1]), A)
+
+def S1(A, B=None):
+	return relative_card(union(A,B))/relative_card(intersec(A,B))
+
+def S2(A, B=None):
+	return 1 - relative_card(np.abs(A-B))
+
+def S3(A, B=None):
+	return 1 - relative_card(np.maximum(intersec(A, B), intersec(1-A,B)))
+
+
+def pairwise_S1(A, B):
+	return np.apply_along_axis(S1, 1, A, B=B)
+
+def pairwise_S2(A, B):
+	return np.apply_along_axis(S2, 1, A, B=B)
+
+def pairwise_S3(A, B):
+	return np.apply_along_axis(S3, 1, A, B=B)
+
+SIM_METRICS = {"S1": pairwise_S1, "S2": pairwise_S2, "S3": pairwise_S3}
+
+class DecisionTemplates(BaseEstimator):
+	"""Decision Templates
+    Attributes
+    ----------
+    DT_ : list,
+		Each element contains a decision template for a class.
+		The attribute is created after fitting the model.
+    References
+    ----------
+    .. [1] Ludmila I. Kuncheva , James C. Bezdek , Robert P. W. Duin. 2001.
+    		Decision templates for multiple classifier fusion: an experimental comparison. 
+    		Pattern Recognition. 34,(2011), 299-314.
+    """
+	def __init__(self, metric='S1'):
+		super(DecisionTemplates, self).__init__()
+
+		if not metric in SIM_METRICS:
+			raise ValueError("Invalid metric: '%s'. Possible values are: %s"
+										% (metric, list(SIM_METRICS.keys())))
+		
+		self.metric = metric
+
+	def fit(self, X, y):
+		"""Fit a descision template per class.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples,n_features]
+            Training data
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        self : returns an instance of self.
+        """
+		n_samples, n_features = X.shape
+		
+		classes_ = np.unique(y)
+		n_classes_ = len(classes_)
+		
+		n_estimators = n_features/n_classes_
+
+		self.DT_ = np.zeros((n_classes_, n_features))
+		for i, Y in enumerate(classes_):
+			L = X[y == Y,:]
+			N, D = L.shape
+
+			DT = L.reshape(N, n_estimators, n_classes_).sum(0)
+			self.DT_[i,:] = DT.reshape(n_features)/float(N)
+
+		self.n_classes_ = n_classes_
+		self.classes_ = classes_
+
+		return self
+
+	def predict(self, X):
+		"""Predict class labels for samples in X.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples, n_features]
+            Samples.
+        Returns
+        -------
+        C : array, shape = [n_samples]
+            Predicted class label per sample.
+        """
+		metric = SIM_METRICS[self.metric]
+		# compute fuzzy similarity between samples and Decision templates
+		dist = metric(X, self.DT_)
+
+		return self.classes_.take(np.argmax(dist, axis=1), axis=0)
+
 
 if __name__ == "__main__":
 

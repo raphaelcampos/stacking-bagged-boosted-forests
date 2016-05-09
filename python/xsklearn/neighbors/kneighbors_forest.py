@@ -95,7 +95,7 @@ class ReduceFeatureSpace(BaseEstimator, SelectorMixin):
         
         selected_features = np.zeros(n_features, dtype=np.float64)
 
-        for i in xrange(non_zero):
+        for i in range(non_zero):
             col_ind = X_indices[i]
             selected_features[col_ind] += int(not X_data[i] == 0)
 
@@ -235,7 +235,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         chunk_size = int(ceil(length/float(self.n_jobs)))
 
         # Run processes
-        for p in xrange(1, self.n_jobs + 1):
+        for p in range(1, self.n_jobs + 1):
             s = (p-1)*chunk_size
             e = p*chunk_size if p*chunk_size <= length else length
             process = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
@@ -249,7 +249,7 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
                 while 1:
                     results = results + [(q.get(False))]
                     #print results
-            except(Exception, e):
+            except(Exception) as e:
                 pass
 
             time.sleep(0.005)    # Give tasks a chance to put more data in
