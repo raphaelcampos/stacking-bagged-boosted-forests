@@ -10,11 +10,13 @@ from sklearn.pipeline import Pipeline
 
 import numpy as np
 
+import collections
+
 class MetaLevelTransformerCV(object):
 	"""docstring for MetaLevelTransformerCV"""
 	def __init__(self, base_estimators,
 				 n_folds = 5,
-				 stratified = False,
+				 stratified = True,
 				 probability = True,
 				 random_state = None):
 		super(MetaLevelTransformerCV, self).__init__()
@@ -164,7 +166,7 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
     ----------
     .. [1] David H. Wolpert, "Stacked Generalization", Neural Networks, 5, 241--259, 1992.
     """
-	def __init__(self, estimators_stack, n_folds=2, verbose=0, probability=True, random_state=None):
+	def __init__(self, estimators_stack, n_folds=5, verbose=0, probability=True, random_state=None):
 
 		self.check_estimators(probability)
 
@@ -173,6 +175,8 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 		self.random_state = random_state
 		self.probability = probability
 		self.verbose=verbose
+
+
 
 	def check_estimators(self, probability=True):
 		pass
@@ -194,8 +198,13 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 			self.meta_transformers.append(meta_transformer)
 
 		
-		self.estimators_stack[l + 1].fit(X_tmp, y)
-		
+		combiners = self.estimators_stack[-1]
+		if(isinstance(combiners, collections.Iterable)):
+			for combiner in combiners:
+				combiner.fit(X_tmp, y)
+		else:
+			combiners.fit(X_tmp, y)	
+
 		if hasattr(self.estimators_stack[l + 1], "coef_"):
 			print(self.estimators_stack[l + 1].coef_)
 		elif hasattr(self.estimators_stack[l + 1], "feature_importances_"):
@@ -204,6 +213,9 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 		return self
 
 	def predict(self, X):
+		
+		n_samples, n_features = X.shape
+
 		self.levels = len(self.estimators_stack)
 	
 		X_tmp = X.copy()
@@ -211,8 +223,20 @@ class StackingClassifier(BaseEstimator, ClassifierMixin):
 		for l in range(self.levels - 1):
 			X_tmp = self.meta_transformers[l].transform(X_tmp)
 
-		return self.estimators_stack[l + 1].predict(X_tmp)
+		combiners = self.estimators_stack[-1]
+		# if meta level is iterable means that there is
+		#  more than one combiner to be evaluated
+		if(isinstance(combiners, collections.Iterable)):
+			pred = np.zeros((n_samples, len(combiners)))	
+			for i, combiner in enumerate(combiners):
+				pred[:,i] = combiner.predict(X_tmp)
 
+			if pred.shape[1] == 1:
+				return pred.ravel()
+
+			return pred
+
+		return combiners.predict(X_tmp)	
 
 import scipy as sp
 from scipy.linalg import inv
@@ -229,89 +253,109 @@ def Li(W0, beta0, W, v, S, J):
 											 + ((beta0*N)/(beta0 + N))*J)*W)
 				- 0.5*np.log(sp.linalg.det(W)))
 
-from bayespy import nodes
-from bayespy.inference import VB
+try:
+	from bayespy import nodes
+	from bayespy.inference import VB
 
-class VIG(BaseEstimator):
-	"""Variational Inference for multivariate Gaussian estimator
-    Attributes
-    ----------
-    models_ : list,
-		Each element contains tuple mean, covariance matrix and prior probability.
-		The attribute is created after fitting the model.
-    References
-    ----------
-    .. [1] Tien Thanh Nguyen, Thi Thu Thuy Nguyen, Xuan Cuong Pham, and Alan Wee-Chung Liew.
-    		2016. A novel combining classifier method based on Variational Inference. 
-    		Pattern Recogn. 49, C (January 2016), 198-212.
-    """
-	def __init__(self):
-		super(VIG, self).__init__()
+	class VIG(BaseEstimator):
+		"""Variational Inference for multivariate Gaussian estimator
+	    Attributes
+	    ----------
+	    models_ : list,
+			Each element contains tuple mean, covariance matrix and prior probability.
+			The attribute is created after fitting the model.
+	    References
+	    ----------
+	    .. [1] Tien Thanh Nguyen, Thi Thu Thuy Nguyen, Xuan Cuong Pham, and Alan Wee-Chung Liew.
+	    		2016. A novel combining classifier method based on Variational Inference. 
+	    		Pattern Recogn. 49, C (January 2016), 198-212.
+	    """
+		def __init__(self):
+			super(VIG, self).__init__()
 
-	def fit(self, X, y):
-		"""Fit Multivariate Gaussian model per class using Variational Inference.
-        Parameters
-        ----------
-        X : {array-like}, shape = [n_samples,n_features]
-            Training data
-        y : array-like, shape = [n_samples]
-            Target values
-        Returns
-        -------
-        self : returns an instance of self.
-        """
-		n_samples, n_features = X.shape
-		
-		classes_ = np.unique(y)
-		n_classes_ = len(classes_)
-		
-		n_estimators = n_features/n_classes_
-
-		self.models_ = []
-		for i, Y in enumerate(classes_):
-			L = X[y == Y,:]
+		def fit(self, X, y):
+			"""Fit Multivariate Gaussian model per class using Variational Inference.
+	        Parameters
+	        ----------
+	        X : {array-like}, shape = [n_samples,n_features]
+	            Training data
+	        y : array-like, shape = [n_samples]
+	            Target values
+	        Returns
+	        -------
+	        self : returns an instance of self.
+	        """
+			n_samples, n_features = X.shape
 			
-			N, D = L.shape
-
-			Lambda = nodes.Wishart(D, np.identity(D))
-			mu = nodes.Gaussian(np.zeros(D), Lambda)
-
-			x = nodes.Gaussian(mu, Lambda, plates=(N,))
-			x.observe(L)
-
-			Q = VB(x, mu, Lambda)
-			Q.update(repeat=200, tol=1e-10, verbose=False)
-			cov = np.linalg.inv(Lambda.u[0])
-			m = mu.u[0]
+			classes_ = np.unique(y)
+			n_classes_ = len(classes_)
 			
-			self.models_.append([m, cov, float(L.shape[0])/n_samples])
+			n_estimators = n_features/n_classes_
 
-		self.n_classes_ = n_classes_
-		self.classes_ = classes_
+			self.models_ = []
+			for i, Y in enumerate(classes_):
+				L = X[y == Y,:]
+				
+				N, D = L.shape
 
-		return self
+				Lambda = nodes.Wishart(D, np.identity(D))
+				mu = nodes.Gaussian(np.zeros(D), Lambda)
 
-	def predict(self, X):
-		"""Predict class labels for samples in X.
-        Parameters
-        ----------
-        X : {array-like}, shape = [n_samples, n_features]
-            Samples.
-        Returns
-        -------
-        C : array, shape = [n_samples]
-            Predicted class label per sample.
-        """
-		n_samples = X.shape[0]
-		n_classes_ = self.n_classes_ 
-		pred = np.zeros((n_samples, n_classes_))
-		
-		for i, model in enumerate(self.models_):
-			m, cov, prior = model
-			pred[:,i] = multivariate_normal.pdf(X, mean=m, cov=cov)*prior
+				x = nodes.Gaussian(mu, Lambda, plates=(N,))
+				x.observe(L)
 
-		return self.classes_.take(np.argmax(pred, axis=1), axis=0)
-		
+				Q = VB(x, mu, Lambda)
+				Q.update(repeat=200, tol=1e-10, verbose=False)
+				cov = np.linalg.inv(Lambda.u[0])
+				m = mu.u[0]
+				
+				self.models_.append([m, cov, float(L.shape[0])/n_samples])
+
+			self.n_classes_ = n_classes_
+			self.classes_ = classes_
+
+			return self
+
+		def predict(self, X):
+			"""Predict class labels for samples in X.
+	        Parameters
+	        ----------
+	        X : {array-like}, shape = [n_samples, n_features]
+	            Samples.
+	        Returns
+	        -------
+	        C : array, shape = [n_samples]
+	            Predicted class label per sample.
+	        """
+			n_samples = X.shape[0]
+			n_classes_ = self.n_classes_ 
+			pred = np.zeros((n_samples, n_classes_))
+			
+			for i, model in enumerate(self.models_):
+				m, cov, prior = model
+				pred[:,i] = multivariate_normal.pdf(X, mean=m, cov=cov)*prior
+
+			return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+except (Exception) as e:
+	class VIG(BaseEstimator):
+		"""Variational Inference for multivariate Gaussian estimator
+	    Attributes
+	    ----------
+	    models_ : list,
+			Each element contains tuple mean, covariance matrix and prior probability.
+			The attribute is created after fitting the model.
+	    References
+	    ----------
+	    .. [1] Tien Thanh Nguyen, Thi Thu Thuy Nguyen, Xuan Cuong Pham, and Alan Wee-Chung Liew.
+	    		2016. A novel combining classifier method based on Variational Inference. 
+	    		Pattern Recogn. 49, C (January 2016), 198-212.
+	    """
+		def __init__(self):
+			super(VIG, self).__init__()
+			import sys
+			import warnings
+			warnings.warn("VIG is not supported by python %s" % (sys.version), ImportWarning)
+
 
 class VIG2(BaseEstimator):
 

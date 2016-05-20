@@ -51,8 +51,8 @@ default_params = {
 			 'multi_class': 'ovr', 'random_state': 1608637542, 'dual': True, 
 			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
-	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
-			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
+	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'kd_tree',
+			 'metric': 'euclidean', 'metric_params': None, 'p': 2, 
 			 'weights': 'distance', 'leaf_size': 30},
 	'rf':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
@@ -99,8 +99,8 @@ default_params = {
 ,
 	'vig': {},
 	'DT': {},
-	'lda': {'n_components':None, 'priors':None, 'shrinkage':None,
-			 'solver':'svd', 'store_covariance':False, 'tol':0.0001},
+	'lda': {'n_components':None, 'priors':None, 'shrinkage':"auto",
+			 'solver':'eigen', 'store_covariance':False, 'tol':0.0001},
 	'qda': {}
 }
 
@@ -134,8 +134,7 @@ default_transformers = {
 	'svm': 	[('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
 	'lsvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
-	#'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
-	'knn': [],
+	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'rf': [],
 	'xt': [],
 	'lazy': [],

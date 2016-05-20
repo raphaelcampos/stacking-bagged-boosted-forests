@@ -56,7 +56,7 @@ class MLR(LinearClassifierMixin, LinearModel):
         Y = self._label_binarizer.fit_transform(y)
 
         X, y, X_mean, y_mean, X_std = LinearModel._center_data(
-            X, y, self.fit_intercept, 'l2', False,
+            X, y, self.fit_intercept, None, False,
             sample_weight=sample_weight)
 
         n_classes_ = len(self._label_binarizer.classes_)
@@ -72,12 +72,35 @@ class MLR(LinearClassifierMixin, LinearModel):
         self.coef_ = np.zeros((n_classes_, n_features))
         X_copy = X.copy()
         for i, y in enumerate(Y.T):
+            y = 2*y - 1
+            print("y:",y)
+            
             r, _ = nnls(X_copy, y)
             self.coef_[i,:] = r
+            print(self.coef_)
 
         self._set_intercept(X_mean, y_mean, X_std)
 
         return self
+
+    def predict(self, X):
+        """Predict class labels for samples in X.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix}, shape = [n_samples, n_features]
+            Samples.
+        Returns
+        -------
+        C : array, shape = [n_samples]
+            Predicted class label per sample.
+        """
+        scores = self.decision_function(X)
+        if len(scores.shape) == 1:
+            indices = (scores > 0).astype(np.int)
+        else:
+            indices = scores.argmax(axis=1)
+
+        return self.classes_[indices]
 
     @property
     def classes_(self):

@@ -1,4 +1,4 @@
-from sklearn.datasets import fetch_20newsgroups, load_svmlight_file, dump_svmlight_file
+from sklearn.datasets import load_iris, fetch_20newsgroups, load_svmlight_file, dump_svmlight_file
 from sklearn.cross_validation import KFold, StratifiedKFold
 
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
@@ -104,6 +104,9 @@ class ClassificationApp(BaseApp):
 
 		self.parser.add_argument("-n", "--norm", help='Dataset sample normalization', choices=["max", "l1", "l2"], default=None)
 
+		self.parser.add_argument("-d", "--dump", type=str, help='Save each fold stacking.',default="")
+
+
 	def parse_arguments(self):
 		return self.parser.parse_args()
 
@@ -115,17 +118,15 @@ class ClassificationApp(BaseApp):
 			count_vect = CountVectorizer(min_df=6, stop_words='english')
 			X = count_vect.fit_transform(twenty_train.data)
 			y = twenty_train.target
-		else:
+		else:			
 			X, y = load_svmlight_file(args.dataset)
-
-
-		print(X.nnz, (X.nnz*4*4)/(2.0**20))
 
 		end = time.time()
 
 		self.datasetLoadingTime = end - start;
 
 		return X, y
+
 
 	def _setup_instantiator(self, args):
 		random_instance = check_random_state(args.seed)
@@ -141,18 +142,37 @@ class ClassificationApp(BaseApp):
 	def _tfidf(self, args):
 		return False
 
+	def _evaluate_dump(self, k, y_test, pred, args):
+		result = np.array([range(len(y_test)), y_test, pred])
+			
+		if not (args.output == "") :
+			f=open(args.output,'ab')
+			np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+			f.close()
+
+		self.folds_micro = self.folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
+		self.folds_macro = self.folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
+
+		print("F1-Score")
+		print("\tMicro: ", self.folds_micro[-1])
+		print("\tMacro: ", self.folds_macro[-1])
+
 	def run(self, args):
 		X, y = self._load_dataset(args)
 
 		kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True,
 												 random_state=args.seed)
 
+		#kf = KFold(len(y), n_folds=args.trials,
+		#					 shuffle=True, random_state=args.seed)
+
+
 		estimator, tuned_parameters = self._setup_instantiator(args)
 
 		folds_time = []
-		folds_predict = []
-		folds_macro = []
-		folds_micro = []
+		self.folds_predict = []
+		self.folds_macro = []
+		self.folds_micro = []
 
 		print(estimator.get_params(deep=False))
 
@@ -196,32 +216,27 @@ class ClassificationApp(BaseApp):
 			pred = e.predict(X_test) 
 			end = time.time()
 			
+			import pickle
+			from sklearn.externals import joblib
+
+			if not (args.dump == "") :
+				#pickle.dump(e, open(args.dump,'wb'))
+				joblib.dump(e, args.dump)
+
 			# force to free memory
 			del e
 
 			# stores fold results
 			folds_time = folds_time + [end - start]
-			result = np.array([range(len(y_test)), y_test, pred])
-			
-			if not (args.output == "") :
-				f=open(args.output,'ab')
-				np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
-				f.close()
-
+			self._evaluate_dump(k, y_test, pred, args)
 			k = k + 1
-			folds_micro = folds_micro + [f1_score(y_true=y_test, y_pred=pred, average='micro')]
-			folds_macro = folds_macro + [f1_score(y_true=y_test, y_pred=pred, average='macro')]
 
-			print("F1-Score")
-			print("\tMicro: ", folds_micro[-1])
-			print("\tMacro: ", folds_macro[-1])
-			
 			if args.test:
 				break
 
 		print("F1-Score")
-		print("\tMicro: ", np.average(folds_micro), np.std(folds_micro))
-		print("\tMacro: ", np.average(folds_macro), np.std(folds_macro))
+		print("\tMicro: ", np.average(self.folds_micro), np.std(self.folds_micro))
+		print("\tMacro: ", np.average(self.folds_macro), np.std(self.folds_macro))
 
 		print('loading time : ', self.datasetLoadingTime)
 		print('times : ', np.average(folds_time), np.std(folds_time))
@@ -335,7 +350,7 @@ class StackerApp(TextClassificationApp):
 	def _setup_instantiator(self, args):
 		
 		estimator, tuned_parameters = super(StackerApp, self)._setup_instantiator(args)
-		self.instantiator.set_general_params({'probability': True})
+		self.instantiator.set_general_params({'probability': True, 'cv':5})
 		return self._create_stacking(args), tuned_parameters
 
 
@@ -361,11 +376,34 @@ class StackerApp(TextClassificationApp):
 		
 		stack = list()
 		stack.append(base_level)
-		stack.append(meta_level[0])
+		stack.append(meta_level)
+
+		args.meta = meta_classifiers
 
 		return StackingClassifier(estimators_stack=stack,
 						 random_state=random_instance.randint(MAX_INT))
 
+
+	def _evaluate_dump(self, k, y_test, pred, args):
+		print(pred)
+		
+		if(pred.ndim == 2):
+			for i, p in enumerate(pred.T):
+				result = np.array([range(len(y_test)), y_test, p])
+				
+				if not (args.output == "") :
+					f=open(args.output.replace("{combiner}", args.meta[i]),'ab')
+					np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+					f.close()
+
+			return
+
+		result = np.array([range(len(y_test)), y_test, pred])
+
+		if not (args.output == "") :
+			f=open(args.output, 'ab')
+			np.savetxt(f, result.transpose(), fmt='%d', header=str(k))
+			f.close()
 
 	def _tfidf(self, args):
 		return False
