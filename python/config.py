@@ -10,8 +10,9 @@ default_params: dict, {'estimator_name': dict}
 default_tuning_params: dict, {'estimator_name': dict}
 	Dictionaty containing base classifiers default tunning parameter values
 """
-from sklearn import naive_bayes, neighbors, svm, ensemble, tree, discriminant_analysis
-from sklearn import linear_model
+from sklearn import naive_bayes, neighbors, svm, ensemble, tree
+from sklearn import linear_model, discriminant_analysis
+
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
 from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates
 from xsklearn.linear_model import MLR, LinearSVM
@@ -31,12 +32,15 @@ base_estimators = {
 	'lxt': LazyNNExtraTrees,
 	'broof': Broof,
 	'bert': Bert,
-	'mlr': MLR,#linear_model.LogisticRegressionCV, #LinearSVM,#MLR,
+	'mlr': MLR,
 	'dt': tree.DecisionTreeClassifier,
 	'vig': VIG,
 	'DT': DecisionTemplates,
 	'lda': discriminant_analysis.LinearDiscriminantAnalysis,
-	'qda': discriminant_analysis.QuadraticDiscriminantAnalysis
+	'qda': discriminant_analysis.QuadraticDiscriminantAnalysis,
+	'csvm': svm.SVC,
+	'reg': linear_model.LogisticRegressionCV,
+	'ridge': linear_model.RidgeClassifierCV
 }
 
 # default parameters for text classification
@@ -51,8 +55,8 @@ default_params = {
 			 'multi_class': 'ovr', 'random_state': 1608637542, 'dual': True, 
 			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
-	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'kd_tree',
-			 'metric': 'euclidean', 'metric_params': None, 'p': 2, 
+	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
+			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
 			 'weights': 'distance', 'leaf_size': 30},
 	'rf':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
@@ -95,13 +99,19 @@ default_params = {
 			 'min_weight_fraction_leaf': 0.0, 'splitter': 'best',
 			 'min_samples_leaf': 1, 'max_depth': None, 'presort': False,
 			 'criterion': 'gini', 'random_state': None, 'class_weight': None,
-			 'min_samples_split': 2}
-,
+			 'min_samples_split': 2},
 	'vig': {},
 	'DT': {},
 	'lda': {'n_components':None, 'priors':None, 'shrinkage':"auto",
 			 'solver':'eigen', 'store_covariance':False, 'tol':0.0001},
-	'qda': {}
+	'qda': {},
+	'csvm': {'kernel': 'linear', 'C': 1, 'verbose': False, 'probability': True,
+			 'degree': 3, 'shrinking': True, 'max_iter': -1, 
+			 'decision_function_shape': None, 'random_state': None, 
+			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
+			 'class_weight': None},
+	'reg': {},
+	'ridge': {}
 }
 
 default_tuning_params = {
@@ -127,11 +137,14 @@ default_tuning_params = {
 	'vig': [],
 	'DT': [],
 	'lda': [],
-	'qda': []
+	'qda': [],
+	'csvm': [],
+	'reg': [],
+	'ridge': []
 }
 
 default_transformers = {
-	'svm': 	[('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
+	'svm': 	[('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'lsvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=True, smooth_idf=True, sublinear_tf=True))],
 	'nb':  	[],
 	'knn': 	[('tfidf', TfidfTransformer(norm="max", use_idf=True, smooth_idf=True, sublinear_tf=True))],
@@ -145,5 +158,8 @@ default_transformers = {
 	'dt': [],
 	'vig': [],
 	'DT': [],
-	'lda': []
+	'lda': [],
+	'csvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
+	'reg': [],
+	'ridge': []
 }

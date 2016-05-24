@@ -71,13 +71,9 @@ class MLR(LinearClassifierMixin, LinearModel):
 
         self.coef_ = np.zeros((n_classes_, n_features))
         X_copy = X.copy()
-        for i, y in enumerate(Y.T):
-            y = 2*y - 1
-            print("y:",y)
-            
+        for i, y in enumerate(Y.T):            
             r, _ = nnls(X_copy, y)
             self.coef_[i,:] = r
-            print(self.coef_)
 
         self._set_intercept(X_mean, y_mean, X_std)
 

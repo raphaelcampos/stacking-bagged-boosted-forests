@@ -26,6 +26,9 @@ from sklearn.utils import check_array, check_random_state
 from sklearn.utils.sparsefuncs import mean_variance_axis
 from sklearn.utils.validation import check_is_fitted
 
+from sklearn.externals.joblib import Parallel, delayed
+from sklearn.base import clone
+
 class ReduceFeatureSpace(BaseEstimator, SelectorMixin):
     """Feature selector that removes all low-variance features.
     This feature selection algorithm looks only at the features (X), not the
@@ -100,6 +103,23 @@ class ReduceFeatureSpace(BaseEstimator, SelectorMixin):
             selected_features[col_ind] += int(not X_data[i] == 0)
 
         return selected_features
+
+def _parallel_build_forest(estimator, ids, X_train, y_train, X, n_classes_, classes_):
+    pred = np.zeros((1, n_classes_))
+
+    selector = ReduceFeatureSpace() 
+    
+    ids = ids[np.logical_and(ids < X_train.shape[0], ids >= 0)]
+    X_t = selector.fit_transform(vstack((X_train[ids],X)))
+
+    X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
+
+    rf = clone(estimator)
+
+    rf.fit(X_t, y_train[ids])
+    pred[:, np.searchsorted(classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
+
+    return pred
 
 class LazyNNRF(BaseEstimator, ClassifierMixin):
     def __init__(self,
@@ -184,32 +204,16 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         
         return self
 
-    def runForests(self, X, idx, q, p):
-        pred = np.zeros((len(idx), self.n_classes_))
-
-        selector = ReduceFeatureSpace() 
-        for i,ids in enumerate(idx):
-            ids = ids[np.logical_and(ids < self.X_train.shape[0], ids >= 0)]
-            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
-
-            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
-            #X_t, X_i = (self.X_train[ids],X[i])
-            density = X_t.nnz/float(X_t.shape[0])
-            rf = ForestClassifier(n_estimators=self.n_estimators,
-                                 criterion=self.criterion,
-                                 max_depth=self.max_depth,
-                                 min_samples_split=self.min_samples_split,
-                                 min_samples_leaf=self.min_samples_leaf,
-                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes,
-                                 random_state=self.random_state)
-
-            rf.fit(X_t, self.y_train[ids])
-            pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
-
-        q.put((p, pred))
-        return
+    def _make_estimator(self):
+        return ForestClassifier(n_estimators=self.n_estimators,
+                         criterion=self.criterion,
+                         max_depth=self.max_depth,
+                         min_samples_split=self.min_samples_split,
+                         min_samples_leaf=self.min_samples_leaf,
+                         min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                         max_features=self.max_features,
+                         max_leaf_nodes=self.max_leaf_nodes,
+                         random_state=self.random_state)
 
     def predict_proba(self, X):
         """Predict class for X.
@@ -229,44 +233,16 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
         # get knn for all test sample
         idx = self.kNN.kneighbors(X, return_distance=False)
         
-        jobs = []
-        q = mp.Queue() 
-        length = len(idx)
-        chunk_size = int(ceil(length/float(self.n_jobs)))
+        estimator = self._make_estimator()
 
-        # Run processes
-        for p in range(1, self.n_jobs + 1):
-            s = (p-1)*chunk_size
-            e = p*chunk_size if p*chunk_size <= length else length
-            process = mp.Process(target=self.runForests, args=(X[s:e],idx[s:e],q, p,))
-            jobs.append(process)
-            process.start()
+        pred = Parallel(n_jobs=self.n_jobs, verbose=0,
+                             backend="multiprocessing")(
+                delayed(_parallel_build_forest)(
+                    estimator, ids, self.X_train, self.y_train, X[i],
+                    self.n_classes_, self.classes_)
+                for i, ids in enumerate(idx))
 
-        results = []
-        liveprocs = list(jobs)
-        while liveprocs:
-            try:
-                while 1:
-                    results = results + [(q.get(False))]
-                    #print results
-            except(Exception) as e:
-                pass
-
-            time.sleep(0.005)    # Give tasks a chance to put more data in
-            if not q.empty():
-                continue
-            liveprocs = [p for p in liveprocs if p.is_alive()]
-
-        # make sure that it retrieves results in the correct order
-        results.sort()
-        pred = np.zeros((X.shape[0], self.n_classes_))
-        for r in results:
-            p = r[0]
-            s = (p-1)*chunk_size
-            e = p*chunk_size if p*chunk_size <= length else length
-            pred[s:e,:] = r[1] 
-            
-        return pred
+        return np.asarray(pred).reshape((X.shape[0], self.n_classes_))
 
     def predict(self, X):
         """Predict class for X.
@@ -292,32 +268,16 @@ class LazyNNRF(BaseEstimator, ClassifierMixin):
 
 
 class LazyNNExtraTrees(LazyNNRF):
-    def runForests(self, X, idx, q, p):
-        pred = np.zeros((len(idx), self.n_classes_))
-
-        selector = ReduceFeatureSpace() 
-        for i,ids in enumerate(idx):
-            ids = ids[np.logical_and(ids < self.X_train.shape[0], ids >= 0)]
-            X_t = selector.fit_transform(vstack((self.X_train[ids],X[i])))
-
-            X_t, X_i = X_t[:len(ids)], X_t[len(ids):]
-            #X_t, X_i = (self.X_train[ids],X[i])
-            density = X_t.nnz/float(X_t.shape[0])
-            rf = ExtraTreesClassifier(n_estimators=self.n_estimators,
-                                 criterion=self.criterion,
-                                 max_depth=self.max_depth,
-                                 min_samples_split=self.min_samples_split,
-                                 min_samples_leaf=self.min_samples_leaf,
-                                 min_weight_fraction_leaf=self.min_weight_fraction_leaf,
-                                 max_features=self.max_features,
-                                 max_leaf_nodes=self.max_leaf_nodes,
-                                 random_state=self.random_state)
-
-            rf.fit(X_t, self.y_train[ids])
-            pred[i, np.searchsorted(self.classes_, rf.classes_)] = rf.predict_proba(X_i)[0]
-
-        q.put((p, pred))
-        return
+    def _make_estimator(self):
+        return ExtraTreesClassifier(n_estimators=self.n_estimators,
+                         criterion=self.criterion,
+                         max_depth=self.max_depth,
+                         min_samples_split=self.min_samples_split,
+                         min_samples_leaf=self.min_samples_leaf,
+                         min_weight_fraction_leaf=self.min_weight_fraction_leaf,
+                         max_features=self.max_features,
+                         max_leaf_nodes=self.max_leaf_nodes,
+                         random_state=self.random_state)
 
 class LazyNNBroof(LazyNNRF):
     def __init__(self,
