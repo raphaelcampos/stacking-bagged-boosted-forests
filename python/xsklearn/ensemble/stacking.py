@@ -263,8 +263,9 @@ try:
 	    		2016. A novel combining classifier method based on Variational Inference. 
 	    		Pattern Recogn. 49, C (January 2016), 198-212.
 	    """
-		def __init__(self):
+		def __init__(self, weight_class=False):
 			super(VIG, self).__init__()
+			self.weight_class = weight_class
 
 		def fit(self, X, y):
 			"""Fit Multivariate Gaussian model per class using Variational Inference.
@@ -304,6 +305,11 @@ try:
 				
 				self.models_.append([m, cov, float(L.shape[0])/n_samples])
 
+			if(self.weight_class):
+				self.w = X.shape[0] / (n_classes_ * np.bincount(np.asarray(y, dtype=int)))
+			else:
+				self.w = np.ones(n_classes_)
+
 			self.n_classes_ = n_classes_
 			self.classes_ = classes_
 
@@ -326,7 +332,7 @@ try:
 			
 			for i, model in enumerate(self.models_):
 				m, cov, prior = model
-				pred[:,i] = multivariate_normal.pdf(X, mean=m, cov=cov)*prior
+				pred[:,i] = multivariate_normal.pdf(X, mean=m, cov=cov)*prior*self.w[i]
 
 			return self.classes_.take(np.argmax(pred, axis=1), axis=0)
 except (Exception) as e:
