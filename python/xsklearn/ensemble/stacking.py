@@ -66,15 +66,10 @@ class MetaLevelTransformerCV(object):
 			Xi = np.zeros((X.shape[0], len(self.base_estimators)))
 
 		for j, estimator in enumerate(self.base_estimators):
-			Xt = X.copy()
-			if isinstance(estimator, Pipeline):
-				for name, transform in estimator.steps[:-1]:
-					Xt = transform.transform(Xt)
-
 			if self.probability:
-				Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(Xt)
+				Xi[:, j*self.n_classes_:( (j + 1)*self.n_classes_ )] = estimator.predict_proba(X)
 			else:
-				Xi[:, j] = estimator.predict(Xt)
+				Xi[:, j] = estimator.predict(X)
 
 
 		return Xi
@@ -117,20 +112,15 @@ class MetaLevelTransformerCV(object):
 			for j, estimator in enumerate(self.base_estimators):
 				e = clone(estimator)
 				e.fit(X_train, y_train)
-	
-				Xt_test = X_test.copy()
-				if isinstance(e, Pipeline):
-					for name, transform in e.steps[:-1]:
-						Xt_test = transform.transform(Xt_test)
 
 				if self.probability:
 					idxs = j*self.n_classes_ + np.searchsorted(
 										self.classes_, np.unique(y_train))
 					Xi[np.repeat(test_index, len(idxs)), np.tile(idxs,
-					 len(test_index))] = e.predict_proba(Xt_test).reshape(
+					 len(test_index))] = e.predict_proba(X_test).reshape(
 					 								len(idxs)*len(test_index))
 				else:
-					Xi[test_index, j] = e.predict(Xt_test)
+					Xi[test_index, j] = e.predict(X_test)
 
 				# force memory release
 				del e
