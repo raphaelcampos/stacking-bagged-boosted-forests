@@ -215,7 +215,7 @@ class ClassificationApp(BaseApp):
 			e.fit(X_train, y_train)
 			pred = e.predict(X_test) 
 			end = time.time()
-			
+
 			import pickle
 			from sklearn.externals import joblib
 
@@ -379,7 +379,7 @@ class StackerApp(TextClassificationApp):
 		stack.append(meta_level)
 
 		args.meta = meta_classifiers
-
+		
 		return StackingClassifier(estimators_stack=stack,
 						 random_state=random_instance.randint(MAX_INT))
 
@@ -399,6 +399,10 @@ class StackerApp(TextClassificationApp):
 			return
 
 		result = np.array([range(len(y_test)), y_test, pred])
+
+		print("F1-Score")
+		print("\tMicro: ", f1_score(y_true=y_test, y_pred=pred, average='micro'))
+		print("\tMacro: ", f1_score(y_true=y_test, y_pred=pred, average='macro'))
 
 		if not (args.output == "") :
 			f=open(args.output, 'ab')
