@@ -14,10 +14,11 @@ from sklearn import naive_bayes, neighbors, svm, ensemble, tree
 from sklearn import linear_model, discriminant_analysis
 
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
-from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates
-from xsklearn.linear_model import MLR, LinearSVM
+from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates, DirichletClassifier
+from xsklearn.linear_model import MLR, LinearSVM, LinearModelTree
 
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.feature_selection import SelectFromModel 
 
 import numpy as np
 
@@ -33,14 +34,15 @@ base_estimators = {
 	'broof': Broof,
 	'bert': Bert,
 	'mlr': MLR,
-	'dt': tree.DecisionTreeClassifier,
+	'dt': tree.DecisionTreeClassifier,#LinearModelTree
 	'vig': VIG,
 	'DT': DecisionTemplates,
 	'lda': discriminant_analysis.LinearDiscriminantAnalysis,
 	'qda': discriminant_analysis.QuadraticDiscriminantAnalysis,
 	'csvm': svm.SVC,
-	'reg': linear_model.LogisticRegressionCV,
-	'ridge': linear_model.RidgeClassifierCV
+	'reg': linear_model.LogisticRegression,
+	'ridge': linear_model.RidgeClassifierCV,
+	'dir': DirichletClassifier
 }
 
 # default parameters for text classification
@@ -56,7 +58,7 @@ default_params = {
 			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
 	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
-			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
+			 'metric': 'euclidean', 'metric_params': None, 'p': 2, 
 			 'weights': 'distance', 'leaf_size': 30},
 	'rf':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
@@ -111,7 +113,8 @@ default_params = {
 			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
 			 'class_weight': None},
 	'reg': {},
-	'ridge': {}
+	'ridge': {},
+	'dir':{}
 }
 
 default_tuning_params = {
@@ -140,7 +143,8 @@ default_tuning_params = {
 	'qda': [],
 	'csvm': [],
 	'reg': [],
-	'ridge': []
+	'ridge': [],
+	'dir': []
 }
 
 default_transformers = {
@@ -154,7 +158,8 @@ default_transformers = {
 	'lxt': [],
 	'broof': [],
 	'bert': [],
-	'mlr': [],
+	#'mlr': [('selection', SelectFromModel(ensemble.ExtraTreesClassifier(n_jobs=8, n_estimators=300), threshold="mean"))],
+	'mlr':[],
 	'dt': [],
 	'vig': [],
 	'DT': [],

@@ -13,6 +13,9 @@ import numpy as np
 import collections
 
 class MetaLevelTransformerCV(object):
+	FOLD = 1
+	DATA = ""
+
 	"""docstring for MetaLevelTransformerCV"""
 	def __init__(self, base_estimators,
 				 n_folds = 5,
@@ -125,10 +128,12 @@ class MetaLevelTransformerCV(object):
 				# force memory release
 				del e
 
-		#from sklearn.datasets import dump_svmlight_file
-		#dump_svmlight_file(Xi, y, "meta_level_10fold.svm")
+		from sklearn.datasets import dump_svmlight_file
+		dump_svmlight_file(Xi, y, "meta%s_fold%d.svm" % (MetaLevelTransformerCV.DATA + MetaLevelTransformerCV.FOLD))
 		#exit()
 		
+
+		MetaLevelTransformerCV.FOLD = MetaLevelTransformerCV.FOLD + 1
 		# fit base estimators to original data
 		self.fit(X, y)
 		
@@ -286,24 +291,44 @@ try:
 			
 			n_estimators = n_features/n_classes_
 
+			def remove_outliers(X, y):
+
+				classes = np.unique(y)
+
+				n_classes = len(classes)
+
+				n_estimators = int(X.shape[1]/n_classes)
+
+				Xt = X.reshape((X.shape[0], n_estimators, n_classes))
+
+				yt = np.repeat(y, n_estimators).reshape((len(y), n_estimators))
+
+				rate = (yt == classes.take(np.argmax(Xt, axis=2))).sum(1)
+
+				return np.where(rate > 0.0)[0]
+
+
 			self.models_ = []
 			for i, Y in enumerate(classes_):
+				features = np.arange(n_estimators, dtype=int)*(n_classes_) + i
 				L = X[y == Y,:]
 				
 				N, D = L.shape
 
 				Lambda = nodes.Wishart(D, np.identity(D))
-				mu = nodes.Gaussian(np.zeros(D), Lambda)
+				mu = nodes.Gaussian(np.zeros(D), np.identity(D))
 
 				x = nodes.Gaussian(mu, Lambda, plates=(N,))
 				x.observe(L)
 
 				Q = VB(x, mu, Lambda)
-				Q.update(repeat=200, tol=1e-10, verbose=False)
+				Q.update(repeat=2000, tol=0, verbose=False)
+				
 				cov = np.linalg.inv(Lambda.u[0])
 				m = mu.u[0]
 				
 				self.models_.append([m, cov, float(L.shape[0])/n_samples])
+
 
 			if(self.weight_class):
 				self.w = X.shape[0] / (n_classes_ * np.bincount(np.asarray(y, dtype=int)))
@@ -312,6 +337,7 @@ try:
 
 			self.n_classes_ = n_classes_
 			self.classes_ = classes_
+			self.n_estimators = n_estimators
 
 			return self
 
@@ -332,7 +358,7 @@ try:
 			
 			for i, model in enumerate(self.models_):
 				m, cov, prior = model
-				pred[:,i] = multivariate_normal.pdf(X, mean=m, cov=cov)*prior*self.w[i]
+				pred[:,i] = multivariate_normal.logpdf(X, mean=m, cov=cov) + np.log(prior*self.w[i])
 
 			return self.classes_.take(np.argmax(pred, axis=1), axis=0)
 except (Exception) as e:
@@ -542,8 +568,8 @@ class DecisionTemplates(BaseEstimator):
 			L = X[y == Y,:]
 			N, D = L.shape
 
-			DT = L.reshape(N, n_estimators, n_classes_).sum(0)
-			self.DT_[i,:] = DT.reshape(n_features)/float(N)
+			DT = L.sum(0)
+			self.DT_[i,:] = DT/float(N)
 
 		self.n_classes_ = n_classes_
 		self.classes_ = classes_
@@ -566,6 +592,101 @@ class DecisionTemplates(BaseEstimator):
 		dist = metric(X, self.DT_)
 
 		return self.classes_.take(np.argmax(dist, axis=1), axis=0)
+
+
+
+import dirichlet
+
+class DirichletClassifier(BaseEstimator):
+	"""DirichletClassifier
+    Attributes
+    ----------
+    DT_ : list,
+		Each element contains a decision template for a class.
+		The attribute is created after fitting the model.
+    References
+    ----------
+    .. [1] Ludmila I. Kuncheva , James C. Bezdek , Robert P. W. Duin. 2001.
+    		Decision templates for multiple classifier fusion: an experimental comparison. 
+    		Pattern Recognition. 34,(2011), 299-314.
+    """
+	def __init__(self):
+		super(DirichletClassifier, self).__init__()
+
+	def fit(self, X, y):
+		"""Fit a descision template per class.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples,n_features]
+            Training data
+        y : array-like, shape = [n_samples]
+            Target values
+        Returns
+        -------
+        self : returns an instance of self.
+        """
+		n_samples, n_features = X.shape
+		
+		classes_ = np.unique(y)
+		n_classes_ = len(classes_)
+		
+		n_estimators = int(n_features/n_classes_)
+
+		self.alphas_ = np.zeros((n_classes_, n_features))
+		self.priors_ = np.zeros(n_classes_)
+		for i, Y in enumerate(classes_):
+			L = X[y == Y,:]
+			N, D = L.shape
+
+			self.priors_[i] = N/float(n_samples)
+			for j in range(n_estimators):
+				start, end = (j*n_classes_, (j+1)*n_classes_)
+				print(i,j)
+				#print(L[:, start:end].sum(1).sum(), L.shape)
+				#print(L[:, start:end])
+				L[L<=0] = 1e-200
+				L[L>=1] = 1 - 1e-200
+				self.alphas_[i,start:end] = dirichlet.mle(L[:, start:end], tol=1e-20, method="fixedpoint")
+			
+			print(L.mean(0))
+
+		self.n_classes_ = n_classes_
+		self.classes_ = classes_
+		print(np.bincount(np.asarray(y, dtype=int)))
+
+		return self
+
+	def predict(self, X):
+		"""Predict class labels for samples in X.
+        Parameters
+        ----------
+        X : {array-like}, shape = [n_samples, n_features]
+            Samples.
+        Returns
+        -------
+        C : array, shape = [n_samples]
+            Predicted class label per sample.
+        """
+		n_samples = X.shape[0]
+		n_classes_ = self.n_classes_ 
+		pred = np.zeros((n_samples, n_classes_))
+		
+		X[X <= 0] = 1e-200
+		X[X >= 1] = 1 - 1e-200
+		for i in range(n_classes_):
+			#print(self.alphas_[i,:])
+			prod = 0
+			for j in range(int(X.shape[1]/n_classes_)):
+				start, end = (j*n_classes_, (j+1)*n_classes_)
+				prod = prod + sp.stats.dirichlet.logpdf(X[:, start:end].T, self.alphas_[i,start:end])
+				
+			prod = prod + np.log(self.priors_[i])
+			pred[:,i] = prod
+
+		print(pred[1])
+		return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
+
 
 
 if __name__ == "__main__":

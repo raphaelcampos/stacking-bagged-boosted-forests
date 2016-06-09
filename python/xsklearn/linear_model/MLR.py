@@ -41,10 +41,6 @@ class MLR(LinearClassifierMixin, LinearModel):
             Training data
         y : array-like, shape = [n_samples]
             Target values
-        sample_weight : float or numpy array of shape (n_samples,)
-            Sample weight.
-            .. versionadded:: 0.17
-               *sample_weight* support to Classifier.
         Returns
         -------
         self : returns an instance of self.
@@ -71,8 +67,9 @@ class MLR(LinearClassifierMixin, LinearModel):
 
         self.coef_ = np.zeros((n_classes_, n_features))
         X_copy = X.copy()
-        for i, y in enumerate(Y.T):            
-            r, _ = nnls(X_copy, y)
+        for i, y in enumerate(Y.T):
+            #features = np.arange(n_features/n_classes_, dtype=int)*(n_classes_) + i
+            r, _ = nnls(X_copy[:,:], y)
             self.coef_[i,:] = r
 
         self._set_intercept(X_mean, y_mean, X_std)
