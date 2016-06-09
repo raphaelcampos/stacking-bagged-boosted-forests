@@ -42,12 +42,13 @@ base_estimators = {
 	'csvm': svm.SVC,
 	'reg': linear_model.LogisticRegression,
 	'ridge': linear_model.RidgeClassifierCV,
-	'dir': DirichletClassifier
+	'dir': DirichletClassifier,
+	'gbt': ensemble.GradientBoostingClassifier
 }
 
 # default parameters for text classification
 default_params = {
-	'svm': 	{'kernel': 'linear', 'C': 1, 'verbose': False, 'probability': True,
+	'svm': 	{'kernel': 'linear', 'C': 1, 'verbose': False, 'probability': False,
 			 'degree': 3, 'shrinking': True, 'max_iter': -1, 
 			 'decision_function_shape': None, 'random_state': None, 
 			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
@@ -58,7 +59,7 @@ default_params = {
 			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
 	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
-			 'metric': 'euclidean', 'metric_params': None, 'p': 2, 
+			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
 			 'weights': 'distance', 'leaf_size': 30},
 	'rf':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
@@ -114,7 +115,12 @@ default_params = {
 			 'class_weight': None},
 	'reg': {},
 	'ridge': {},
-	'dir':{}
+	'dir':{},
+	'gbt': {'loss':'deviance', 'learning_rate':0.1, 'n_estimators':200, 
+			'subsample':1.0, 'min_samples_split':2, 'min_samples_leaf':1, 
+			'min_weight_fraction_leaf':0.0, 'max_depth':3, 'init':None, 
+			'random_state':None, 'max_features':None, 'verbose':0, 
+			'max_leaf_nodes':None, 'warm_start':False, 'presort':'auto'}
 }
 
 default_tuning_params = {
@@ -144,7 +150,8 @@ default_tuning_params = {
 	'csvm': [],
 	'reg': [],
 	'ridge': [],
-	'dir': []
+	'dir': [],
+	'gbt': {'learning_rate': [0.1, 0.2, 0.5, 0.8, 1.0], 'max_depth': [None] + list(2.0 ** np.arange(0, 10, 1))}
 }
 
 default_transformers = {
@@ -166,5 +173,7 @@ default_transformers = {
 	'lda': [],
 	'csvm': [('tfidf', TfidfTransformer(norm='l2', use_idf=False, smooth_idf=False, sublinear_tf=False))],
 	'reg': [],
-	'ridge': []
+	'ridge': [],
+	'dir': [],
+	'gbt': []
 }

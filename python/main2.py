@@ -24,6 +24,36 @@ import time
 import json
 
 
+def all_sets(elems, i):
+	sets = []
+
+	for e in elems:
+		tmp = []
+		for s in sets:
+			tmp.append(s + [e])
+		tmp.append([e])
+		sets = sets + tmp
+
+	return sets
+
+def _predict_proba_lr(X):
+	"""Probability estimation for OvR logistic regression.
+	Positive class probabilities are computed as
+	1. / (1. + np.exp(-self.decision_function(X)));
+	multiclass is handled by normalizing that over all classes.
+	"""	
+	prob = X*1000
+	prob *= -1
+	np.exp(prob, prob)
+	prob += 1
+	np.reciprocal(prob, prob)
+	if prob.ndim == 1:
+		return np.vstack([1 - prob, prob]).T
+	else:
+		# OvR normalization, like LibLinear's predict_probability
+		prob /= prob.sum(axis=1).reshape((prob.shape[0], -1))
+		return prob
+
 warnings.filterwarnings("ignore")
 
 class TextClassification2App(TextClassificationApp):
@@ -50,13 +80,19 @@ class TextClassification2App(TextClassificationApp):
 
 		self.datasetLoadingTime = end - start;
 
-		feats = [range(7)]
+		i = np.asarray([0, 1, 2, 3, 4])[:, np.newaxis]
+		#i = np.arange(4,9)[:, np.newaxis]
+		n_classes = len(np.unique(y_train))
+		feats = (n_classes*i + np.arange(n_classes)).ravel()
+		
+		sets = all_sets([0, 1, 2, 3, 4, 5, 6, 7, 8], 4)
+		print(sets, len(sets))
 		return X_train.toarray()[:,feats], X_test.toarray()[:,feats], y_train, y_test
 
 	def run(self, args):
 		X_train, X_test, y_train, y_test = self._load_dataset(args)
 
-		print(X_train)
+		print(X_train, y_train)
 
 		k = 0
 		estimator, tuned_parameters = self._setup_instantiator(args)
@@ -68,8 +104,8 @@ class TextClassification2App(TextClassificationApp):
 
 		print(estimator.get_params(deep=False))
 			
-		tf_transformer = TfidfTransformer(norm=args.norm, use_idf=True,
-										 smooth_idf=True, sublinear_tf=True)
+		tf_transformer = TfidfTransformer(norm=args.norm, use_idf=False,
+										 smooth_idf=False, sublinear_tf=False)
 		if self._tfidf(args):
 			# Learn the idf vector from training set
 			tf_transformer.fit(X_train)
@@ -109,6 +145,9 @@ class TextClassification2App(TextClassificationApp):
 		e.fit(X_train, y_train)
 		pred = e.predict(X_test)
 		end = time.time()
+
+		#fi = e.feature_importances_.reshape((9,7)).T
+		#print(fi/(fi.sum(1))[:, np.newaxis])
 
 		import pickle
 		from sklearn.externals import joblib
