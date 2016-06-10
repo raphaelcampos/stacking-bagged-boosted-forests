@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2016.1.9)  1 MAY 2016 21:52
+This is pdfTeX, Version 3.1415926-2.5-1.40.14 (TeX Live 2013/Debian) (format=pdflatex 2016.1.9)  1 JUN 2016 08:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -954,26 +954,29 @@ File: ts1lmr.fd 2009/10/30 v1.6 Font defs for Latin Modern
 
 LaTeX Warning: Command \textellipsis invalid in math mode on input line 237.
 
-[2] [3] [4] [5] [6] [7] (./report-organizing-ideas.bbl [8])
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 766.
-[9]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 766.
+[2] [3] [4] [5] [6]
+Overfull \vbox (149.36516pt too high) has occurred while \output is active []
+
+[7] [8] (./report-organizing-ideas.bbl [9])
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 928.
+[10] [11]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 928.
 (./report-organizing-ideas.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 766.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 766.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 928.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 928.
 Package rerunfilecheck Info: File `report-organizing-ideas.out' has not changed
 .
-(rerunfilecheck)             Checksum: F47BF80592D1022789F2ED28AA3B75AE;3045.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 766.
+(rerunfilecheck)             Checksum: 5D5321FB85DAC3CFE405ACAA71478BF9;3274.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 928.
  ) 
 Here is how much of TeX's memory you used:
- 13661 strings out of 495004
- 197465 string characters out of 6180663
- 319783 words of memory out of 5000000
- 16524 multiletter control sequences out of 15000+600000
+ 13676 strings out of 495004
+ 197680 string characters out of 6180663
+ 328180 words of memory out of 5000000
+ 16531 multiletter control sequences out of 15000+600000
  51284 words of font info for 94 fonts, out of 8000000 for 9000
  16 hyphenation exceptions out of 8191
- 31i,11n,35p,518b,463s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 31i,11n,35p,518b,467s stack positions out of 5000i,500n,10000p,200000b,80000s
 {/usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dv
 ips/lm/lm-mathex.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc}{/usr/s
 hare/texmf/fonts/enc/dvips/lm/lm-ts1.enc}{/usr/share/texmf/fonts/enc/dvips/lm/l
@@ -987,10 +990,10 @@ e/texmf/fonts/type1/public/lm/lmr5.pfb></usr/share/texmf/fonts/type1/public/lm/
 lmr7.pfb></usr/share/texmf/fonts/type1/public/lm/lmri10.pfb></usr/share/texmf/f
 onts/type1/public/lm/lmri12.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.
 pfb></usr/share/texmf/fonts/type1/public/lm/lmsy7.pfb>
-Output written on report-organizing-ideas.pdf (9 pages, 263455 bytes).
+Output written on report-organizing-ideas.pdf (11 pages, 268448 bytes).
 PDF statistics:
- 230 PDF objects out of 1000 (max. 8388607)
- 202 compressed objects within 3 object streams
- 46 named destinations out of 1000 (max. 500000)
- 10361 words of extra memory for PDF output out of 12000 (max. 10000000)
+ 248 PDF objects out of 1000 (max. 8388607)
+ 218 compressed objects within 3 object streams
+ 54 named destinations out of 1000 (max. 500000)
+ 10369 words of extra memory for PDF output out of 12000 (max. 10000000)
 

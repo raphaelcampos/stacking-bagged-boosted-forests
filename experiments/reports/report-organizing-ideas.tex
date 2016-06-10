@@ -81,7 +81,7 @@
   \postauthor{\par}
   \predate{\centering\large\emph}
   \postdate{\par}
-  \date{01 maio, 2016}
+  \date{01 junho, 2016}
 
 \usepackage{multirow} \usepackage[utf8]{inputenc} \usepackage{mathtools}
 \usepackage[portuguese]{babel}
@@ -534,8 +534,9 @@ capacidade desses algoritmos de lidar com dados ruidosos tarnando-os
 assim mais competitivos ou muitas vezes melhores que a os algoritmos a
 presentados na Tabela \ref{tab:base}.
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
-17:15:22 2016
+{[}1{]} 5 {[}1{]} 5 {[}1{]} 5 {[}1{]} 5 {[}1{]} 5 {[}1{]} 5 {[}1{]} 5
+{[}1{]} 5 \% latex table generated in R 3.2.4 by xtable 1.8-0 package \%
+Tue May 3 16:57:37 2016
 
 \begin{table}[ht]
 \centering
@@ -555,8 +556,8 @@ V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\
    & macroF1 & 87.22 $\pm$  0.66 & 60.34 $\pm$  1.36 & 55.85 $\pm$  0.97 & \bf{29.93 $\pm$  2.48} \\ 
    \cline{3-6}\multirow{2}{*}{NB} & microF1 & 88.99 $\pm$  0.54 & 62.63 $\pm$  1.7 & 73.54 $\pm$  0.71 & 65.32 $\pm$  1.13 \\ 
    & macroF1 & 88.68 $\pm$  0.55 & 51.38 $\pm$  3.19 & 58.03 $\pm$  0.85 & \bf{27.86 $\pm$  0.79} \\ 
-   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 85.94 $\pm$  0.23 & 81.66 $\pm$  1.03 & 71.94 $\pm$  0.66 & 64.33 $\pm$  0.86 \\ 
-   & macroF1 & 85.57 $\pm$  0.22 & 65.44 $\pm$  2.41 & 57.4 $\pm$  1.13 & 24.47 $\pm$  2.22 \\ 
+   \cline{3-6}\multirow{2}{*}{XT} & microF1 & 87.03 $\pm$  0.41 & \bf{82.87 $\pm$  1} & 73.08 $\pm$  0.55 & 64.87 $\pm$  0.81 \\ 
+   & macroF1 & 86.65 $\pm$  0.56 & 68.54 $\pm$  2.6 & 58.71 $\pm$  0.89 & 26.18 $\pm$  2.55 \\ 
    \cline{3-6}\multirow{2}{*}{LXT} & microF1 & 88.39 $\pm$  0.51 & 81.24 $\pm$  0.71 & 69.63 $\pm$  0.91 & 65.92 $\pm$  0.82 \\ 
    & macroF1 & 88.05 $\pm$  0.44 & 66.89 $\pm$  1.23 & 57.33 $\pm$  1.48 & 26.71 $\pm$  2.53 \\ 
    \cline{3-6}\multirow{2}{*}{RF} & microF1 & 83.64 $\pm$  0.29 & 81.52 $\pm$  1 & 71.05 $\pm$  0.31 & 63.92 $\pm$  0.81 \\ 
@@ -564,6 +565,30 @@ V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\
    \cline{3-6}\end{tabular}
 \caption{Comparação entres métodos de base} 
 \label{tab:base}
+\end{table}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Tue May 3
+16:57:37 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrr}
+  \hline
+ & MicroF1 & MacroF1 \\ 
+  \hline
+SVM &   4 &   4 \\ 
+  BERT &   3 &   3 \\ 
+  BROOF &   2 &   2 \\ 
+  LAZY &   3 &   0 \\ 
+  KNN &   1 &   1 \\ 
+  NB &   0 &   1 \\ 
+  XT &   1 &   0 \\ 
+  LXT &   0 &   0 \\ 
+  RF &   0 &   0 \\ 
+   \hline
+\end{tabular}
+\caption{Número de vezes que cada algoritmo foi o mais eficaz} 
+\label{tab:win_count:base}
 \end{table}
 
 \subsubsection{Stacking}\label{stacking-1}
@@ -614,8 +639,8 @@ obtidos resultados extraordinários, assim indicando a força que esses
 métodos dão para o aumento do poder generalização do stacking nesse tipo
 de tarefa.
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
-21:49:28 2016
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Mon May 2
+23:23:11 2016
 
 \begin{table}[ht]
 \centering
@@ -640,6 +665,28 @@ V1 & V2 & 20NG & 4UNI & ACM & REUTERS90 \\
    \cline{3-6}\end{tabular}
 \caption{Comparação entre os métodos de stacking} 
 \label{tab:stacking}
+\end{table}
+
+\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Mon May 2
+23:23:11 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrr}
+  \hline
+ & MicroF1 & MacroF1 \\ 
+  \hline
+COMBALL &   4 &   4 \\ 
+  COMB3 &   3 &   3 \\ 
+  COMB2 &   2 &   3 \\ 
+  COMBSOTA &   2 &   2 \\ 
+  COMB1 &   1 &   2 \\ 
+  BERT &   1 &   1 \\ 
+  SVM-L2 &   0 &   1 \\ 
+   \hline
+\end{tabular}
+\caption{Número de vezes que cada algoritmo foi o mais eficaz} 
+\label{tab:win_count_stacking}
 \end{table}
 
 A pergunta que fica é: Qual a influência de cada classificador de base
@@ -677,8 +724,8 @@ BROOF, LAZY e LXT são complementares e bom para serem combinados com
 stacking, já que tem alta eficácia e geram modelos um tanto distintos,
 isso pode ser notado pelo bom desempenho do stacking COMB3.
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
-21:50:43 2016
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:02:57 2016
 
 \begin{table}[ht]
 \centering
@@ -712,8 +759,8 @@ isso pode ser notado pelo bom desempenho do stacking COMB3.
 \label{tab:imp20ng}
 \end{table}
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
-21:51:12 2016
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:02:58 2016
 
 \begin{table}[ht]
 \centering
@@ -734,30 +781,145 @@ isso pode ser notado pelo bom desempenho do stacking COMB3.
 \label{tab:imp4uni}
 \end{table}
 
-\% latex table generated in R 3.2.4 by xtable 1.8-0 package \% Sun May 1
-21:52:12 2016
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:02:58 2016
 
 \begin{table}[ht]
 \centering
 \begin{tabular}{rrrrrrrrrr}
   \hline
- & lazy & bert & nb & broof & xt & rf & lxt & knn & svm \\ 
+ & lazy & bert & nb & broof & xt & rf & knn & lxt & svm \\ 
   \hline
-1 & 0.12 & 0.13 & 0.11 & 0.14 & 0.11 & 0.10 & 0.10 & 0.07 & 0.13 \\ 
-  2 & 0.15 & 0.15 & 0.14 & 0.13 & 0.10 & 0.10 & 0.12 & 0.07 & 0.05 \\ 
-  3 & 0.15 & 0.14 & 0.13 & 0.11 & 0.14 & 0.10 & 0.09 & 0.08 & 0.06 \\ 
-  4 & 0.16 & 0.15 & 0.19 & 0.14 & 0.09 & 0.12 & 0.06 & 0.07 & 0.03 \\ 
-  5 & 0.06 & 0.16 & 0.13 & 0.17 & 0.05 & 0.06 & 0.05 & 0.06 & 0.26 \\ 
+1 & 0.12 & 0.13 & 0.11 & 0.14 & 0.11 & 0.10 & 0.07 & 0.10 & 0.13 \\ 
+  2 & 0.15 & 0.15 & 0.14 & 0.13 & 0.10 & 0.10 & 0.07 & 0.12 & 0.05 \\ 
+  3 & 0.15 & 0.14 & 0.13 & 0.11 & 0.14 & 0.10 & 0.08 & 0.09 & 0.06 \\ 
+  4 & 0.16 & 0.15 & 0.19 & 0.14 & 0.09 & 0.12 & 0.07 & 0.06 & 0.03 \\ 
+  5 & 0.06 & 0.16 & 0.13 & 0.17 & 0.05 & 0.06 & 0.06 & 0.05 & 0.26 \\ 
   6 & 0.10 & 0.14 & 0.14 & 0.13 & 0.11 & 0.10 & 0.09 & 0.09 & 0.10 \\ 
-  7 & 0.11 & 0.15 & 0.13 & 0.14 & 0.11 & 0.09 & 0.11 & 0.09 & 0.09 \\ 
-  8 & 0.18 & 0.12 & 0.15 & 0.11 & 0.16 & 0.09 & 0.10 & 0.06 & 0.03 \\ 
-  9 & 0.20 & 0.15 & 0.20 & 0.10 & 0.10 & 0.09 & 0.07 & 0.05 & 0.04 \\ 
-  10 & 0.08 & 0.15 & 0.12 & 0.15 & 0.09 & 0.10 & 0.08 & 0.09 & 0.14 \\ 
+  7 & 0.11 & 0.15 & 0.13 & 0.14 & 0.11 & 0.09 & 0.09 & 0.11 & 0.09 \\ 
+  8 & 0.18 & 0.12 & 0.15 & 0.11 & 0.16 & 0.09 & 0.06 & 0.10 & 0.03 \\ 
+  9 & 0.20 & 0.15 & 0.20 & 0.10 & 0.10 & 0.09 & 0.05 & 0.07 & 0.04 \\ 
+  10 & 0.08 & 0.15 & 0.12 & 0.15 & 0.09 & 0.10 & 0.09 & 0.08 & 0.14 \\ 
   11 & 0.16 & 0.14 & 0.11 & 0.10 & 0.15 & 0.12 & 0.09 & 0.09 & 0.05 \\ 
    \hline
 \end{tabular}
 \caption{Importância de cada classificador no stacking COMBALL para o conjunto de dados ACM} 
 \label{tab:impacm}
+\end{table}
+
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:02:58 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rllll}
+  \hline
+ & 20NG & 4UNI & ACM & REUTERS90 \\ 
+  \hline
+broof & 11.92 $\pm$  2.46 & \bf{17.55 $\pm$  2.98} & \bf{12.91 $\pm$  2.16} & 13.69 $\pm$  3.75 \\ 
+  lazy & 14.34 $\pm$  3.16 & \bf{13.75 $\pm$  4.54} & \bf{13.21 $\pm$  4.33} & 14.19 $\pm$  6.08 \\ 
+  bert & 14.99 $\pm$  2.26 & \bf{18.02 $\pm$  2.38} & \bf{14.35 $\pm$  0.99} & 14.62 $\pm$  3.65 \\ 
+  lxt & 15.29 $\pm$  3.11 & 11.34 $\pm$  4.29 & 8.63 $\pm$  2.05 & 6.97 $\pm$  4.3 \\ 
+  svm & 2.83 $\pm$  0.93 & 10.38 $\pm$  6.72 & 8.83 $\pm$  6.93 & \bf{27.37 $\pm$  18.9} \\ 
+  nb & \bf{22.3 $\pm$  7.6} & 2.6 $\pm$  0.94 & \bf{14 $\pm$  2.92} & 2.47 $\pm$  3.57 \\ 
+  knn & 2.77 $\pm$  1.92 & 2.89 $\pm$  0.73 & 7.46 $\pm$  1.36 & 4.32 $\pm$  4.11 \\ 
+  rf & 6.4 $\pm$  1.84 & 11.11 $\pm$  2.56 & 9.66 $\pm$  1.61 & 7.98 $\pm$  4.14 \\ 
+  xt & 9.16 $\pm$  1.73 & \bf{12.36 $\pm$  2.49} & \bf{10.95 $\pm$  2.89} & 8.4 $\pm$  5.03 \\ 
+   \hline
+\end{tabular}
+\caption{Table} 
+\label{tab:tab}
+\end{table}
+
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:02:58 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rll}
+  \hline
+ & 1 & 2 \\ 
+  \hline
+1 & bert & 29 \\ 
+  2 & lazy & 23 \\ 
+  3 & broof & 21 \\ 
+  4 & xt & 16 \\ 
+  5 & nb & 15 \\ 
+  6 & lxt & 14 \\ 
+  7 & svm & 13 \\ 
+  8 & rf & 11 \\ 
+  9 & knn & 2 \\ 
+   \hline
+\end{tabular}
+\end{table}
+
+\subsection{Meta-level classifiers
+comparison}\label{meta-level-classifiers-comparison}
+
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:03:15 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{llllll}
+  \hline
+V1 & V2 & 4UNI & 20NG & ACM & REUTERS90 \\ 
+  \cline{3-6} \hline
+\multirow{2}{*}{RF} & microF1 & \bf{86.85 $\pm$  0.88} & \bf{91.72 $\pm$  0.36} & \bf{78.35 $\pm$  0.68} & \bf{80.76 $\pm$  1.26} \\ 
+   & macroF1 & \bf{79.43 $\pm$  2.49} & \bf{91.49 $\pm$  0.33} & 63.69 $\pm$  0.79 & \bf{39.28 $\pm$  2.42} \\ 
+   \cline{3-6}\multirow{2}{*}{CSVM} & microF1 & \bf{86.67 $\pm$  1.18} & \bf{91.25 $\pm$  0.25} & \bf{78.34 $\pm$  0.77} & 78.43 $\pm$  1.51 \\ 
+   & macroF1 & \bf{79.13 $\pm$  1.3} & \bf{90.99 $\pm$  0.23} & \bf{66.27 $\pm$  1.6} & 36.73 $\pm$  3.15 \\ 
+   \cline{3-6}\multirow{2}{*}{XT} & microF1 & \bf{86.81 $\pm$  1.08} & 90.99 $\pm$  0.35 & \bf{78.44 $\pm$  0.75} & \bf{81.02 $\pm$  1.2} \\ 
+   & macroF1 & \bf{79.02 $\pm$  2.65} & 90.74 $\pm$  0.34 & 63.86 $\pm$  1.24 & \bf{40.75 $\pm$  2.76} \\ 
+   \cline{3-6}\multirow{2}{*}{REG} & microF1 & \bf{86.8 $\pm$  1.03} & 90.98 $\pm$  0.28 & \bf{78.1 $\pm$  0.68} & 78.54 $\pm$  1.18 \\ 
+   & macroF1 & \bf{79.57 $\pm$  1.05} & 90.75 $\pm$  0.29 & \bf{67.44 $\pm$  0.98} & 34.24 $\pm$  1.69 \\ 
+   \cline{3-6}\multirow{2}{*}{RIDGE} & microF1 & \bf{85.91 $\pm$  1.51} & 89.54 $\pm$  0.32 & 77.02 $\pm$  0.78 & 78.69 $\pm$  0.94 \\ 
+   & macroF1 & \bf{77.56 $\pm$  2.47} & 89.25 $\pm$  0.31 & 62.92 $\pm$  0.75 & \bf{38.02 $\pm$  1.49} \\ 
+   \cline{3-6}\multirow{2}{*}{DT} & microF1 & \bf{83.82 $\pm$  1.71} & 90.26 $\pm$  0.39 & 76.86 $\pm$  0.77 & 68.19 $\pm$  1.3 \\ 
+   & macroF1 & \bf{76.11 $\pm$  2.38} & 90 $\pm$  0.38 & 63.74 $\pm$  1.18 & 32.43 $\pm$  1.02 \\ 
+   \cline{3-6}\multirow{2}{*}{MLR} & microF1 & \bf{85.34 $\pm$  1.43} & 89.34 $\pm$  0.36 & 76.42 $\pm$  0.79 & 76.33 $\pm$  1.25 \\ 
+   & macroF1 & \bf{76.62 $\pm$  1.42} & 89.05 $\pm$  0.35 & 63.86 $\pm$  1.86 & 35.64 $\pm$  2.3 \\ 
+   \cline{3-6}\multirow{2}{*}{VIG} & microF1 & \bf{82.14 $\pm$  1.36} & 89.32 $\pm$  0.24 & 75.05 $\pm$  0.86 & 19.4 $\pm$  0.44 \\ 
+   & macroF1 & \bf{74.33 $\pm$  2.11} & 88.83 $\pm$  0.37 & 63.93 $\pm$  0.57 & 3.17 $\pm$  1.07 \\ 
+   \cline{3-6}\multirow{2}{*}{BERT} & microF1 & \bf{76.48 $\pm$  18.38} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   & macroF1 & \bf{70.16 $\pm$  12.51} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   \cline{3-6}\multirow{2}{*}{BROOF} & microF1 & \bf{84.95 $\pm$  0.8} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   & macroF1 & \bf{77.15 $\pm$  1.58} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   \cline{3-6}\multirow{2}{*}{LAZY} & microF1 & \bf{86.52 $\pm$  1.3} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   & macroF1 & \bf{78.94 $\pm$  2.44} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   \cline{3-6}\multirow{2}{*}{LXT} & microF1 & \bf{86.45 $\pm$  1.44} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   & macroF1 & \bf{78.97 $\pm$  2.74} & 0 $\pm$  0 & 0 $\pm$  0 & 0 $\pm$  0 \\ 
+   \cline{3-6}\end{tabular}
+\caption{Comparação entre meta-classificadores com COMBALL} 
+\label{tab:meta-class
+}
+\end{table}
+
+\% latex table generated in R 3.3.0 by xtable 1.8-2 package \% Wed Jun 1
+08:03:15 2016
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{rrr}
+  \hline
+ & MicroF1 & MacroF1 \\ 
+  \hline
+RF &   4 &   3 \\ 
+  CSVM &   3 &   3 \\ 
+  XT &   3 &   2 \\ 
+  REG &   2 &   2 \\ 
+  RIDGE &   1 &   2 \\ 
+  BERT &   1 &   1 \\ 
+  BROOF &   1 &   1 \\ 
+  DT &   1 &   1 \\ 
+  LAZY &   1 &   1 \\ 
+  LXT &   1 &   1 \\ 
+  MLR &   1 &   1 \\ 
+  VIG &   1 &   1 \\ 
+   \hline
+\end{tabular}
+\caption{Número de vezes que cada algoritmo foi o mais eficaz} 
+\label{tab:win_count_meta-class}
 \end{table}
 
 \renewcommand\refname{References}

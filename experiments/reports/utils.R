@@ -120,14 +120,8 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   library(Matrix)
   
   trials = length(measures)/length(model_labels)
-  
+
   pv = pairwise.t.test(measures, rep(model_labels, each=trials), p.adjust=p.adjust)$p.value
-  
-  #y <- matrix(measures,nrow = trials, ncol = length(model_labels), 
-  #            dimnames=list(1:trials, model_labels))
-  
-  
-  #pv = posthoc.friedman.conover.test(y=y, p.adjust="none")$p.value
   
   pv = pv > (1 - conf.level)
   #/length(model_labels)
@@ -140,7 +134,7 @@ stats.sigficant.winner <- function(measures, model_labels, means,
   sorted <- order(model_labels)
   rownames(pv) <- colnames(pv) <- model_labels[sorted]
   
-  return(pv[model_labels, model_labels[which.max(means)]])
+  return(pv)
 }
 
 stats.sigficant.winner.table <- function(measures, means, rownames, colnames,
@@ -157,8 +151,9 @@ stats.sigficant.winner.table <- function(measures, means, rownames, colnames,
     for(i in 0:(nmetric-1)){
       idx = (div == i)
 
-      winner_table[idx, c] <- stats.sigficant.winner(
+      tab <- stats.sigficant.winner(
         t(measures[idx,c,]), rownames, means[idx,c], p.adjust = p.adjust)
+      winner_table[idx, c] <- tab[rownames, rownames[which.max(means[idx,c])]]
     }
   }
   
@@ -175,44 +170,49 @@ print_meas <- function(measures, err, rownames, colnames, measnames, emphasize,
   
   df = matrix(paste(measures, err, sep = " $\\pm$  "),
               nrow = nrow, ncol = ncol, 
-              dimnames = list(1:nrow, colnames))
+              dimnames = list(rep(rownames,nmetric), colnames))
   
   df[emphasize] <- paste("\\bf{",df[emphasize],"}", sep="")
-  
-  df <- cbind(matrix("", nrow = nrow, ncol = 2), df)
-  
-  for(i in 0:(nmetric-1)){
-    idx = (div == i)
-    if (i == 1){
-      df[idx, 1] = paste("\\multirow{2}{*}{", rownames, "}",df[idx,1], sep="")
+  if(nmetric > 1){
+    df <- cbind(matrix("", nrow = nrow, ncol = 2), df)
+    
+    for(i in 0:(nmetric-1)){
+      idx = (div == i)
+      if (i == 1){
+        df[idx, 1] = paste("\\multirow{2}{*}{", rownames, "}",df[idx,1], sep="")
+      }
+      df[idx, 2] = measnames[nmetric-i]
     }
-    df[idx, 2] = measnames[nmetric-i]
+  
+    sums = apply(emphasize, 1, sum)
+    even = 1:(nrow/nmetric)*nmetric
+    # sort using rank aggregation
+    x <- t(apply(measures[even,], 2, order, decreasing=T))
+    x <- rbind(t(apply(measures[even-1,], 2, order, decreasing=T)))
+  
+    rank <- RankAggreg(x, nrow/nmetric, verbose = F)
+    
+    df[even,] = df[even[rank$top.list], ]
+    df[even-1,] = df[even[rank$top.list]-1, ]
+    sums[even] = sums[even[rank$top.list]]
+    sums[even-1] = sums[even[rank$top.list]-1]
+    # sort by biggest winner
+    o = even[order(sums[even]+sums[even-1], decreasing = T)]
+    df[even,] = df[o, ]
+    df[even-1,] = df[o-1, ]
   }
-  
-  sums = apply(emphasize, 1, sum)
-  even = 1:(nrow/nmetric)*nmetric
-  # sort using rank aggregation
-  x <- t(apply(measures[even,], 2, order, decreasing=T))
-  x <- rbind(t(apply(measures[even-1,], 2, order, decreasing=T)))
-
-  rank <- RankAggreg(x, nrow/nmetric, verbose = F)
-  
-  df[even,] = df[even[rank$top.list], ]
-  df[even-1,] = df[even[rank$top.list]-1, ]
-  sums[even] = sums[even[rank$top.list]]
-  sums[even-1] = sums[even[rank$top.list]-1]
-  # sort by biggest winner
-  o = even[order(sums[even]+sums[even-1], decreasing = T)]
-  df[even,] = df[o, ]
-  df[even-1,] = df[o-1, ]
-  
-  ss <- seq(0, nrow, 2)
+  ss <- seq(0, nrow, nmetric)
   tab <- xtable(df, caption = caption, label = label)
-  print(tab, sanitize.text.function = identity,
-        include.rownames = FALSE, hline.after = c(-1, 0),
-        add.to.row = list(
-          pos = as.list(ss),
-          command = rep(paste("\\cline{3-", 2 + ncol, "}", sep=""), length(ss))))
+  if(nmetric > 1){
+    print(tab, sanitize.text.function = identity,
+          include.rownames = FALSE, hline.after = c(-1, 0),
+          add.to.row = list(
+            pos = as.list(ss),
+            command = rep(paste("\\cline{3-", 2 + ncol, "}", sep=""), length(ss))))
+  }else{
+    print(tab, sanitize.text.function = identity)
+  }
+    
 }
 
 build_table <- function(dir_path, caption, label, trials=5){
@@ -232,8 +232,11 @@ build_table <- function(dir_path, caption, label, trials=5){
   
   winner_table <- stats.sigficant.winner.table(f1, f1_avg, models_labels,
                                                datasets_labels, p.adjust = "bonf")
-  
   print_meas(f1_avg, f1_sd, models_labels, datasets_labels,
              c("microF1", "macroF1"), winner_table, 
              caption = caption, label = label)
+  
+  winning_counts <- matrix(apply(winner_table, 1, sum), byrow = T, ncol = 2,
+         dimnames = list(models_labels, c("MicroF1", "MacroF1")))
+  return(winning_counts)
 }
