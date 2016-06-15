@@ -80,13 +80,11 @@ class TextClassification2App(TextClassificationApp):
 
 		self.datasetLoadingTime = end - start;
 
-		i = np.asarray([0, 1, 2, 3, 4])[:, np.newaxis]
+		i = np.asarray([0,1,2,3,4,5,6,7,8])[:, np.newaxis]
 		#i = np.arange(4,9)[:, np.newaxis]
 		n_classes = len(np.unique(y_train))
 		feats = (n_classes*i + np.arange(n_classes)).ravel()
 		
-		sets = all_sets([0, 1, 2, 3, 4, 5, 6, 7, 8], 4)
-		print(sets, len(sets))
 		return X_train.toarray()[:,feats], X_test.toarray()[:,feats], y_train, y_test
 
 	def run(self, args):
@@ -115,9 +113,9 @@ class TextClassification2App(TextClassificationApp):
 			X_test = tf_transformer.transform(X_test)
 
 
-		from xsklearn.ensemble import GaussianOutlierRemover, ThresoldOutlierRemover
+		from xsklearn.ensemble import GaussianOutlierRemover, ThresholdOutlierRemover
 
-		#out_remov = ThresoldOutlierRemover()
+		#out_remov = ThresholdOutlierRemover()
 		#X_train, y_train = out_remov.fit_transform(X_train, y_train)
 
 		#out_remov = GaussianOutlierRemover(0.01)
@@ -146,8 +144,21 @@ class TextClassification2App(TextClassificationApp):
 		pred = e.predict(X_test)
 		end = time.time()
 
-		#fi = e.feature_importances_.reshape((9,7)).T
+
+		#pred = np.unique(y_train).take(np.argmax(X_test, axis=1), axis=0)
+		#fi = e.feature_importances_.reshape((9,len(np.unique(y_train)))).T
 		#print(fi/(fi.sum(1))[:, np.newaxis])
+
+		#print("thres %f" %  (np.mean(e.feature_importances_) - np.std(e.feature_importances_)))
+		#print(e.feature_importances_.reshape((9,len(np.unique(y_train)))).T)
+
+		#feats = np.where(e.feature_importances_ >= np.mean(e.feature_importances_) - np.std(e.feature_importances_))[0]
+		
+
+		#e.fit(X_train[:,feats], y_train)
+		#from xsklearn.ensemble import DecisionTemplates as DT
+		#pred = DT().fit(X_train[:, feats], y_train).predict(X_test[:, feats])
+		#pred = e.predict(X_test[:, feats])
 
 		import pickle
 		from sklearn.externals import joblib

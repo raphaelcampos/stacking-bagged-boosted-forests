@@ -60,10 +60,10 @@ class GaussianOutlierRemover(OutlierRemover):
 
 		return self
 
-class ThresoldOutlierRemover(OutlierRemover):
-	"""docstring for ThresoldOutlierRemover"""
+class ThresholdOutlierRemover(OutlierRemover):
+	"""docstring for ThresholdOutlierRemover"""
 	def __init__(self):
-		super(ThresoldOutlierRemover, self).__init__()
+		super(ThresholdOutlierRemover, self).__init__()
 
 	def remove_outliers(self, X, y):
 
