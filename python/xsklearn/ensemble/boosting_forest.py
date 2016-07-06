@@ -346,14 +346,14 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
         adjust  =  np.exp(1. - self.oob_err_)
 
         # Reduce
-        proba = all_proba[0]*adjust[0]
+        proba = all_proba[0]
         
         adjust_sum = adjust.sum()
         if self.n_outputs_ == 1:
             for j in range(1, len(all_proba)):
                 proba += all_proba[j]*adjust[j]
 
-            proba /= adjust_sum
+            proba /= self.n_estimators
 
         else:
             for j in range(1, len(all_proba)):
@@ -638,14 +638,14 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
         adjust  =  np.exp(1. - self.oob_err_)
         
         # Reduce
-        proba = all_proba[0]*adjust[0]
+        proba = all_proba[0]
         
         adjust_sum = adjust.sum()
         if self.n_outputs_ == 1:
             for j in range(1, len(all_proba)):
                 proba += all_proba[j]*adjust[j]
 
-            proba /= adjust_sum
+            proba /= self.n_estimators
 
         else:
             for j in range(1, len(all_proba)):
@@ -752,6 +752,8 @@ class BoostedForestClassifier(AdaBoostClassifier):
             predictions.append(np.zeros((n_samples, n_classes_[k])))
             oob_err.append(np.ones(len(rf.estimators_)))
 
+        estimator_weight = np.zeros(sample_weight.shape)
+
         for i, estimator in enumerate(rf.estimators_):
             unsampled_indices = _generate_unsampled_indices(
                 estimator.random_state, sample_weight, n_samples)
@@ -770,19 +772,22 @@ class BoostedForestClassifier(AdaBoostClassifier):
                 estimator_error = np.average(incorrect,
                     weights=sample_weight[unsampled_indices], axis=0)
 
-                estimator_weight = self.learning_rate * (
-                    (1. - estimator_error) / estimator_error)
+                #estimator_weight = self.learning_rate * (
+                #    (1. - estimator_error) / estimator_error)
 
                 oob_err[k][i] = estimator_error
-                sample_weight_tmp[unsampled_indices] *= np.exp(
-                                        estimator_weight * (2*incorrect - 1))
+                #sample_weight_tmp[unsampled_indices] *= np.exp(
+                #                        estimator_weight * (2*incorrect - 1))
+                estimator_weight[unsampled_indices] += (2*incorrect - 1)
+
+
 
         for k in range(rf.n_outputs_):
             decision = (predictions[k] /
                         predictions[k].sum(axis=1)[:, np.newaxis])
             oob_decision_function.append(decision)
-            oob_score += np.average(y[:, k] ==
-                                 np.argmax(predictions[k], axis=1), axis=0)
+            oob_score += np.average(y[:, k] !=
+                                 np.argmax(predictions[k], axis=1), weights=sample_weight, axis=0)
 
         if rf.n_outputs_ == 1:
             rf.oob_decision_function_ = oob_decision_function[0]
@@ -792,6 +797,15 @@ class BoostedForestClassifier(AdaBoostClassifier):
             rf.oob_err_ = oob_err
 
         rf.oob_score_ = oob_score / rf.n_outputs_
+
+
+        alpha = self.learning_rate * (
+                   ((1. - rf.oob_score_) / rf.oob_score_)) #+ np.log(rf.n_classes_ - 1))
+        
+        #print(estimator_weight)
+        estimator_weight = estimator_weight > 0
+        #print(estimator_weight)
+        sample_weight_tmp = sample_weight * np.exp(alpha * estimator_weight)
 
         return sample_weight_tmp
 
@@ -817,9 +831,9 @@ class BoostedForestClassifier(AdaBoostClassifier):
         sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
 
         # Error fraction
-        estimator_error = 1 - estimator.oob_score_
+        estimator_error = estimator.oob_score_
 
-        #print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
+        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
 
         # Stop if classification is perfect
         if estimator_error <= 0:
@@ -828,6 +842,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
+        '''
         if (len(self.estimators_) > 1 and 
             (estimator_error >= 1. - (1. / n_classes) or 
             np.isnan(estimator_error))):
@@ -838,7 +853,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                                  'ensemble is worse than random, ensemble '
                                  'can not be fit.')
             return None, None, None
-
+        '''
         # Boost weight
         estimator_weight = self.learning_rate * (
             ((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
@@ -917,7 +932,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             self.estimator_errors_[iboost] = estimator_error
 
             # Stop if error is zero
-            if estimator_error == 0:
+            if estimator_error <= 1e-5:
                 break
 
             sample_weight_sum = np.sum(sample_weight)
@@ -931,89 +946,6 @@ class BoostedForestClassifier(AdaBoostClassifier):
                 sample_weight /= sample_weight_sum
 
         return self
-
-    def decision_function(self, X): 
-    
-        #check_is_fitted(self, "n_classes_")
-        X = self._validate_X_predict(X)
-
-        n_classes = self.n_classes_
-        classes = self.classes_[:, np.newaxis]
-        """
-        pred = None
-    
-        pred = sum((estimator.predict(X) == classes).T
-                    for estimator, w in zip(self.estimators_,
-                                            self.estimator_weights_))
-
-        #pred /= self.estimator_weights_.sum()
-        if n_classes == 2:
-            pred[:, 0] *= -1
-            return pred.sum(axis=1)
-
-        print pred
-        return pred
-        """ 
-        return sum(estimator.predict_proba(X)
-                        for estimator, w in zip(self.estimators_,
-                                                self.estimator_weights_))
-
-    def predict(self, X):
-        """Predict classes for X.
-
-        The predicted class of an input sample is computed as the weighted mean
-        prediction of the classifiers in the ensemble.
-
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
-            The training input samples. Sparse matrix can be CSC, CSR, COO,
-            DOK, or LIL. DOK and LIL are converted to CSR.
-
-        Returns
-        -------
-        y : array of shape = [n_samples]
-            The predicted classes.
-        """
-        pred = self.decision_function(X)
-        
-        #if self.n_classes_ == 2:
-        #    return self.classes_.take(pred > 0, axis=0)
-
-        return self.classes_.take(np.argmax(pred, axis=1), axis=0)
-     
-    def predict_proba(self, X):
-        """Predict class probabilities for X.
-        The predicted class probabilities of an input sample is computed as
-        the weighted mean predicted class probabilities of the classifiers
-        in the ensemble.
-        Parameters
-        ----------
-        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
-            The training input samples. Sparse matrix can be CSC, CSR, COO,
-            DOK, or LIL. DOK and LIL are converted to CSR.
-        Returns
-        -------
-        p : array of shape = [n_samples]
-            The class probabilities of the input samples. The order of
-            outputs is the same of that of the `classes_` attribute.
-        """
-        #check_is_fitted(self, "n_classes_")
-
-        n_classes = self.n_classes_
-        X = self._validate_X_predict(X)
-
-        proba = sum(estimator.predict_proba(X)
-                    for estimator, w in zip(self.estimators_,
-                                            self.estimator_weights_))
-
-        #proba /= self.estimator_weights_.sum()
-        #proba = np.exp((1. / (n_classes - 1)) * proba)
-        normalizer = proba.sum(axis=1)[:, np.newaxis]
-        normalizer[normalizer == 0.0] = 1.0
-        proba /= normalizer
-
-        return proba
     
 
 class Broof(BoostedForestClassifier):

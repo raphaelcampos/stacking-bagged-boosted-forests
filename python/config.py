@@ -43,7 +43,8 @@ base_estimators = {
 	'reg': linear_model.LogisticRegression,
 	'ridge': linear_model.RidgeClassifierCV,
 	'dir': DirichletClassifier,
-	'gbt': ensemble.GradientBoostingClassifier
+	'gbt': ensemble.GradientBoostingClassifier,
+	'adarf': ensemble.AdaBoostClassifier
 }
 
 # default parameters for text classification
@@ -120,7 +121,9 @@ default_params = {
 			'subsample':1.0, 'min_samples_split':2, 'min_samples_leaf':1, 
 			'min_weight_fraction_leaf':0.0, 'max_depth':3, 'init':None, 
 			'random_state':None, 'max_features':None, 'verbose':0, 
-			'max_leaf_nodes':None, 'warm_start':False, 'presort':'auto'}
+			'max_leaf_nodes':None, 'warm_start':False, 'presort':'auto'},
+	'adarf': {'n_estimators': 200, 'base_estimator': ensemble.RandomForestClassifier(n_jobs=8,max_features=0.15,n_estimators=20),
+			 'random_state': None, 'learning_rate': 1, 'algorithm': 'SAMME.R'}
 }
 
 default_tuning_params = {
@@ -151,7 +154,8 @@ default_tuning_params = {
 	'reg': [],
 	'ridge': [],
 	'dir': [],
-	'gbt': {'learning_rate': [0.1, 0.2, 0.5, 0.8, 1.0], 'max_depth': [None] + list(2.0 ** np.arange(0, 10, 1))}
+	'gbt': [{'learning_rate': [0.1, 0.2, 0.5, 0.8, 1.0], 'max_depth': [None] + list(2.0 ** np.arange(0, 10, 1))}],
+	'adarf': []
 }
 
 default_transformers = {
@@ -175,5 +179,6 @@ default_transformers = {
 	'reg': [],
 	'ridge': [],
 	'dir': [],
-	'gbt': []
+	'gbt': [],
+	'adarf': []
 }
