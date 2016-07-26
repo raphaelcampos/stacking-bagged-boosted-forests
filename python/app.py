@@ -214,10 +214,10 @@ class ClassificationApp(BaseApp):
 			start = time.time()
 			e.fit(X_train, y_train)
 			pred = e.predict(X_test) 
-			ada_discrete_err = np.zeros((args.n_iterations,))
-			for i, y_pred in enumerate(e.staged_predict(X_test)):
-				ada_discrete_err[i] = np.mean(y_pred == y_test)
-			print(ada_discrete_err)
+			#ada_discrete_err = np.zeros((args.n_iterations,))
+			#for i, y_pred in enumerate(e.staged_predict(X_test)):
+			#	ada_discrete_err[i] = np.mean(y_pred == y_test)
+			#print(ada_discrete_err)
 			end = time.time()
 
 			import pickle

@@ -17,6 +17,9 @@ from sklearn.externals.joblib import Parallel, delayed
 from sklearn.utils import check_random_state, check_array, compute_sample_weight
 from sklearn.utils.fixes import bincount
 
+import pickle
+from sklearn.externals import joblib
+
 def _generate_sample_indices(random_state, sample_weight, n_samples):
     """Private function used to _parallel_build_trees function."""
     random_instance = check_random_state(random_state)
@@ -638,7 +641,7 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
         adjust  =  np.exp(1. - self.oob_err_)
         
         # Reduce
-        proba = all_proba[0]
+        proba = all_proba[0]*adjust[0]
         
         adjust_sum = adjust.sum()
         if self.n_outputs_ == 1:
@@ -661,11 +664,10 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
 class BoostedForestClassifier(AdaBoostClassifier):
     """Boosted Forest classifier.
      
-     It is based on AdaBoost to focus on
-     hard-to-classify regions of the input space. Nevertheless, it exploits
-     Out-of-Bag(OOB) Errors given by Forest classifiers in order to compute
-     Boosting update rule. Thus, trying to avoid over-fitting suffered by
-     forest classifier in high-dimensional scenarios with many irrelavant
+     It is based on AdaBoost to focus on hard-to-classify regions of the input space.
+     Nevertheless, it exploits Out-of-Bag(OOB) Errors given by Forest classifiers
+     in order to compute Boosting update rule. Thus, trying to avoid over-fitting
+     suffered by forest classifier in high-dimensional scenarios with many irrelavant
      attributes, such as text categorization tasks.
     
     Parameters
@@ -701,12 +703,15 @@ class BoostedForestClassifier(AdaBoostClassifier):
                  n_estimators=50,
                  learning_rate=1,
                  random_state=None,
-                 weighting_algorithm='broof'):
+                 weighting_algorithm='broof',
+                 aux_mem=True):
         
         self.weighting_algorithm = weighting_algorithm
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         
+        self.aux_mem = aux_mem
+
         self.base_estimator = base_estimator
         if base_estimator is None:
             self.base_estimator = BoostedRandomForestClassifier()
@@ -815,7 +820,8 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
 
     def _boost_broof(self, iboost, X, y, sample_weight):
-        estimator = self._make_estimator()
+        estimator = self._make_estimator(not self.aux_mem)
+
         
         try:
             estimator.set_params(random_state=self.random_state)
@@ -823,12 +829,19 @@ class BoostedForestClassifier(AdaBoostClassifier):
             pass
 
         estimator.fit(X, y, sample_weight = sample_weight)
-        
+
         if iboost == 0:
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
             self.n_classes_ = len(self.classes_)
 
         sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
+        
+        # if it needs to use secondary memory
+        if self.aux_mem:
+            import uuid
+            unique_filename = "dumps/" + str(uuid.uuid4())
+            joblib.dump(estimator, unique_filename)
+            self.estimators_.append(unique_filename)
 
         # Error fraction
         estimator_error = estimator.oob_score_
@@ -947,6 +960,45 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
         return self
     
+    def decision_function(self, X):
+        """Compute the decision function of ``X``.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        score : array, shape = [n_samples, k]
+            The decision function of the input samples. The order of
+            outputs is the same of that of the `classes_` attribute.
+            Binary classification is a special cases with ``k == 1``,
+            otherwise ``k==n_classes``. For binary classification,
+            values closer to -1 or 1 mean more like the first or second
+            class in ``classes_``, respectively.
+        """
+        #check_is_fitted(self, "n_classes_")
+        X = self._validate_X_predict(X)
+
+        n_classes = self.n_classes_
+        classes = self.classes_[:, np.newaxis]
+        pred = None
+
+        if self.aux_mem:
+            pred = sum((joblib.load(estimator).predict(X) == classes).T * w
+                   for estimator, w in zip(self.estimators_,
+                                           self.estimator_weights_))
+        else:
+            pred = sum((estimator.predict(X) == classes).T * w
+                   for estimator, w in zip(self.estimators_,
+                                           self.estimator_weights_))
+
+        pred /= self.estimator_weights_.sum()
+        if n_classes == 2:
+            pred[:, 0] *= -1
+            return pred.sum(axis=1)
+        
+        return pred
 
 class Broof(BoostedForestClassifier):
     def __init__(self,
@@ -1013,7 +1065,8 @@ class Bert(BoostedForestClassifier):
                  random_state=None,
                  verbose=0,
                  warm_start=False,
-                 class_weight=None):    
+                 class_weight=None,
+                 aux_mem=False):    
 
         super(Bert, self).__init__(
             base_estimator=BoostedExtraTreesClassifier(n_estimators=n_trees,
@@ -1028,7 +1081,8 @@ class Bert(BoostedForestClassifier):
                                  bootstrap=True),
             n_estimators = n_iterations,
             learning_rate = learning_rate,
-            random_state = random_state
+            random_state = random_state,
+            aux_mem=aux_mem
             )
 
         self.n_jobs = n_jobs
@@ -1045,3 +1099,4 @@ class Bert(BoostedForestClassifier):
         self.verbose = verbose
         self.warm_start = warm_start
         self.class_weight = class_weight
+        self.aux_mem=aux_mem
