@@ -249,8 +249,8 @@ def Li(W0, beta0, W, v, S, J):
 				- 0.5*np.log(sp.linalg.det(W)))
 
 try:
-	import matplotlib 
-	matplotlib.use('Agg') 
+	#import matplotlib 
+	#matplotlib.use('Agg') 
 	
 	from bayespy import nodes
 	from bayespy.inference import VB

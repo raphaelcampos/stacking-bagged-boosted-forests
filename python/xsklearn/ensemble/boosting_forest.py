@@ -20,6 +20,8 @@ from sklearn.utils.fixes import bincount
 import pickle
 from sklearn.externals import joblib
 
+from sklearn.base import clone
+
 def _generate_sample_indices(random_state, sample_weight, n_samples):
     """Private function used to _parallel_build_trees function."""
     random_instance = check_random_state(random_state)
@@ -712,12 +714,12 @@ class BoostedForestClassifier(AdaBoostClassifier):
         
         self.aux_mem = aux_mem
 
-        self.base_estimator = base_estimator
+        self.base_estimator_ = base_estimator
         if base_estimator is None:
             self.base_estimator = BoostedRandomForestClassifier()
 
         super(BoostedForestClassifier, self).__init__(
-            base_estimator=self.base_estimator,
+            base_estimator=self.base_estimator_,
             n_estimators=n_estimators,
             learning_rate=learning_rate,
             algorithm="SAMME",
@@ -801,12 +803,15 @@ class BoostedForestClassifier(AdaBoostClassifier):
             rf.oob_decision_function_ = oob_decision_function
             rf.oob_err_ = oob_err
 
+        rf.decision_function_ = oob_decision_function
         rf.oob_score_ = oob_score / rf.n_outputs_
 
 
         alpha = self.learning_rate * (
                    ((1. - rf.oob_score_) / rf.oob_score_)) #+ np.log(rf.n_classes_ - 1))
         
+        rf.alpha_ = alpha
+        rf.mask_ = estimator_weight 
         #print(estimator_weight)
         estimator_weight = estimator_weight > 0
         #print(estimator_weight)
@@ -821,8 +826,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
     def _boost_broof(self, iboost, X, y, sample_weight):
         estimator = self._make_estimator(not self.aux_mem)
-
-        
+        estimator.sample_weight = sample_weight
         try:
             estimator.set_params(random_state=self.random_state)
         except ValueError:
@@ -855,7 +859,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        '''
+        
         if (len(self.estimators_) > 1 and 
             (estimator_error >= 1. - (1. / n_classes) or 
             np.isnan(estimator_error))):
@@ -866,7 +870,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                                  'ensemble is worse than random, ensemble '
                                  'can not be fit.')
             return None, None, None
-        '''
+        
         # Boost weight
         estimator_weight = self.learning_rate * (
             ((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
@@ -923,7 +927,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                     "weighted number of samples.")
 
         # Check parameters
-        self._validate_estimator()
+        #self._validate_estimator()
 
         # Clear any previous fit results
         self.estimators_ = []
@@ -1016,7 +1020,8 @@ class Broof(BoostedForestClassifier):
                  random_state=None,
                  verbose=0,
                  warm_start=False,
-                 class_weight=None):    
+                 class_weight=None,
+                 aux_mem=False):    
 
         super(Broof, self).__init__(
             base_estimator=BoostedRandomForestClassifier(n_estimators=n_trees,
@@ -1031,7 +1036,8 @@ class Broof(BoostedForestClassifier):
                                  bootstrap=True),
             n_estimators = n_iterations,
             learning_rate = learning_rate,
-            random_state = random_state
+            random_state = random_state,
+            aux_mem=aux_mem
             )
 
         self.n_jobs = n_jobs
