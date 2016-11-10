@@ -16,9 +16,12 @@ from sklearn import linear_model, discriminant_analysis
 from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
 from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates, DirichletClassifier
 from xsklearn.linear_model import MLR, LinearSVM, LinearModelTree
+from xsklearn import DSC
 
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.feature_selection import SelectFromModel 
+
+import xgboost as xgb
 
 import numpy as np
 
@@ -44,7 +47,9 @@ base_estimators = {
 	'ridge': linear_model.RidgeClassifierCV,
 	'dir': DirichletClassifier,
 	'gbt': ensemble.GradientBoostingClassifier,
-	'adarf': ensemble.AdaBoostClassifier
+	'adarf': ensemble.AdaBoostClassifier,
+	'dsc': DSC,
+	'xgb': xgb.XGBClassifier
 }
 
 # default parameters for text classification
@@ -56,7 +61,7 @@ default_params = {
 			 'class_weight': None},
 	'lsvm': {'loss': 'squared_hinge', 'C': 1, 'verbose': 0, 'intercept_scaling': 1,
 			 'fit_intercept': True, 'max_iter': 1000, 'penalty': 'l2',
-			 'multi_class': 'ovr', 'random_state': 1608637542, 'dual': True, 
+			 'multi_class': 'ovr', 'random_state': None, 'dual': True, 
 			 'tol': 0.001, 'class_weight': None},
 	'nb':  	{'alpha': 1, 'fit_prior': True, 'class_prior': None},
 	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
@@ -66,7 +71,7 @@ default_params = {
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
 			 'n_estimators': 200, 'min_samples_split': 2,
 			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
-			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
+			 'random_state': None, 'max_features': 'auto', 'max_depth':  None, 
 			 'class_weight': None},
 	'xt':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': False, 'min_samples_leaf': 1, 
@@ -101,7 +106,7 @@ default_params = {
 	'mlr':	{},
 	'dt': 	{'max_features': 1.0, 'max_leaf_nodes': None,
 			 'min_weight_fraction_leaf': 0.0, 'splitter': 'best',
-			 'min_samples_leaf': 1, 'max_depth': None, 'presort': False,
+			 'min_samples_leaf': 1, 'max_depth': 16, 'presort': False,
 			 'criterion': 'gini', 'random_state': None, 'class_weight': None,
 			 'min_samples_split': 2},
 	'vig': {},
@@ -123,18 +128,25 @@ default_params = {
 			'random_state':None, 'max_features':None, 'verbose':0, 
 			'max_leaf_nodes':None, 'warm_start':False, 'presort':'auto'},
 	'adarf': {'n_estimators': 200, 'base_estimator': ensemble.RandomForestClassifier(n_jobs=8,max_features=0.15,n_estimators=20),
-			 'random_state': None, 'learning_rate': 1, 'algorithm': 'SAMME.R'}
+			 'random_state': None, 'learning_rate': 1, 'algorithm': 'SAMME.R'},
+	'dsc': {'alpha': 2.0},
+	'xgb': {'reg_alpha': 0, 'colsample_bytree': 1.0, 'silent': True, 'colsample_bylevel': 0.01,
+ 				'scale_pos_weight': 1, 'learning_rate': 0.1, 'missing': None, 'max_delta_step': 0,
+ 				'nthread': 7, 'base_score': 0.5, 'n_estimators': 1000, 'subsample': 1.0, 'reg_lambda': 1,
+ 				'seed': 42, 'min_child_weight': 1, 'objective': 'binary:logistic', 'max_depth': 3, 'gamma': 0}
+
 }
 
 default_tuning_params = {
 	'svm': 	[{'C': 2.0 ** np.arange(-5, 15, 2)}],
-	'lsvm': [{'C': 2.0 ** np.arange(-5, 15, 2)}],
-	'nb':  	[{'alpha': [0.0001, 0.001,0.1,0.5,1,1.5,10,100]}],
+	'lsvm': [{'C': 2.0 ** np.arange(-5, 9, 2)}],
+	'nb':  	[{'alpha': [0.0001, 0.001, 0.01, 0.1,0.5,1,1.5,10,100]}],
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300, 500], 'weights': ['uniform', 'distance']}],
-	'rf': [{'criterion': ['entropy', 'gini'], 'n_estimators': [200], 
-			'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
+	'rf': [{'criterion': ['gini'], 'n_estimators': [48], 
+			'max_features': ['sqrt', 'log2', 0.01, 0.08, 0.15, 0.3],
+			'max_depth': [5, 10, 20]}],
 	'xt': [{'criterion': ['entropy', 'gini'], 
-			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
+			'n_estimators': [50], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
 	'lazy': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt']}],
@@ -155,7 +167,10 @@ default_tuning_params = {
 	'ridge': [],
 	'dir': [],
 	'gbt': [{'learning_rate': [0.1, 0.2, 0.5, 0.8, 1.0], 'max_depth': [None] + list(2.0 ** np.arange(0, 10, 1))}],
-	'adarf': []
+	'adarf': [],
+	'dsc': [{'alpha': [0, 0.25, 0.5, 0.75, 1.0, 2.0, 5.0, 10.0]}],
+	#'xgb': [{'colsample_bytree': [0.1, 0.3, 0.5, 0.7, 1.0], 'subsample': [0.5, 0.7, 1.0]}]
+	'xgb': [{'reg_lambda': [0, 1e-5, 1e-2, 0.1, 1, 100], 'reg_alpha': [0, 1e-5, 1e-2, 0.1, 1, 100]}]
 }
 
 default_transformers = {

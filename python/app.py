@@ -115,7 +115,7 @@ class ClassificationApp(BaseApp):
 
 		if args.dataset == 'toy':
 			twenty_train = fetch_20newsgroups(subset='train', shuffle=True, random_state=42)
-			count_vect = CountVectorizer(min_df=6, stop_words='english')
+			count_vect = CountVectorizer(min_df=3, stop_words='english')
 			X = count_vect.fit_transform(twenty_train.data)
 			y = twenty_train.target
 		else:			
@@ -159,7 +159,7 @@ class ClassificationApp(BaseApp):
 
 	def run(self, args):
 		X, y = self._load_dataset(args)
-
+		print(X.shape)
 		kf = StratifiedKFold(y, n_folds=args.trials, shuffle=True,
 												 random_state=args.seed)
 
@@ -212,12 +212,13 @@ class ClassificationApp(BaseApp):
 			
 			# fit and predict
 			start = time.time()
-			e.fit(X_train, y_train)
-			pred = e.predict(X_test) 
-			#ada_discrete_err = np.zeros((args.n_iterations,))
-			#for i, y_pred in enumerate(e.staged_predict(X_test)):
-			#	ada_discrete_err[i] = np.mean(y_pred == y_test)
-			#print(ada_discrete_err)
+			e.fit(X_train.tocsc(), y_train)
+			pred = e.predict(X_test.tocsc()) 
+			if hasattr(e, 'staged_predict'):
+				ada_discrete_err = np.zeros((args.n_iterations,))
+				for i, y_pred in enumerate(e.staged_predict(X_test)):
+					ada_discrete_err[i] = np.mean(y_pred == y_test)
+				print(ada_discrete_err)
 			end = time.time()
 
 			import pickle
@@ -299,7 +300,8 @@ class TextClassificationApp(ClassificationApp):
 			'lazy':	{'n_estimators': args.trees},
 			'lxt': 	{'n_estimators': args.trees},
 			'broof':{'n_trees': args.trees},
-			'bert': {'n_trees': args.trees}
+			'bert': {'n_trees': args.trees},
+			'xgb': {'n_estimators': args.trees}
 		}
 
 		self.instantiator.set_params(estimators_params)
