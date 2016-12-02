@@ -1,5 +1,5 @@
 from .scann import SCANN
-from .stacking import StackingClassifier, VIG, DecisionTemplates, DirichletClassifier
+from .stacking import StackingClassifier, VIG, DecisionTemplates
 from .boosting_forest import Broof, Bert
 from .meta_outlier_removal import GaussianOutlierRemover, ThresholdOutlierRemover
 

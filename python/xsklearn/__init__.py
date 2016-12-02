@@ -1,4 +1,4 @@
-from dsc import DSC
+from .dsc import DSC
 
 __all__ = ['ensemble',
 			'neighbors',

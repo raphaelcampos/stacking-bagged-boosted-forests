@@ -41,6 +41,10 @@ class SCANN(BaseEstimator):
 		r = np.asarray(N_csr.sum(1)/n).ravel()
 		c = np.asarray(N_csc.sum(0)/n).ravel()
 		
+		# zero value leads to inf in afterwards operations
+		# Thus, we set it to a really small number
+		c[c == 0] = 1e-200
+		
 		P = N/n
 		
 		D_r = scipy.sparse.diags(r, offsets=0)
@@ -48,9 +52,12 @@ class SCANN(BaseEstimator):
 		
 		# Stage 2
 		D_r.data = np.power(D_r.data, -0.5)
+
 		D_c.data = np.power(D_c.data, -0.5)
+		
 		rc = r[:,np.newaxis] * c[:, np.newaxis].T
 		
+
 		A = scipy.sparse.dia_matrix.dot(D_c, D_r.dot(P - rc).T).T
 		
 		U, Sigma, V = scipy.linalg.svd(A, False)
