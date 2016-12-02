@@ -51,9 +51,9 @@ class MLR(LinearClassifierMixin, LinearModel):
         self._label_binarizer = LabelBinarizer(pos_label=1, neg_label=0)
         Y = self._label_binarizer.fit_transform(y)
 
-        X, y, X_mean, y_mean, X_std = LinearModel._center_data(
-            X, y, self.fit_intercept, None, False,
-            sample_weight=sample_weight)
+        #X, y, X_mean, y_mean, X_std = LinearModel._center_data(
+        #    X, y, self.fit_intercept, None, False,
+        #    sample_weight=sample_weight)
 
         n_classes_ = len(self._label_binarizer.classes_)
 
@@ -72,7 +72,7 @@ class MLR(LinearClassifierMixin, LinearModel):
             r, _ = nnls(X_copy[:,:], y)
             self.coef_[i,:] = r
 
-        self._set_intercept(X_mean, y_mean, X_std)
+        #self._set_intercept(X_mean, y_mean, X_std)
 
         return self
 
