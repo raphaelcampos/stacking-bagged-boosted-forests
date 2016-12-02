@@ -90,7 +90,6 @@ class TextClassification2App(TextClassificationApp):
 	def run(self, args):
 		X_train, X_test, y_train, y_test = self._load_dataset(args)
 
-		print(X_train, y_train)
 
 		k = 0
 		estimator, tuned_parameters = self._setup_instantiator(args)
@@ -113,24 +112,11 @@ class TextClassification2App(TextClassificationApp):
 			X_test = tf_transformer.transform(X_test)
 
 
-		from xsklearn.ensemble import GaussianOutlierRemover, ThresholdOutlierRemover
-
-		#out_remov = ThresholdOutlierRemover()
-		#X_train, y_train = out_remov.fit_transform(X_train, y_train)
-
-		#out_remov = GaussianOutlierRemover(0.01)
-		#X_train, y_train = out_remov.fit_transform(X_train, y_train)
-
-		from sklearn.decomposition import PCA
-		#pca = PCA(copy=True, n_components=2, whiten=False)
-		#X_train = pca.fit_transform(X_train)
-		#X_test = pca.transform(X_test)
-
 		if(args.cv > 1):
-			n_jobs = 1 if hasattr(estimator,"n_jobs") else args.n_jobs
+			n_jobs = 1 if hasattr(estimator,"n_jobs") or hasattr(estimator,"nthread") else args.n_jobs
 			gs = GridSearchCV(estimator, tuned_parameters,
 						 n_jobs=n_jobs, refit=False,
-						 cv=args.cv, verbose=1, scoring='f1_micro')
+						 cv=args.cv, verbose=5, scoring='f1_macro')
 			gs.fit(X_train, y_train)
 			print(gs.best_score_, gs.best_params_)
 			estimator.set_params(**gs.best_params_)
@@ -142,23 +128,19 @@ class TextClassification2App(TextClassificationApp):
 		start = time.time()
 		e.fit(X_train, y_train)
 		pred = e.predict(X_test)
+		
+		#from scipy import io
+		#io.savemat('piSet', {'piSetMean':X_test.reshape((X_test.shape[0], 9, X_test.shape[1]/9)).mean(1), 'piSet':e.predict_proba(X_test), "trueLabel" : y_test})
+		#exit()
 		end = time.time()
 
+		if hasattr(e, 'staged_predict'):
+			ada_discrete_err = np.zeros((args.n_iterations,))
+			for i, y_pred in enumerate(e.staged_predict(X_test)):
+				ada_discrete_err[i] = np.mean(y_pred == y_test)
+			print(ada_discrete_err)
+			end = time.time()
 
-		#pred = np.unique(y_train).take(np.argmax(X_test, axis=1), axis=0)
-		#fi = e.feature_importances_.reshape((9,len(np.unique(y_train)))).T
-		#print(fi/(fi.sum(1))[:, np.newaxis])
-
-		#print("thres %f" %  (np.mean(e.feature_importances_) - np.std(e.feature_importances_)))
-		#print(e.feature_importances_.reshape((9,len(np.unique(y_train)))).T)
-
-		#feats = np.where(e.feature_importances_ >= np.mean(e.feature_importances_) - np.std(e.feature_importances_))[0]
-		
-
-		#e.fit(X_train[:,feats], y_train)
-		#from xsklearn.ensemble import DecisionTemplates as DT
-		#pred = DT().fit(X_train[:, feats], y_train).predict(X_test[:, feats])
-		#pred = e.predict(X_test[:, feats])
 
 		import pickle
 		from sklearn.externals import joblib

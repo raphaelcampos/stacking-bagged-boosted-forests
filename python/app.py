@@ -42,10 +42,10 @@ class BaseApp(object):
 		super(BaseApp, self).__init__()
 
 		self.description = description
-		self._init_parser()
+		self.parser = argparse.ArgumentParser(description=self.description)
 
 	def _init_parser(self):
-		self.parser = argparse.ArgumentParser(description=self.description) 
+		pass  
 
 	def get_argparse(self):
 		return self.parser
@@ -69,15 +69,15 @@ class ClassificationApp(BaseApp):
     parser : argparse
     	Command line argument parser object.
     """
-	def __init__(self, description="Classification application"):
-		self.instantiator = EstimatorInstantiator()
-		
+	def __init__(self, description="Classification application", default_tuning_params=default_tuning_params.copy()):
 		super(ClassificationApp, self).__init__(description=description)
 		
+		self.default_tuning_params = default_tuning_params
+		self.instantiator = EstimatorInstantiator()
+		self._init_parser()
 
 	def _init_parser(self):
-		super(ClassificationApp, self)._init_parser()
-		
+		#super(ClassificationApp, self)._init_parser()
 		models = self.instantiator.get_estimators()
 		
 		self.parser.add_argument("dataset", type=str,
@@ -132,12 +132,12 @@ class ClassificationApp(BaseApp):
 		random_instance = check_random_state(args.seed)
 		self.instantiator.set_general_params(vars(args))
 		self.instantiator.set_general_params(
-						{'random_state': random_instance.randint(0,MAX_INT,1)})
-
-		self.instantiator.set_params(estimators_params)
+						{'random_state': random_instance.randint(0,MAX_INT)})
+		
+		#self.instantiator.set_params(estimators_params)
 
 		return (self.instantiator.get_instance(args.method),
-				 default_tuning_params[args.method])
+				 self.default_tuning_params[args.method])
 
 	def _tfidf(self, args):
 		return False
@@ -209,7 +209,6 @@ class ClassificationApp(BaseApp):
 				print(estimator.get_params())
 
 			e = clone(estimator)
-			
 			# fit and predict
 			start = time.time()
 			e.fit(X_train.tocsc(), y_train)
@@ -246,6 +245,7 @@ class ClassificationApp(BaseApp):
 		print('loading time : ', self.datasetLoadingTime)
 		print('times : ', np.average(folds_time), np.std(folds_time))
 
+	
 class TextClassificationApp(ClassificationApp):
 	"""Application for text classification
     
@@ -263,9 +263,6 @@ class TextClassificationApp(ClassificationApp):
 	def __init__(self):
 		super(TextClassificationApp, self).__init__(
 								description="Text classification classifiers")
-		
-		self.instantiator = EstimatorInstantiator()
-		self._init_parser()
 
 	def _init_parser(self):
 		super(TextClassificationApp, self)._init_parser()
@@ -339,9 +336,6 @@ class StackerApp(TextClassificationApp):
 	def __init__(self):
 		super(TextClassificationApp, self).__init__(
 								description="Text classification classifiers with stacking")
-		
-		self.instantiator = EstimatorInstantiator()
-		self._init_parser()
 
 	def _init_parser(self):
 		super(StackerApp, self)._init_parser()
