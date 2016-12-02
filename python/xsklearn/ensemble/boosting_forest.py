@@ -850,7 +850,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         # Error fraction
         estimator_error = estimator.oob_score_
 
-        print iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_ 
+        print(iboost, np.average(estimator.oob_err_), estimator_error, 1 - estimator.oob_score_)
 
         # Stop if classification is perfect
         if estimator_error <= 0:
