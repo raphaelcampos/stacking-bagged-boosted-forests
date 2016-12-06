@@ -808,7 +808,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
 
         alpha = self.learning_rate * (
-                   ((1. - rf.oob_score_) / rf.oob_score_)) #+ np.log(rf.n_classes_ - 1))
+                   np.log((1. - rf.oob_score_) / rf.oob_score_) + np.log(rf.n_classes_ - 1))
         
         rf.alpha_ = alpha
         rf.mask_ = estimator_weight 
@@ -817,7 +817,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         #print(estimator_weight)
         sample_weight_tmp = sample_weight * np.exp(alpha * estimator_weight)
 
-        return sample_weight_tmp
+        return sample_weight_tmp, alpha
 
 
     def _boost(self, iboost, X, y, sample_weight):
@@ -838,7 +838,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
             self.classes_ = np.array(getattr(estimator, 'classes_', None))
             self.n_classes_ = len(self.classes_)
 
-        sample_weight_aux = self._set_oob_score(estimator, X, y, sample_weight)
+        sample_weight_aux, estimator_weight = self._set_oob_score(estimator, X, y, sample_weight)
         
         # if it needs to use secondary memory
         if self.aux_mem:
@@ -872,8 +872,8 @@ class BoostedForestClassifier(AdaBoostClassifier):
             return None, None, None
         
         # Boost weight
-        estimator_weight = self.learning_rate * (
-            ((1. - estimator_error) / estimator_error)) #+ np.log(n_classes - 1))
+        #estimator_weight = self.learning_rate * (
+        #    np.log((1. - estimator_error) / estimator_error) + np.log(n_classes - 1))
 
        
         # Only boost the weights if I will fit again
