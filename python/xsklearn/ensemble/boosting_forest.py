@@ -348,7 +348,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  =  np.exp(1. - self.oob_err_)
+        adjust  = np.ones(len(self.oob_err_))#np.exp(1. - self.oob_err_)
 
         # Reduce
         proba = all_proba[0]
@@ -640,7 +640,7 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  =  np.exp(1. - self.oob_err_)
+        adjust  = np.ones(len(self.oob_err_)) #np.exp(1. - self.oob_err_) # #
         
         # Reduce
         proba = all_proba[0]*adjust[0]
@@ -793,8 +793,13 @@ class BoostedForestClassifier(AdaBoostClassifier):
             decision = (predictions[k] /
                         predictions[k].sum(axis=1)[:, np.newaxis])
             oob_decision_function.append(decision)
-            oob_score += np.average(y[:, k] !=
-                                 np.argmax(predictions[k], axis=1), weights=sample_weight, axis=0)
+            
+            #
+            oob_ids = np.where(decision.sum(1) > 0)
+            oob_score += np.average(y[oob_ids, k].ravel() !=
+                                 np.argmax(decision[oob_ids], axis=1), weights=sample_weight[oob_ids], axis=0)
+            #oob_score += np.average(y[:, k].ravel() !=
+            #                     np.argmax(predictions[k], axis=1), weights=sample_weight, axis=0)
 
         if rf.n_outputs_ == 1:
             rf.oob_decision_function_ = oob_decision_function[0]
@@ -859,7 +864,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
         n_classes = self.n_classes_
 
         # Stop if the error is at least as bad as random guessing
-        
+        '''
         if (len(self.estimators_) > 1 and 
             (estimator_error >= 1. - (1. / n_classes) or 
             np.isnan(estimator_error))):
@@ -870,7 +875,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                                  'ensemble is worse than random, ensemble '
                                  'can not be fit.')
             return None, None, None
-        
+        '''
         # Boost weight
         #estimator_weight = self.learning_rate * (
         #    np.log((1. - estimator_error) / estimator_error) + np.log(n_classes - 1))
@@ -880,9 +885,6 @@ class BoostedForestClassifier(AdaBoostClassifier):
         if not iboost == self.n_estimators - 1:
             # Only boost positive weights
             sample_weight = sample_weight_aux
-
-        # trying to save some memory
-        del estimator.oob_decision_function_
 
         return sample_weight, estimator_weight, estimator_error 
 
@@ -961,9 +963,28 @@ class BoostedForestClassifier(AdaBoostClassifier):
             if iboost < self.n_estimators - 1:
                 # Normalize
                 sample_weight /= sample_weight_sum
-
+ 
         return self
     
+    def prune(self, y):
+        from sklearn.metrics import f1_score
+        ada_discrete_err = np.zeros((self.n_estimators,))
+        for i, decision in enumerate(self.oob_staged_decision_function()):
+            #if self.n_classes_ == 2:
+            #    oob_ids = np.where(df != 0)
+            #    y_pred = self.classes_.take(df[oob_ids] > 0, axis=0)
+            #else:
+            (oob_ids, ) = np.where(decision.sum(1) > 0)
+            
+            y_pred = self.classes_.take(np.argmax(decision, axis=1), axis=0)
+            
+            ada_discrete_err[i] = f1_score(y_true=y, y_pred=y_pred, average='macro')
+
+        print(ada_discrete_err[:], (np.argmax(ada_discrete_err)))
+        self.estimators_ = self.estimators_[:(np.argmax(ada_discrete_err) + 1)]
+        self.estimator_weights_[(np.argmax(ada_discrete_err) + 1):] = 0   
+
+
     def decision_function(self, X):
         """Compute the decision function of ``X``.
         Parameters
@@ -1003,6 +1024,119 @@ class BoostedForestClassifier(AdaBoostClassifier):
             return pred.sum(axis=1)
         
         return pred
+
+    def oob_decision_function(self, X):
+        """Compute the decision function of ``X``.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        score : array, shape = [n_samples, k]
+            The decision function of the input samples. The order of
+            outputs is the same of that of the `classes_` attribute.
+            Binary classification is a special cases with ``k == 1``,
+            otherwise ``k==n_classes``. For binary classification,
+            values closer to -1 or 1 mean more like the first or second
+            class in ``classes_``, respectively.
+        """
+        #check_is_fitted(self, "n_classes_")
+        X = self._validate_X_predict(X)
+
+        n_classes = self.n_classes_
+        classes = self.classes_[:, np.newaxis]
+        pred = None
+
+     
+        pred = sum((np.argmax(estimator.oob_decision_function_, axis=1) == classes).T * w
+                   for estimator, w in zip(self.estimators_,
+                                           self.estimator_weights_))
+
+        
+        pred /= self.estimator_weights_.sum()
+        print pred
+        exit()
+        if n_classes == 2:
+            pred[:, 0] *= -1
+            return pred.sum(axis=1)
+        
+        return pred
+
+    def oob_staged_predict(self):
+        """Return staged predictions for X.
+        The predicted class of an input sample is computed as the weighted mean
+        prediction of the classifiers in the ensemble.
+        This generator method yields the ensemble prediction after each
+        iteration of boosting and therefore allows monitoring, such as to
+        determine the prediction on a test set after each boost.
+        Parameters
+        ----------
+        X : array-like of shape = [n_samples, n_features]
+            The input samples.
+        Returns
+        -------
+        y : generator of array, shape = [n_samples]
+            The predicted classes.
+        """
+        n_classes = self.n_classes_
+        classes = self.classes_
+
+        if False and n_classes == 2:
+            for pred in self.oob_staged_decision_function():
+                yield np.array(classes.take(pred > 0, axis=0))
+
+        else:
+            for pred in self.oob_staged_decision_function():
+                yield np.array(classes.take(
+                        np.argmax(pred, axis=1), axis=0))
+
+
+    def oob_staged_decision_function(self):
+        """Compute decision function of ``X`` for each boosting iteration.
+        This method allows monitoring (i.e. determine error on testing set)
+        after each boosting iteration.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        score : generator of array, shape = [n_samples, k]
+            The decision function of the input samples. The order of
+            outputs is the same of that of the `classes_` attribute.
+            Binary classification is a special cases with ``k == 1``,
+            otherwise ``k==n_classes``. For binary classification,
+            values closer to -1 or 1 mean more like the first or second
+            class in ``classes_``, respectively.
+        """
+        n_classes = self.n_classes_
+        classes = self.classes_[:, np.newaxis]
+        pred = np.zeros((self.estimators_[0].oob_decision_function_.shape[0],n_classes))
+        norm = 0.
+
+        for weight, estimator in zip(self.estimator_weights_,
+                                     self.estimators_):
+            norm += weight
+            
+            oob_ids = np.where(estimator.oob_decision_function_.sum(1) > 0)
+
+            current_pred = classes.take(
+                        np.argmax(estimator.oob_decision_function_[oob_ids], axis=1), axis=0)
+            
+            current_pred = (current_pred.T == classes).T * weight
+
+            pred[oob_ids] += current_pred
+
+            #if n_classes == 2:
+            #    tmp_pred = np.copy(pred)
+            #    tmp_pred[:, 0] *= -1
+            #    yield (tmp_pred / norm).sum(axis=1)
+            #else:
+            yield pred / norm
+
 
 class Broof(BoostedForestClassifier):
     def __init__(self,
