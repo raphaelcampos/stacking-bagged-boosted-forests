@@ -812,7 +812,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
                         normalizer[:, np.newaxis])
             oob_decision_function.append(decision)
             
-            
+            oob_ids = np.where(decision.sum(1) > 0)
             oob_score += np.average(y[oob_ids, k].ravel() !=
                                  np.argmax(decision[oob_ids], axis=1), weights=sample_weight[oob_ids], axis=0)
             #oob_score += np.average(y[:, k].ravel() !=

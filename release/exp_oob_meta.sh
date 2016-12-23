@@ -11,7 +11,7 @@ execute(){
 	i=$4
 	lr=$5
 	dataset=$6
-	python ../python/main.py -m ${m} ${dataset_dir}/${dataset}.svm -f ${f} -t ${t} -i ${i} --learning_rate ${lr} --trials ${trials} -j ${n_jobs} --dump_meta_level %s_%s_meta${dataset}_fold%d.svm
+	python ../python/main.py -m ${m} ${dataset_dir}/${dataset}.svm -f ${f} -t ${t} -i ${i} --learning_rate ${lr} --trials ${trials} -j ${n_jobs} --dump_meta_level ${output_dir}/%s_%s_meta${dataset}_fold%d.svm
 }
 
 # RF
