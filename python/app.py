@@ -105,6 +105,7 @@ class ClassificationApp(BaseApp):
 		self.parser.add_argument("-n", "--norm", help='Dataset sample normalization', choices=["max", "l1", "l2"], default=None)
 
 		self.parser.add_argument("-d", "--dump", type=str, help='Save each fold stacking.',default="")
+		self.parser.add_argument("--dump_meta_level", type=str, help='Save each fold stacking.',default="")
 
 
 	def parse_arguments(self):
@@ -197,27 +198,47 @@ class ClassificationApp(BaseApp):
 				X_train = tf_transformer.transform(X_train)
 				X_test = tf_transformer.transform(X_test)
 
-
 			if(args.cv > 1):
-				n_jobs = 1 if hasattr(estimator,"n_jobs") else args.n_jobs
-				gs = GridSearchCV(estimator, tuned_parameters,
+				n_jobs = 1 if hasattr(estimator, "n_jobs") else args.n_jobs
+				gs =  GridSearchCV(estimator, tuned_parameters,
 							 n_jobs=n_jobs, refit=False,
 							 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print(gs.best_score_, gs.best_params_)
 				estimator.set_params(**gs.best_params_)
-				print(estimator.get_params())
-
+				
 			e = clone(estimator)
 			# fit and predict
 			start = time.time()
-			e.fit(X_train.tocsc(), y_train)
-			pred = e.predict(X_test.tocsc()) 
-			if hasattr(e, 'staged_predict'):
+			e.fit(X_train, y_train)
+			if True and hasattr(e, 'staged_predict'):
 				ada_discrete_err = np.zeros((args.n_iterations,))
 				for i, y_pred in enumerate(e.staged_predict(X_test)):
 					ada_discrete_err[i] = np.mean(y_pred == y_test)
+				print(ada_discrete_err)	
+				for i, y_pred in enumerate(e.staged_predict(X_test)):
+					ada_discrete_err[i] = f1_score(y_true=y_test, y_pred=y_pred, average='macro')
 				print(ada_discrete_err)
+				for i, y_pred in enumerate(e.oob_staged_decision_function()):
+					(oob_ids, ) = np.where(y_pred.sum(1) > 0)
+					y_pred = np.argmax(y_pred[oob_ids], axis=1)
+					ada_discrete_err[i] = f1_score(y_true=y_train[oob_ids], y_pred=y_pred, average='micro')
+				print(ada_discrete_err)
+				for i, y_pred in enumerate(e.oob_staged_decision_function()):
+					(oob_ids, ) = np.where(y_pred.sum(1) > 0)
+					y_pred = np.argmax(y_pred[oob_ids], axis=1)
+					ada_discrete_err[i] = f1_score(y_true=y_train[oob_ids], y_pred=y_pred, average='macro')
+				print(ada_discrete_err)
+				#e.prune(y_train)
+
+			if args.dump_meta_level != "":
+				if hasattr(e, 'oob_decision_function_'):
+					X_oob = e.oob_decision_function_/e.oob_decision_function_.sum(1)[:,np.newaxis]
+					dump_svmlight_file(X_oob, y_train, args.dump_meta_level % ("train", args.method, k))
+					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
+
+
+			pred = e.predict(X_test) 
 			end = time.time()
 
 			import pickle
@@ -277,6 +298,8 @@ class TextClassificationApp(ClassificationApp):
 
 		self.parser.add_argument("-f", "--max_features", help='The number of features to consider when looking for the best split (Default:sqrt).', default='sqrt')
 
+		self.parser.add_argument("--criterion", help='Split criterion (Default:gini).', default='gini')
+
 		self.parser.add_argument("--learning_rate", type=float, help='Algorithm learning rate. It controls algorithm\'s convergence.', default=1.0)
 
 		self.parser.add_argument("-a","--alpha", type=float, help='Additive (Laplace/Lidstone) smoothing parameter (0 for no smoothing).(Default: 1)', default=1)
@@ -315,7 +338,8 @@ class TextClassificationApp(ClassificationApp):
 		try:
 			args.max_features = float(args.max_features)
 		except Exception as e:
-			pass
+			if args.max_features == "random":
+				args.max_features = 1
 
 		return args 
 
