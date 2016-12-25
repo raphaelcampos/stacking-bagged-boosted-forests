@@ -21,7 +21,8 @@ class MetaLevelTransformerCV(object):
 				 n_folds = 5,
 				 stratified = True,
 				 probability = True,
-				 random_state = None):
+				 random_state = None,
+				 fit_whole_data=True):
 		super(MetaLevelTransformerCV, self).__init__()
 		
 		self.base_estimators = base_estimators
@@ -29,6 +30,7 @@ class MetaLevelTransformerCV(object):
 		self.stratified = stratified
 		self.probability = probability
 		self.random_state = random_state
+		self.fit_whole_data = fit_whole_data
 
 
 	def fit(self, X, y):
@@ -128,8 +130,8 @@ class MetaLevelTransformerCV(object):
 				# force memory release
 				del e
 
-		from sklearn.datasets import dump_svmlight_file
-		dump_svmlight_file(Xi, y, "meta%s_fold%d.svm" % (MetaLevelTransformerCV.DATA + MetaLevelTransformerCV.FOLD))
+		#from sklearn.datasets import dump_svmlight_file
+		#dump_svmlight_file(Xi, y, "meta%s_fold%d.svm" % (MetaLevelTransformerCV.DATA + MetaLevelTransformerCV.FOLD))
 		#exit()
 		
 

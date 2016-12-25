@@ -830,7 +830,7 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
 
         alpha = self.learning_rate * (
-                   ((1. - rf.oob_score_) / rf.oob_score_))# + np.log(rf.n_classes_ - 1))
+                   np.log((1. - rf.oob_score_) / rf.oob_score_) + np.log(rf.n_classes_ - 1))
         
         rf.alpha_ = alpha
         rf.mask_ = estimator_weight 
@@ -1206,6 +1206,43 @@ class BoostedForestClassifier(AdaBoostClassifier):
                         for estimator, w in zip(self.estimators_,
                                                 self.estimator_weights_))
 
+        proba /= self.estimator_weights_.sum()
+        #proba = np.exp((1. / (n_classes - 1)) * proba)
+        normalizer = proba.sum(axis=1)[:, np.newaxis]
+        normalizer[normalizer == 0.0] = 1.0
+        proba /= normalizer
+
+        return proba
+
+    def predict_proba_(self, X):
+        """Predict class probabilities for X.
+        The predicted class probabilities of an input sample is computed as
+        the weighted mean predicted class probabilities of the classifiers
+        in the ensemble.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        p : array of shape = [n_samples]
+            The class probabilities of the input samples. The order of
+            outputs is the same of that of the `classes_` attribute.
+        """
+        #check_is_fitted(self, "n_classes_")
+
+        n_classes = self.n_classes_
+        X = self._validate_X_predict(X)
+
+
+        proba = [estimator.predict_proba(X) 
+                        for estimator, w in zip(self.estimators_,
+                                                self.estimator_weights_)]
+        return np.hstack(proba)
+        import pdb
+        pdb.set_trace()
+        exit()
         proba /= self.estimator_weights_.sum()
         #proba = np.exp((1. / (n_classes - 1)) * proba)
         normalizer = proba.sum(axis=1)[:, np.newaxis]

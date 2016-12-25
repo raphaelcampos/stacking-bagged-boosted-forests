@@ -235,8 +235,13 @@ class ClassificationApp(BaseApp):
 				if hasattr(e, 'oob_decision_function_'):
 					X_oob = e.oob_decision_function_/e.oob_decision_function_.sum(1)[:,np.newaxis]
 					dump_svmlight_file(X_oob, y_train, args.dump_meta_level % ("train", args.method, k))
+					#dump_svmlight_file(e.predict_proba(X_train), y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
-
+				else:
+					from xsklearn.ensemble import MetaLevelTransformerCV
+					mt = MetaLevelTransformerCV([clone(estimator)], fit_whole_data=False)
+					dump_svmlight_file(mt.fit_transform(X_train, y_train), y_train, args.dump_meta_level % ("train", args.method, k))
+					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
 
 			pred = e.predict(X_test) 
 			end = time.time()
