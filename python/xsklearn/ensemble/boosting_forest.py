@@ -1214,6 +1214,24 @@ class BoostedForestClassifier(AdaBoostClassifier):
 
         return proba
 
+    def predict(self, X):
+        """Predict classes for X.
+        The predicted class of an input sample is computed as the weighted mean
+        prediction of the classifiers in the ensemble.
+        Parameters
+        ----------
+        X : {array-like, sparse matrix} of shape = [n_samples, n_features]
+            The training input samples. Sparse matrix can be CSC, CSR, COO,
+            DOK, or LIL. DOK and LIL are converted to CSR.
+        Returns
+        -------
+        y : array of shape = [n_samples]
+            The predicted classes.
+        """
+        pred = self.predict_proba(X)
+
+        return self.classes_.take(np.argmax(pred, axis=1), axis=0)
+
     def predict_proba_(self, X):
         """Predict class probabilities for X.
         The predicted class probabilities of an input sample is computed as
