@@ -208,6 +208,7 @@ class ClassificationApp(BaseApp):
 				estimator.set_params(**gs.best_params_)
 				
 			e = clone(estimator)
+				
 			# fit and predict
 			start = time.time()
 			e.fit(X_train, y_train)
@@ -233,7 +234,13 @@ class ClassificationApp(BaseApp):
 
 			if args.dump_meta_level != "":
 				if hasattr(e, 'oob_decision_function_'):
-					X_oob = e.oob_decision_function_/e.oob_decision_function_.sum(1)[:,np.newaxis]
+					# missing values
+					e.oob_decision_function_[np.isnan(e.oob_decision_function_)] = 0
+					print(e.oob_decision_function_[np.isnan(e.oob_decision_function_)])
+					norm = e.oob_decision_function_.sum(1)
+					print("Missing instances: %f" % (np.sum(norm == 0)/float(norm.shape[0])))
+					norm[norm == 0] = 1.
+					X_oob = e.oob_decision_function_/norm[:,np.newaxis]
 					dump_svmlight_file(X_oob, y_train, args.dump_meta_level % ("train", args.method, k))
 					#dump_svmlight_file(e.predict_proba(X_train), y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
@@ -311,6 +318,8 @@ class TextClassificationApp(ClassificationApp):
 
 		self.parser.add_argument("-c", "--C", type=float, help='Penalty parameter C of the error term. For SVM training. (Default: 1)', default=1)
 
+		self.parser.add_argument("-b", "--base_estimator", choices=self.instantiator.get_estimators(), default='dt')
+
 
 	def _setup_instantiator(self, args):
 		random_instance = check_random_state(args.seed)
@@ -322,11 +331,18 @@ class TextClassificationApp(ClassificationApp):
 		estimators_params = {
 			'rf':	{'n_estimators': args.trees},
 			'xt': 	{'n_estimators': args.trees},
+			'bag': 	{'n_estimators': args.trees},
 			'lazy':	{'n_estimators': args.trees},
 			'lxt': 	{'n_estimators': args.trees},
 			'broof':{'n_trees': args.trees},
 			'bert': {'n_trees': args.trees},
 			'xgb': {'n_estimators': args.trees}
+		}
+
+		self.instantiator.set_params(estimators_params)
+
+		estimators_params = {
+			'bag':	{'base_estimator': self.instantiator.get_instance(args.base_estimator)}
 		}
 
 		self.instantiator.set_params(estimators_params)

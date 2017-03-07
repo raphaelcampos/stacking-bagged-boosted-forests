@@ -23,8 +23,8 @@ class EstimatorInstantiator(object):
 
 		default_params = self.default_params[estimator].copy()
 
-		if not params is None:
-			self.default_params.update(params)
+		if params:
+			default_params.update(params)
 
 
 		return self.base_estimators[estimator]().set_params(
