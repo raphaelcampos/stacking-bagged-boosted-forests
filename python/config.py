@@ -13,7 +13,7 @@ default_tuning_params: dict, {'estimator_name': dict}
 from sklearn import naive_bayes, neighbors, svm, ensemble, tree
 from sklearn import linear_model, discriminant_analysis
 
-from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees 
+from xsklearn.neighbors import LazyNNRF, LazyNNExtraTrees, LazyNNBroof
 from xsklearn.ensemble import Broof, Bert, VIG, DecisionTemplates, SCANN
 from xsklearn.linear_model import MLR, LinearSVM, LinearModelTree
 from xsklearn import DSC
@@ -35,6 +35,7 @@ base_estimators = {
 	'lazy': LazyNNRF,
 	'lxt': LazyNNExtraTrees,
 	'broof': Broof,
+	'lazy_broof': LazyNNBroof,
 	'bert': Bert,
 	'mlr': MLR,
 	'dt': tree.DecisionTreeClassifier,#LinearModelTree
@@ -49,7 +50,9 @@ base_estimators = {
 	'adarf': ensemble.AdaBoostClassifier,
 	'dsc': DSC,
 	'xgb': xgb.XGBClassifier,
-	'scann': SCANN
+	'scann': SCANN,
+	'cent': neighbors.NearestCentroid,
+	'bag': ensemble.BaggingClassifier
 }
 
 # default parameters for text classification
@@ -67,7 +70,7 @@ default_params = {
 	'knn': 	{'n_neighbors': 30, 'n_jobs': 1, 'algorithm': 'brute',
 			 'metric': 'cosine', 'metric_params': None, 'p': 2, 
 			 'weights': 'distance', 'leaf_size': 30},
-	'rf':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
+	'rf':  	{'warm_start': False, 'oob_score': True, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': True, 'min_samples_leaf': 1,
 			 'n_estimators': 200, 'min_samples_split': 2,
 			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
@@ -91,18 +94,24 @@ default_params = {
 			 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
 			 'criterion': 'gini', 'random_state': None, 'max_features': 'auto',
 			 'max_depth': None, 'class_weight': None},
+	'lazy_broof':	{'warm_start': False, 'n_neighbors': 8, 'n_gpus': 0, 'n_jobs': 1,
+			 'verbose': 0, 'max_leaf_nodes': None, 'bootstrap': True,
+			 'oob_score': False, 'min_samples_leaf': 1, 'n_estimators': 24, 
+			 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 
+			 'criterion': 'gini', 'random_state': None, 'max_features': 'auto',
+			 'max_depth': None, 'class_weight': None},
 	'broof':{'warm_start': False, 'n_jobs': 1, 'verbose': 0, 'n_iterations': 200,
 			 'max_leaf_nodes': None, 'learning_rate': 1, 'n_trees': 10, 
 			 'min_samples_leaf': 1, 'min_samples_split': 2, 
 			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
-			 'class_weight': None},
+			 'class_weight': None, 'oob_error':False, 'selective_updates':False},
 	'bert': {'warm_start': False, 'n_jobs': 1, 'verbose': 0, 'n_iterations': 200,
-			 'max_leaf_nodes': None, 'learning_rate': 1, 'n_trees': 8, 
-			 'min_samples_leaf': 1, 'min_samples_split': 2, 
-			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini', 
-			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
-			 'class_weight': None},
+			 'max_leaf_nodes': None, 'learning_rate': 1, 'n_trees': 8,
+			 'min_samples_leaf': 1, 'min_samples_split': 2,
+			 'min_weight_fraction_leaf': 0.0, 'criterion': 'gini',
+			 'random_state': None, 'max_features': 'auto', 'max_depth': None,
+			 'class_weight': None, 'oob_error':False, 'selective_updates':False},
 	'mlr':	{},
 	'dt': 	{'max_features': 1.0, 'max_leaf_nodes': None,
 			 'min_weight_fraction_leaf': 0.0, 'splitter': 'best',
@@ -129,11 +138,16 @@ default_params = {
 	'adarf': {'n_estimators': 200, 'base_estimator': ensemble.RandomForestClassifier(n_jobs=8,max_features=0.15,n_estimators=20),
 			 'random_state': None, 'learning_rate': 1, 'algorithm': 'SAMME.R'},
 	'dsc': {'alpha': 2.0},
-	'xgb': {'reg_alpha': 0, 'colsample_bytree': 1.0, 'silent': True, 'colsample_bylevel': 0.5,
+	'xgb': {'reg_alpha': 0, 'colsample_bytree': 1.0, 'silent': True, 'colsample_bylevel': 1.,
  				'scale_pos_weight': 1, 'learning_rate': 0.1, 'missing': None, 'max_delta_step': 0,
- 				'nthread': 7, 'base_score': 0.5, 'n_estimators': 200, 'subsample': 1.0, 'reg_lambda': 1,
- 				'seed': 42, 'min_child_weight': 1, 'objective': 'binary:logistic', 'max_depth': 50, 'gamma': 0},
- 	'scann': {}
+ 				'nthread': 8, 'base_score': 0.5, 'n_estimators': 200, 'subsample': 1., 'reg_lambda': 1,
+ 				'seed': 42, 'min_child_weight': 2, 'objective': 'binary:logistic', 'max_depth': 5, 'gamma': 0},
+ 	'scann': {},
+ 	'cent': {'metric': 'cosine'},
+ 	'bag': {'warm_start': False, 'max_samples': 1.0, 'base_estimator': None, 
+ 					'n_jobs': 1, 'verbose': 0, 'bootstrap': True, 'oob_score': True,
+ 				 	'n_estimators': 10, 'random_state': None, 'max_features': 1.0,
+ 				 	'bootstrap_features': False}
 }
 
 default_tuning_params = {
@@ -141,9 +155,8 @@ default_tuning_params = {
 	'lsvm': [{'C': 2.0 ** np.arange(-5, 9, 2)}],
 	'nb':  	[{'alpha': [0.0001, 0.001, 0.01, 0.1,0.5,1,1.5,10,100]}],
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300], 'weights': ['uniform', 'distance']}],
-	'rf': [{'criterion': ['entropy', 'gini'], 
-			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
-			0.15, 0.30]}],
+	'rf': [{'criterion': ['entropy', 'gini'], 'max_depth': [2, 3, 5, 8],
+			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08]}],
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],
@@ -151,8 +164,8 @@ default_tuning_params = {
 			'n_estimators': [100], 'max_features': ['sqrt']}],
 	'lxt': [{'n_neighbors': [10, 30, 100, 200, 300, 500], 'criterion': ['entropy', 'gini'], 
 			'n_estimators': [100], 'max_features': ['sqrt']}],
-	'broof': [{'n_trees': [5], 'n_iterations': [50],
-				'max_features': [0.08]}],
+	'broof': [{}],
+	'lazy_broof': [{}],
 	'bert': [{'n_trees': [5, 8, 10, 15, 25], 'n_iterations': [50, 100, 200],
 				'max_features': ['sqrt', 'log2', 0.08, 0.15, 0.30]}],
 	'mlr': [],
@@ -169,7 +182,9 @@ default_tuning_params = {
 	'dsc': [{'alpha': [0, 0.25, 0.5, 0.75, 1.0, 2.0, 5.0, 10.0]}],
 	'scann': [{}],
 	#'xgb': [{'colsample_bytree': [0.1, 0.3, 0.5, 0.7, 1.0], 'subsample': [0.5, 0.7, 1.0]}]
-	'xgb': [{'colsample_bytree': [0.1, 0.3, 0.5, 0.7, 1.0]}]#'reg_lambda': [0, 1e-5, 1e-2, 0.1, 1, 100], 'reg_alpha': [0, 1e-5, 1e-2, 0.1, 1, 100]}]
+	'xgb': [{'colsample_bytree': [0.1, 0.3, 0.5, 0.7, 1.0]}],#'reg_lambda': [0, 1e-5, 1e-2, 0.1, 1, 100], 'reg_alpha': [0, 1e-5, 1e-2, 0.1, 1, 100]}]
+	'cent': [{}],
+	'bag': [{}]
 }
 
 default_transformers = {
@@ -195,3 +210,15 @@ default_transformers = {
 	'gbt': [],
 	'adarf': []
 }
+
+from sklearn.preprocessing import normalize
+from sklearn.metrics.pairwise import cosine_similarity
+class CentrionDRTransformer(object):
+
+	def fit(self, X, y):
+		self.centroids_ = neighbors.NearestCentroid(metric="cosine")\
+												.fit(X, y).centroids_
+		return self
+
+	def transform(self, X):
+		return normalize(cosine_similarity(X, self.centroids_))
