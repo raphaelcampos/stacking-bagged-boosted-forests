@@ -348,11 +348,11 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  = np.exp(1. - self.oob_err_)#np.ones(len(self.oob_err_))
+        adjust  = np.ones(len(self.oob_err_)) # np.exp(1. - self.oob_err_)#
 
         # Reduce
         proba = all_proba[0]
-        
+
         adjust_sum = adjust.sum()
         if self.n_outputs_ == 1:
             for j in range(1, len(all_proba)):
@@ -367,7 +367,7 @@ class BoostedRandomForestClassifier(RandomForestClassifier):
 
             for k in range(self.n_outputs_):
                 proba[k] /= self.n_estimators
-        
+
         return proba
 
 class BoostedExtraTreesClassifier(ExtraTreesClassifier):
@@ -640,11 +640,11 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
                                       check_input=False)
             for e in self.estimators_)
 
-        adjust  = np.exp(1. - self.oob_err_) # ##np.ones(len(self.oob_err_)) #
-        
+        adjust  = np.ones(len(self.oob_err_)) #np.exp(1. - self.oob_err_) # np.ones(len(self.oob_err_)) #
+
         # Reduce
         proba = all_proba[0]*adjust[0]
-        
+
         adjust_sum = adjust.sum()
         if self.n_outputs_ == 1:
             for j in range(1, len(all_proba)):
@@ -659,7 +659,7 @@ class BoostedExtraTreesClassifier(ExtraTreesClassifier):
 
             for k in range(self.n_outputs_):
                 proba[k] /= self.n_estimators
-        
+
         return proba
 
 
@@ -706,11 +706,15 @@ class BoostedForestClassifier(AdaBoostClassifier):
                  learning_rate=1,
                  random_state=None,
                  weighting_algorithm='broof',
+                 oob_error=True,
+                 selective_updates=True,
                  aux_mem=True):
         
         self.weighting_algorithm = weighting_algorithm
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
+        self.oob_error = oob_error
+        self.selective_updates = selective_updates
         
         self.aux_mem = aux_mem
 
@@ -801,8 +805,9 @@ class BoostedForestClassifier(AdaBoostClassifier):
                 p_estimator = [p_estimator]
 
             for k in range(rf.n_outputs_):
-                adjust = np.exp(1. - oob_err[k][i])
-                predictions[k][unsampled_indices, :] += p_estimator[k] * adjust                                  
+                # adjust = np.exp(1. - oob_err[k][i])
+                # print(p_estimator[k])
+                predictions[k][unsampled_indices, :] += p_estimator[k]
 
 
         for k in range(rf.n_outputs_):
@@ -813,8 +818,13 @@ class BoostedForestClassifier(AdaBoostClassifier):
             oob_decision_function.append(decision)
             
             oob_ids = np.where(decision.sum(1) > 0)
+            w = sample_weight[oob_ids]
+            if w.sum() == 0:
+                # w = np.ones(w.shape)
+                print("pesos:", predictions[k], normalizer)
             oob_score += np.average(y[oob_ids, k].ravel() !=
-                                 np.argmax(decision[oob_ids], axis=1), weights=sample_weight[oob_ids], axis=0)
+                                 np.argmax(decision[oob_ids], axis=1),
+                                 weights=w, axis=0)
             #oob_score += np.average(y[:, k].ravel() !=
             #                     np.argmax(predictions[k], axis=1), weights=sample_weight, axis=0)
 
@@ -828,16 +838,30 @@ class BoostedForestClassifier(AdaBoostClassifier):
         rf.decision_function_ = oob_decision_function
         rf.oob_score_ = oob_score / rf.n_outputs_
 
+        y_pred = rf.predict(X)
+        incorrect = y_pred != y.flatten()
 
-        alpha = self.learning_rate * (
-                   np.log((1. - rf.oob_score_) / rf.oob_score_) + np.log(rf.n_classes_ - 1))
+        # Error fraction
+        estimator_error = np.mean(
+            np.average(incorrect, weights=sample_weight, axis=0))
+
+        if self.oob_error:
+            alpha = self.learning_rate * (
+                            np.log((1. - rf.oob_score_) / rf.oob_score_) +
+                            np.log(rf.n_classes_ - 1))
+        else:
+            alpha = self.learning_rate * (
+                            np.log((1. - estimator_error) / estimator_error) +
+                            np.log(rf.n_classes_ - 1))
         
         rf.alpha_ = alpha
-        rf.mask_ = estimator_weight 
-        #print(estimator_weight)
-        estimator_weight = estimator_weight > 0
-        #print(estimator_weight)
-        sample_weight_tmp = sample_weight * np.exp(alpha * estimator_weight)
+        rf.mask_ = estimator_weight
+
+        if not self.selective_updates:
+            estimator_weight = incorrect
+            
+        print(estimator_weight)    
+        sample_weight_tmp = sample_weight * np.exp(alpha * (estimator_weight > 0))
 
         return sample_weight_tmp, alpha
 
@@ -1286,6 +1310,8 @@ class Broof(BoostedForestClassifier):
                  verbose=0,
                  warm_start=False,
                  class_weight=None,
+                 oob_error=True,
+                 selective_updates=True,
                  aux_mem=False):    
 
         super(Broof, self).__init__(
@@ -1302,7 +1328,9 @@ class Broof(BoostedForestClassifier):
             n_estimators = n_iterations,
             learning_rate = learning_rate,
             random_state = random_state,
-            aux_mem=aux_mem
+            aux_mem=aux_mem,
+            oob_error=oob_error,
+            selective_updates=selective_updates,
             )
 
         self.n_jobs = n_jobs
@@ -1337,7 +1365,9 @@ class Bert(BoostedForestClassifier):
                  verbose=0,
                  warm_start=False,
                  class_weight=None,
-                 aux_mem=False):    
+                 oob_error=True,
+                 selective_updates=True,
+                 aux_mem=False,):    
 
         super(Bert, self).__init__(
             base_estimator=BoostedExtraTreesClassifier(n_estimators=n_trees,
@@ -1350,9 +1380,11 @@ class Bert(BoostedForestClassifier):
                                  max_leaf_nodes=max_leaf_nodes,
                                  n_jobs=n_jobs,
                                  bootstrap=True),
-            n_estimators = n_iterations,
-            learning_rate = learning_rate,
-            random_state = random_state,
+            n_estimators=n_iterations,
+            learning_rate=learning_rate,
+            random_state=random_state,
+            oob_error=oob_error,
+            selective_updates=selective_updates,
             aux_mem=aux_mem
             )
 
