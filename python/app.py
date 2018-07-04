@@ -22,6 +22,8 @@ import json
 
 MAX_INT = np.iinfo(np.int32).max
 
+from IPython import embed
+
 class BaseApp(object):
 	"""Application base class
 
@@ -84,6 +86,7 @@ class ClassificationApp(BaseApp):
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
 
 		self.parser.add_argument("-m", "--method", choices=models, default=list(models)[0])
+		self.parser.add_argument("-p", "--perform_method", choices=models, default=list(models)[0])
 
 		self.parser.add_argument("-j", "--n_jobs", type=int, help='Number of CPUs available to parallelize the execution (Default:1). If -1 is given then it gets all CPUs available', default=1)
 
@@ -205,7 +208,7 @@ class ClassificationApp(BaseApp):
 							 cv=args.cv, verbose=1, scoring='f1_micro')
 				gs.fit(X_train, y_train)
 				print(gs.best_score_, gs.best_params_)
-				estimator.set_params(**gs.best_params_)
+				estimator.set_params(**gs.best_params_) 
 				
 			e = clone(estimator)
 				
@@ -232,20 +235,62 @@ class ClassificationApp(BaseApp):
 				print(ada_discrete_err)
 				#e.prune(y_train)
 
+			def get_oob_proba(estimator):
+				# missing values
+				estimator.oob_decision_function_[np.isnan(estimator.oob_decision_function_)] = 0
+				norm = estimator.oob_decision_function_.sum(1)
+				print("Missing instances: %f" % (np.sum(norm == 0)/float(norm.shape[0])))
+				norm[norm == 0] = 1.
+				X_oob = estimator.oob_decision_function_/norm[:,np.newaxis]
+
+				return X_oob
+
+			def get_perfom_proba(args, X_train, X_test, y_perform):
+				perform_estimator = self.instantiator.get_instance(args.perform_method)
+				tuning_parameters = self.default_tuning_params[args.perform_method]
+
+				n_jobs = 1 if hasattr(perform_estimator, "n_jobs") else args.n_jobs
+				gs =  GridSearchCV(perform_estimator, tuning_parameters,
+							 n_jobs=n_jobs, refit=True,
+							 cv=3, verbose=1, scoring='f1_macro')
+
+				gs.fit(X_train, y_perform)
+
+				if hasattr(gs.best_estimator_, 'oob_decision_function_'):
+					print("aquiii....")
+					X_train_perform = get_oob_proba(gs.best_estimator_)
+				else:
+					mt = MetaLevelTransformerCV([clone(gs.best_estimator_)], 
+																		fit_whole_data=False)
+					X_train_perform = mt.fit_transform(X_train, y_perform)
+
+				print(gs.best_score_, gs.best_params_)
+
+				return X_train_perform, gs.predict_proba(X_test)
+
+			from xsklearn.ensemble import MetaLevelTransformerCV
+
 			if args.dump_meta_level != "":
 				if hasattr(e, 'oob_decision_function_'):
-					# missing values
-					e.oob_decision_function_[np.isnan(e.oob_decision_function_)] = 0
-					print(e.oob_decision_function_[np.isnan(e.oob_decision_function_)])
-					norm = e.oob_decision_function_.sum(1)
-					print("Missing instances: %f" % (np.sum(norm == 0)/float(norm.shape[0])))
-					norm[norm == 0] = 1.
-					X_oob = e.oob_decision_function_/norm[:,np.newaxis]
+					X_oob = get_oob_proba(e)
+					y_pred = np.argmax(X_oob, axis=1)
+					y_perform = (y_pred == y_train).astype(int)
+
+					# X_oob_perform = get_oob_proba(perform_estimator)
+
+					X_train_perform, X_test_perform = get_perfom_proba(args, 
+																															X_train,
+																															X_test,
+																															y_perform)
+
+					embed()
+
 					dump_svmlight_file(X_oob, y_train, args.dump_meta_level % ("train", args.method, k))
+					dump_svmlight_file(X_train_perform, y_train, args.dump_meta_level % ("train_perform", args.method, k))
+					dump_svmlight_file(X_test_perform, y_test, args.dump_meta_level % ("test_perform", args.method, k))
 					#dump_svmlight_file(e.predict_proba(X_train), y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
 				else:
-					from xsklearn.ensemble import MetaLevelTransformerCV
 					mt = MetaLevelTransformerCV([clone(estimator)], fit_whole_data=False)
 					dump_svmlight_file(mt.fit_transform(X_train, y_train), y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
