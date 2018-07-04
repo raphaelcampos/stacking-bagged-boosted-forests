@@ -18,16 +18,16 @@ execute(){
 execute rf 0.08 200 1 1.0 4uni
 execute rf sqrt 200 1 1.0 acm
 execute rf log2 200 1 1.0 20ng
-execute rf sqrt 200 1 1.0 reuters90
+execute rf 0.08 200 1 1.0 reuters90
 
 # BROOF
 execute broof 0.08 8 200 1.0 4uni
 execute broof sqrt 8 200 1.0 acm
 execute broof log2 8 200 1.0 20ng
-execute broof sqrt 8 200 1.0 reuters90
+execute broof 0.08 8 200 1.0 reuters90
 
 # BERT
 execute bert 0.3 8 200 1.0 4uni
 execute bert sqrt 8 200 1.0 acm
 execute bert log2 8 200 1.0 20ng
-execute bert sqrt 8 200 1.0 reuters90
+execute bert 0.3 8 200 1.0 reuters90
