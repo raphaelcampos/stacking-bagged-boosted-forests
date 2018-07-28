@@ -85,7 +85,8 @@ class TextClassification2App(TextClassificationApp):
 		n_classes = len(np.unique(y_train))
 		feats = (n_classes*i + np.arange(n_classes)).ravel()
 		
-		return X_train.toarray()[:,feats], X_test.toarray()[:,feats], y_train, y_test
+		# return X_train.toarray()[:,feats], X_test.toarray()[:,feats], y_train, y_test
+		return X_train.toarray(), X_test.toarray(), y_train, y_test
 
 	def run(self, args):
 		X_train, X_test, y_train, y_test = self._load_dataset(args)
