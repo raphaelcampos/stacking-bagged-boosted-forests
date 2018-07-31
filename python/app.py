@@ -269,31 +269,30 @@ class ClassificationApp(BaseApp):
 				return X_train_perform, gs.predict_proba(X_test)
 
 			from xsklearn.ensemble import MetaLevelTransformerCV
-
+			X_oob = None
 			if args.dump_meta_level != "":
 				if hasattr(e, 'oob_decision_function_'):
 					X_oob = get_oob_proba(e)
-					y_pred = np.argmax(X_oob, axis=1)
-					y_perform = (y_pred == y_train).astype(int)
-
-					# X_oob_perform = get_oob_proba(perform_estimator)
-
-					X_train_perform, X_test_perform = get_perfom_proba(args, 
-																															X_train,
-																															X_test,
-																															y_perform)
-
-					embed()
-
 					dump_svmlight_file(X_oob, y_train, args.dump_meta_level % ("train", args.method, k))
-					dump_svmlight_file(X_train_perform, y_train, args.dump_meta_level % ("train_perform", args.method, k))
-					dump_svmlight_file(X_test_perform, y_test, args.dump_meta_level % ("test_perform", args.method, k))
-					#dump_svmlight_file(e.predict_proba(X_train), y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
 				else:
 					mt = MetaLevelTransformerCV([clone(estimator)], fit_whole_data=False)
-					dump_svmlight_file(mt.fit_transform(X_train, y_train), y_train, args.dump_meta_level % ("train", args.method, k))
+					X_cv = mt.fit_transform(X_train, y_train)
+					dump_svmlight_file(X_cv, y_train, args.dump_meta_level % ("train", args.method, k))
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
+					X_oob = X_cv
+
+			y_pred = np.argmax(X_oob, axis=1)
+			y_perform = (y_pred == y_train).astype(int)
+
+			# X_oob_perform = get_oob_proba(perform_estimator)
+			X_train_perform, X_test_perform = get_perfom_proba(args, 
+				X_train,
+				X_test,
+				y_perform)
+
+			dump_svmlight_file(X_train_perform, y_train, args.dump_meta_level % ("train_perform", args.method, k))
+			dump_svmlight_file(X_test_perform, y_test, args.dump_meta_level % ("test_perform", args.method, k))
 
 			pred = e.predict(X_test) 
 			end = time.time()
