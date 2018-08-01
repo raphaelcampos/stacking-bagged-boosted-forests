@@ -155,7 +155,7 @@ default_tuning_params = {
 	'lsvm': [{'C': 2.0 ** np.arange(-5, 9, 2)}],
 	'nb':  	[{'alpha': [0.0001, 0.001, 0.01, 0.1,0.5,1,1.5,10,100]}],
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300], 'weights': ['uniform', 'distance']}],
-	'rf': [{'criterion': ['entropy', 'gini'], 'max_depth': [2, 3, 5, 8],
+	'rf': [{'criterion': ['entropy', 'gini'], #'max_depth': [2, 5, 8, None],
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08]}],
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,

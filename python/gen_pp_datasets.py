@@ -6,7 +6,7 @@ from os import listdir
 from os.path import isfile, join
 import scipy.sparse as sp
 
-dataset_folder = "./release/datasets/"
+dataset_folder = "./release/results/perform_prediction/"
 PP_mode = "weighted"
 
 def get_data(dataset_name):
@@ -14,7 +14,7 @@ def get_data(dataset_name):
     return data[0], data[1]
 
 def join_and_save_datasets(dataset_name, train_or_test, remove_pp, PP_mode, fold):
-	onlyfiles = [f for f in listdir(dataset_folder) if isfile(join(dataset_folder, f))]
+	onlyfiles = sorted([f for f in listdir(dataset_folder) if isfile(join(dataset_folder, f))])
 	if(remove_pp):
 		correct_set_only_files = [f for f in onlyfiles if dataset_name in f and train_or_test in f and "perform_meta" not in f]
 	else:
