@@ -1,12 +1,13 @@
 from sklearn.datasets import load_iris, fetch_20newsgroups, load_svmlight_file, dump_svmlight_file
 from sklearn.cross_validation import KFold, StratifiedKFold
+from sklearn.model_selection import cross_val_predict
 
 from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
 from sklearn.utils import check_random_state
 
 from sklearn.grid_search import GridSearchCV
 
-from sklearn.base import clone
+from sklearn.base import clone, RegressorMixin
 from sklearn.metrics import f1_score
 from sklearn.pipeline import Pipeline
 
@@ -237,11 +238,14 @@ class ClassificationApp(BaseApp):
 
 			def get_oob_proba(estimator):
 				# missing values
-				estimator.oob_decision_function_[np.isnan(estimator.oob_decision_function_)] = 0
-				norm = estimator.oob_decision_function_.sum(1)
-				print("Missing instances: %f" % (np.sum(norm == 0)/float(norm.shape[0])))
-				norm[norm == 0] = 1.
-				X_oob = estimator.oob_decision_function_/norm[:,np.newaxis]
+				if not isinstance(estimator, RegressorMixin):
+					estimator.oob_decision_function_[np.isnan(estimator.oob_decision_function_)] = 0
+					norm = estimator.oob_decision_function_.sum(1)
+					print("Missing instances: %f" % (np.sum(norm == 0)/float(norm.shape[0])))
+					norm[norm == 0] = 1.
+					X_oob = estimator.oob_decision_function_/norm[:,np.newaxis]
+				else:
+					X_oob = estimator.oob_decision_function_
 
 				return X_oob
 
@@ -252,7 +256,7 @@ class ClassificationApp(BaseApp):
 				n_jobs = 1 if hasattr(perform_estimator, "n_jobs") else args.n_jobs
 				gs =  GridSearchCV(perform_estimator, tuning_parameters,
 							 n_jobs=n_jobs, refit=True,
-							 cv=3, verbose=1, scoring='f1_macro')
+							 cv=3, verbose=1, scoring='neg_mean_squared_error')
 
 				gs.fit(X_train, y_perform)
 
@@ -260,13 +264,29 @@ class ClassificationApp(BaseApp):
 					print("aquiii....")
 					X_train_perform = get_oob_proba(gs.best_estimator_)
 				else:
-					mt = MetaLevelTransformerCV([clone(gs.best_estimator_)], 
-																		fit_whole_data=False)
-					X_train_perform = mt.fit_transform(X_train, y_perform)
+					if isinstance(gs.best_estimator_, RegressorMixin):
+						method = 'predict'  
+					else: 
+						method = 'predict_proba'
+
+					X_train_perform = cross_val_predict(
+																gs.best_estimator_,
+																X_train, y_perform,
+																cv=5,
+																method=method
+														)
+					# mt = MetaLevelTransformerCV([clone(gs.best_estimator_)], 
+					# 													fit_whole_data=False)
+					# X_train_perform = mt.fit_transform(X_train, y_perform)
 
 				print(gs.best_score_, gs.best_params_)
 
-				return X_train_perform, gs.predict_proba(X_test)
+				if isinstance(gs.best_estimator_, RegressorMixin):
+					X_test_perform = gs.predict(X_test)
+				else:
+					X_test_perform = gs.predict_proba(X_test)
+
+				return X_train_perform, X_test_perform
 
 			from xsklearn.ensemble import MetaLevelTransformerCV
 			X_oob = None

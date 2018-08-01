@@ -27,6 +27,7 @@ import numpy as np
 
 base_estimators = {
 	'svm': svm.SVC,
+	'svr': svm.SVR,
 	'lsvm': LinearSVM,
 	'nb': naive_bayes.MultinomialNB,
 	'knn': neighbors.KNeighborsClassifier,
@@ -62,6 +63,7 @@ default_params = {
 			 'decision_function_shape': None, 'random_state': None, 
 			 'tol': 0.001, 'cache_size': 1000, 'coef0': 0.0, 'gamma': 'auto', 
 			 'class_weight': None},
+	'svr': 	{},
 	'lsvm': {'loss': 'squared_hinge', 'C': 1, 'verbose': 0, 'intercept_scaling': 1,
 			 'fit_intercept': True, 'max_iter': 1000, 'penalty': 'l2',
 			 'multi_class': 'ovr', 'random_state': None, 'dual': False, 
@@ -152,6 +154,7 @@ default_params = {
 
 default_tuning_params = {
 	'svm': 	[{'C': 2.0 ** np.arange(-5, 15, 2)}],
+	'svr': 	[{'C': 2.0 ** np.arange(-5, 15, 2)}],
 	'lsvm': [{'C': 2.0 ** np.arange(-5, 9, 2)}],
 	'nb':  	[{'alpha': [0.0001, 0.001, 0.01, 0.1,0.5,1,1.5,10,100]}],
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300], 'weights': ['uniform', 'distance']}],
