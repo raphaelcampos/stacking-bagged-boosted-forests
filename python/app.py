@@ -266,7 +266,7 @@ class ClassificationApp(BaseApp):
 				else:
 					if isinstance(gs.best_estimator_, RegressorMixin):
 						method = 'predict'  
-					else: 
+					else:
 						method = 'predict_proba'
 
 					X_train_perform = cross_val_predict(
@@ -278,11 +278,14 @@ class ClassificationApp(BaseApp):
 					# mt = MetaLevelTransformerCV([clone(gs.best_estimator_)], 
 					# 													fit_whole_data=False)
 					# X_train_perform = mt.fit_transform(X_train, y_perform)
+				if X_train_perform.ndim == 1:
+					X_train_perform = X_train_perform[:, np.newaxis]
+
 
 				print(gs.best_score_, gs.best_params_)
 
 				if isinstance(gs.best_estimator_, RegressorMixin):
-					X_test_perform = gs.predict(X_test)
+					X_test_perform = gs.predict(X_test)[:, np.newaxis]
 				else:
 					X_test_perform = gs.predict_proba(X_test)
 
