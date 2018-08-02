@@ -8,7 +8,7 @@ from sklearn.utils import check_random_state
 from sklearn.grid_search import GridSearchCV
 
 from sklearn.base import clone, RegressorMixin
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, log_loss
 from sklearn.pipeline import Pipeline
 
 from instantiator import EstimatorInstantiator
@@ -256,9 +256,13 @@ class ClassificationApp(BaseApp):
 				n_jobs = 1 if hasattr(perform_estimator, "n_jobs") else args.n_jobs
 				gs =  GridSearchCV(perform_estimator, tuning_parameters,
 							 n_jobs=n_jobs, refit=True,
-							 cv=3, verbose=1, scoring='neg_mean_squared_error')
+							 cv=3, verbose=1, scoring='neg_mean_absolute_error')
 
 				gs.fit(X_train, y_perform)
+				print("neg mae and model:")
+				print(gs.best_score_, gs.best_params_)
+
+				# exit()
 
 				if hasattr(gs.best_estimator_, 'oob_decision_function_'):
 					print("aquiii....")
@@ -282,7 +286,6 @@ class ClassificationApp(BaseApp):
 					X_train_perform = X_train_perform[:, np.newaxis]
 
 
-				print(gs.best_score_, gs.best_params_)
 
 				if isinstance(gs.best_estimator_, RegressorMixin):
 					X_test_perform = gs.predict(X_test)[:, np.newaxis]
@@ -305,9 +308,33 @@ class ClassificationApp(BaseApp):
 					dump_svmlight_file(e.predict_proba(X_test), y_test, args.dump_meta_level % ("test", args.method, k))
 					X_oob = X_cv
 
-			y_pred = np.argmax(X_oob, axis=1)
-			y_perform = (y_pred == y_train).astype(int)
+			def cross_entropy(predictions, targets, epsilon=1e-12):
+				"""
+				Computes cross entropy between targets (encoded as one-hot vectors)
+				and predictions. 
+				Input: predictions (N, k) ndarray
+				   targets (N, k) ndarray        
+				Returns: scalar
+				"""
+				predictions = np.clip(predictions, epsilon, 1. - epsilon)
+				N = predictions.shape[0]
+				ce = -targets*np.log(predictions+1e-9)
+				return ce.mean(axis=1)
 
+			def performance_prediction_eval_metric(X_oob, y_train, eval_metric):
+				if(eval_metric == "binary_loss"):
+					y_pred = np.argmax(X_oob, axis=1)
+					return (y_pred == y_train).astype(int)
+				elif(eval_metric == "cross_entropy"):					
+					n_values = int(np.max(y_train)+1)
+					labels_one_hot_encoded = np.eye(n_values)[list(y_train.astype(int))]
+					return cross_entropy(labels_one_hot_encoded, X_oob)
+
+			metric = "cross_entropy"
+			y_perform = performance_prediction_eval_metric(X_oob, y_train, eval_metric=metric)
+			print(metric + " mean and std:")
+			print(y_perform.mean())
+			print(y_perform.std())
 			# X_oob_perform = get_oob_proba(perform_estimator)
 			X_train_perform, X_test_perform = get_perfom_proba(args, 
 				X_train,
