@@ -341,6 +341,8 @@ class ClassificationApp(BaseApp):
 			if(args.pp_features is not None):
 				X_metaf_pp, _ = self._load_dataset(args, True)
 				X_train_metafeatures, X_test_metafeatures = X_metaf_pp[train_index], X_metaf_pp[test_index]
+				dump_svmlight_file(X_train_metafeatures, y[train_index], args.dump_meta_level % ("train_pp_meta_features", "", k))
+				dump_svmlight_file(X_test_metafeatures, y[test_index], args.dump_meta_level % ("test_pp_meta_features", "", k))
 			else:
 				X_train_metafeatures, X_test_metafeatures = X_train, X_test
 
