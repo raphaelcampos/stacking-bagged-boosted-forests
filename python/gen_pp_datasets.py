@@ -6,7 +6,7 @@ from os import listdir
 from os.path import isfile, join
 import scipy.sparse as sp
 
-dataset_folder = "./release/results/perform_prediction/"
+dataset_folder = "./release/datasets/"
 PP_mode = "weighted"
 
 def get_data(dataset_name):
@@ -36,21 +36,36 @@ def join_and_save_datasets(dataset_name, train_or_test, remove_pp, PP_mode, fold
 			X_pp, y = get_data(dataset_folder+pp_file)
 			X_probs, _ = get_data(dataset_folder+probs_file)
 
-			X_pp_weighted = np.multiply(X_probs.todense(),  X_pp.todense()[:,1])
+			# X_pp_weighted = np.multiply(X_probs.todense(),  X_pp.todense()[:,1])
+			X_pp_weighted = np.multiply(X_probs.todense(),  X_pp.todense()[:,0])
 			X_out = X_probs if X_out is None else sp.hstack((X_out, X_probs))
 			X_out = sp.hstack((X_out, X_pp_weighted))
+	elif(PP_mode == "weighted_only"):
+		# embed()
+		not_pp = [f for f in fold_files_only if "perform_meta" not in f]
+		not_pp.sort()
+		pp = [f for f in fold_files_only if "perform_meta" in f]
+		pp.sort()
+		for pp_file, probs_file in zip(pp, not_pp):
+			print(pp_file, probs_file)
+			X_pp, y = get_data(dataset_folder+pp_file)
+			X_probs, _ = get_data(dataset_folder+probs_file)
+
+			X_pp_weighted = np.multiply(X_probs.todense(),  X_pp.todense()[:,0])			
+			X_out = X_pp_weighted if X_out is None else np.hstack((X_out, X_pp_weighted))
 	print(X_out.shape)
 	return X_out, y
 
 def main():
-	for fold in ["fold1"]:
-		for PP_mode in ["weighted", "raw"]:
-			for dataset_name in ["4uni"]:
+	for fold in ["fold1", "fold2", "fold3", "fold4", "fold5"]:
+	# for fold in ["fold1"]:
+		for PP_mode in ["weighted", "raw", "weighted_only"]:
+			for dataset_name in ["yelp"]:
 				X_out, y = join_and_save_datasets(dataset_name, "train", False, PP_mode, fold)
 				dump_svmlight_file(X_out, y, dataset_folder+"performance_prediction/"+"train_"+ dataset_name + "_PP" + PP_mode + "_" + fold, fold)
 				X_out, y = join_and_save_datasets(dataset_name, "test", False, PP_mode, fold)
 				dump_svmlight_file(X_out, y, dataset_folder+"performance_prediction/"+"test_"+ dataset_name + "_PP" + PP_mode+ "_" + fold, fold)
-				if(PP_mode != "weighted"):
+				if(PP_mode == "raw"):
 					X_out, y = join_and_save_datasets(dataset_name, "train", True, PP_mode, fold)
 					dump_svmlight_file(X_out, y, dataset_folder+"performance_prediction/"+"train_"+ dataset_name + "_no_PP"+ "_" + fold)
 					X_out, y = join_and_save_datasets(dataset_name, "test", True, PP_mode, fold)

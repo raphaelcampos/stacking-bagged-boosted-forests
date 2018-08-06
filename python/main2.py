@@ -100,7 +100,7 @@ class TextClassification2App(TextClassificationApp):
 		self.folds_macro = []
 		self.folds_micro = []
 
-		print(estimator.get_params(deep=False))
+		# print(estimator.get_params(deep=False))
 			
 		tf_transformer = TfidfTransformer(norm=args.norm, use_idf=False,
 										 smooth_idf=False, sublinear_tf=False)
@@ -119,9 +119,9 @@ class TextClassification2App(TextClassificationApp):
 						 n_jobs=n_jobs, refit=False,
 						 cv=args.cv, verbose=5, scoring='f1_macro')
 			gs.fit(X_train, y_train)
-			print(gs.best_score_, gs.best_params_)
+			# print(gs.best_score_, gs.best_params_)
 			estimator.set_params(**gs.best_params_)
-			print(estimator.get_params())
+			# print(estimator.get_params())
 
 		e = clone(estimator)
 
@@ -139,7 +139,7 @@ class TextClassification2App(TextClassificationApp):
 			ada_discrete_err = np.zeros((args.n_iterations,))
 			for i, y_pred in enumerate(e.staged_predict(X_test)):
 				ada_discrete_err[i] = np.mean(y_pred == y_test)
-			print(ada_discrete_err)
+			# print(ada_discrete_err)
 			end = time.time()
 
 
@@ -158,13 +158,13 @@ class TextClassification2App(TextClassificationApp):
 		self._evaluate_dump(k, y_test, pred, args)
 		k = k + 1
 
-		print("F1-Score")
-		print("\tMicro: ", np.average(self.folds_micro), np.std(self.folds_micro))
-		print("\tMacro: ", np.average(self.folds_macro), np.std(self.folds_macro))
+		# print("F1-Score")
+		# print("\tMicro: ", np.average(self.folds_micro), np.std(self.folds_micro))
+		# print("\tMacro: ", np.average(self.folds_macro), np.std(self.folds_macro))
 
-		print('loading time : ', self.datasetLoadingTime)
-		print('times : ', np.average(folds_time), np.std(folds_time))
-
+		# print('loading time : ', self.datasetLoadingTime)
+		# print('times : ', np.average(folds_time), np.std(folds_time))
+		print(np.average(self.folds_micro))
 
 app = TextClassification2App()
 

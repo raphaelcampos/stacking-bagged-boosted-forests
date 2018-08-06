@@ -26,6 +26,7 @@ import xgboost as xgb
 import numpy as np
 
 base_estimators = {
+	'lr': linear_model.LinearRegression,
 	'svm': svm.SVC,
 	'svr': svm.SVR,
 	'lsvm': LinearSVM,
@@ -80,6 +81,7 @@ default_params = {
 			 'random_state': None, 'max_features': 'auto', 'max_depth': None, 
 			 'class_weight': None},
 	'rfr':  {},
+	'lr': {},
 	'xt':  	{'warm_start': False, 'oob_score': False, 'n_jobs': 1, 'verbose': 0,
 			 'max_leaf_nodes': None, 'bootstrap': False, 'min_samples_leaf': 1, 
 			 'n_estimators': 200, 'min_samples_split': 2, 
@@ -162,8 +164,9 @@ default_tuning_params = {
 	'knn': 	[{'n_neighbors': [10, 30, 100, 200, 300], 'weights': ['uniform', 'distance']}],
 	'rf': [{'criterion': ['entropy', 'gini'], #'max_depth': [2, 5, 8, None],
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08]}],	
-	'rfr': [{'criterion': ['mse', 'mae'],# 'max_depth': [2, 5, 8, None],
-			'n_estimators': [100, 200], 'max_features': ['auto', 'sqrt', 'log2', 0.08]}],
+	'rfr': [{'criterion': ['mae'], 'max_depth': [5],
+			'n_estimators': [50], 'max_features': [0.15]}],
+	'lr': [{}],
 	'xt': [{'criterion': ['entropy', 'gini'], 
 			'n_estimators': [200], 'max_features': ['sqrt', 'log2', 0.08,
 			0.15, 0.30]}],

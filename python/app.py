@@ -85,7 +85,7 @@ class ClassificationApp(BaseApp):
 		
 		self.parser.add_argument("dataset", type=str,
                     help="SVM light format dataset. If \'toy\' is given then it is used 20ng as a toy example.", default='toy')
-
+		self.parser.add_argument("--pp_features", type=str,default = None)
 		self.parser.add_argument("-m", "--method", choices=models, default=list(models)[0])
 		self.parser.add_argument("-p", "--perform_method", choices=models, default=list(models)[0])
 
@@ -115,7 +115,7 @@ class ClassificationApp(BaseApp):
 	def parse_arguments(self):
 		return self.parser.parse_args()
 
-	def _load_dataset(self, args):
+	def _load_dataset(self, args, pp=False):
 		start = time.time()
 
 		if args.dataset == 'toy':
@@ -123,6 +123,8 @@ class ClassificationApp(BaseApp):
 			count_vect = CountVectorizer(min_df=3, stop_words='english')
 			X = count_vect.fit_transform(twenty_train.data)
 			y = twenty_train.target
+		elif(pp):
+			X, y = load_svmlight_file(args.pp_features)
 		else:			
 			X, y = load_svmlight_file(args.dataset)
 
@@ -256,7 +258,7 @@ class ClassificationApp(BaseApp):
 				n_jobs = 1 if hasattr(perform_estimator, "n_jobs") else args.n_jobs
 				gs =  GridSearchCV(perform_estimator, tuning_parameters,
 							 n_jobs=n_jobs, refit=True,
-							 cv=3, verbose=1, scoring='neg_mean_absolute_error')
+							 cv=2, verbose=1, scoring='neg_mean_absolute_error')
 
 				gs.fit(X_train, y_perform)
 				print("neg mae and model:")
@@ -336,9 +338,15 @@ class ClassificationApp(BaseApp):
 			print(y_perform.mean())
 			print(y_perform.std())
 			# X_oob_perform = get_oob_proba(perform_estimator)
+			if(args.pp_features is not None):
+				X_metaf_pp, _ = self._load_dataset(args, True)
+				X_train_metafeatures, X_test_metafeatures = X_metaf_pp[train_index], X_metaf_pp[test_index]
+			else:
+				X_train_metafeatures, X_test_metafeatures = X_train, X_test
+
 			X_train_perform, X_test_perform = get_perfom_proba(args, 
-				X_train,
-				X_test,
+				X_train_metafeatures,
+				X_test_metafeatures,
 				y_perform)
 
 			dump_svmlight_file(X_train_perform, y_train, args.dump_meta_level % ("train_perform", args.method, k))
